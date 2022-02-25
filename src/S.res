@@ -152,7 +152,6 @@ module JsonSchema = {
   exception NestedOptionException
   exception RootOptionException
 
-  type error = [#UnknownJsonSchemaError | #RootOptionJsonSchemaError | #NestedOptionJsonSchemaError]
   type json<'value> = FJS.json<'value>
   type rec t<_> =
     | JsonSchema({
@@ -326,18 +325,17 @@ module JsonSchema = {
     try {
       let fluentSchema = makeMetaSchema(struct)->applyMetaData(~isRoot=true)
       let json = fluentSchema->FJS.valueOf
-      Ok(
-        JsonSchema({
-          fluentSchema: fluentSchema,
-          struct: struct,
-          json: json,
-        }),
-      )
+      JsonSchema({
+        fluentSchema: fluentSchema,
+        struct: struct,
+        json: json,
+      })
     } catch {
-    | NestedOptionException => Error(#NestedOptionJsonSchemaError)
-    | RootOptionException => Error(#RootOptionJsonSchemaError)
+    | NestedOptionException =>
+      Js.Exn.raiseError("The option struct can't be nested in another option struct.")
+    | RootOptionException => Js.Exn.raiseError("The root struct can't be optional.")
     // TODO: Handle FluentJsonSchemaError
-    | _ => Error(#UnknownJsonSchemaError)
+    | _ => Js.Exn.raiseError("Unknown RescriptJsonSchema error.")
     }
   }
 

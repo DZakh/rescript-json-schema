@@ -94,11 +94,10 @@ let record10: (
 ) => struct<'value, ('v1, 'v2, 'v3, 'v4, 'v5, 'v6, 'v7, 'v8, 'v9, 'v10)>
 
 module JsonSchema: {
-  type error = [#UnknownJsonSchemaError | #RootOptionJsonSchemaError | #NestedOptionJsonSchemaError]
   type t<'value>
   type json<'value>
 
-  let make: struct<'value, 'ctx> => result<t<'value>, error>
+  let make: struct<'value, 'ctx> => t<'value>
 
   let valueOf: t<'value> => json<'value>
 }
