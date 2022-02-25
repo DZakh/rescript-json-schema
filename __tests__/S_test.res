@@ -75,3 +75,12 @@ test("Schema of record struct with one optional and one required string field", 
   | Ok(jsonSchema) => t->Assert.snapshot(jsonSchema->JsonSchema.valueOf, ())
   }
 })
+
+Ava.test("Make JsonSchema returns error with optional root type", t => {
+  let struct = option(string)
+
+  switch JsonSchema.make(struct) {
+  | Error(error) => t->Assert.is(error, #RootOptionJsonSchemaError, ())
+  | Ok(_) => t->Assert.fail(`Should be error`)
+  }
+})

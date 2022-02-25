@@ -61,8 +61,9 @@ let record3 = (~fields, ~decode) => {
 
 module JsonSchema = {
   exception NestedOptionException
+  exception RootOptionException
 
-  type error = [#JSON_SCHEMA_UNKNOWN_ERROR]
+  type error = [#UnknownJsonSchemaError | #RootOptionJsonSchemaError]
   type json<'value> = FJS.json<'value>
   type rec t<_> =
     | JsonSchema({
@@ -77,14 +78,12 @@ module JsonSchema = {
 
   external unwrapRootValueType: fluentSchema<option<'value>> => fluentSchema<'value> = "%identity"
 
-  let applyMetaData = (~isRoot=false, state: meta<'value>): fluentSchema<'value> => {
-    switch state {
-    | Optional(fluentSchema) => fluentSchema
-    | Required(fluentSchema) =>
-      switch isRoot {
-      | true => fluentSchema->unwrapRootValueType
-      | false => fluentSchema->FJS.required()
-      }
+  let applyMetaData = (~isRoot=false, meta: meta<'value>): fluentSchema<'value> => {
+    switch (meta, isRoot) {
+    | (Optional(_), true) => raise(RootOptionException)
+    | (Optional(fluentSchema), false) => fluentSchema
+    | (Required(fluentSchema), true) => fluentSchema->unwrapRootValueType
+    | (Required(fluentSchema), false) => fluentSchema->FJS.required()
     }
   }
 
@@ -131,8 +130,9 @@ module JsonSchema = {
         }),
       )
     } catch {
-    | NestedOptionException => Error(#JSON_SCHEMA_UNKNOWN_ERROR)
-    | _ => Error(#JSON_SCHEMA_UNKNOWN_ERROR)
+    | NestedOptionException => Error(#UnknownJsonSchemaError)
+    | RootOptionException => Error(#RootOptionJsonSchemaError)
+    | _ => Error(#UnknownJsonSchemaError)
     }
   }
 

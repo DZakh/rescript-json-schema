@@ -21,7 +21,7 @@ let record3: (
 ) => struct<'value, ('v1, 'v2, 'v3)>
 
 module JsonSchema: {
-  type error = [#JSON_SCHEMA_UNKNOWN_ERROR]
+  type error = [#UnknownJsonSchemaError | #RootOptionJsonSchemaError]
   type t<'value>
   type json<'value>
 
