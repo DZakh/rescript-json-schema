@@ -6,11 +6,11 @@ module FJS = {
   @module("fluent-json-schema")
   external string: unit => t<option<string>> = "string"
   @module("fluent-json-schema")
-  external int: unit => t<option<int>> = "integer"
+  external integer: unit => t<option<int>> = "integer"
   @module("fluent-json-schema")
-  external bool: unit => t<option<bool>> = "boolean"
+  external boolean: unit => t<option<bool>> = "boolean"
   @module("fluent-json-schema")
-  external float: unit => t<option<float>> = "number"
+  external number: unit => t<option<float>> = "number"
 
   @send external prop: (t<'v>, string, t<'p>) => t<'v> = "prop"
   @send external required: (t<option<'v>>, unit) => t<'v> = "required"
@@ -24,9 +24,9 @@ and typ<_, _> =
   | Float: typ<float, float>
   | Bool: typ<bool, bool>
   | Option(struct<'value, 'ctx>): typ<option<'value>, option<'ctx>>
-  | Object1(field<'v1, 'c1>): typ<'value, 'v1>
-  | Object2(field<'v1, 'c1>, field<'v2, 'c2>): typ<'value, ('v1, 'v2)>
-  | Object3(field<'v1, 'c1>, field<'v2, 'c2>, field<'v3, 'c3>): typ<'value, ('v1, 'v2, 'v3)>
+  | Record1(field<'v1, 'c1>): typ<'value, 'v1>
+  | Record2(field<'v1, 'c1>, field<'v2, 'c2>): typ<'value, ('v1, 'v2)>
+  | Record3(field<'v1, 'c1>, field<'v2, 'c2>, field<'v3, 'c3>): typ<'value, ('v1, 'v2, 'v3)>
 and field<'value, 'ctx> = (string, struct<'value, 'ctx>)
 
 let make = (~typ, ~decode, ()): struct<'value, 'ctx> => {
@@ -46,17 +46,17 @@ let option = s => {
   make(~typ=Option(s), ~decode=ctx => ctx->Belt.Option.mapU((. ctx') => s.decode(ctx')), ())
 }
 
-let object1 = (~fields, ~decode) => {
+let record1 = (~fields, ~decode) => {
   let f1 = fields
-  make(~typ=Object1(f1), ~decode, ())
+  make(~typ=Record1(f1), ~decode, ())
 }
-let object2 = (~fields, ~decode) => {
+let record2 = (~fields, ~decode) => {
   let (f1, f2) = fields
-  make(~typ=Object2(f1, f2), ~decode, ())
+  make(~typ=Record2(f1, f2), ~decode, ())
 }
-let object3 = (~fields, ~decode) => {
+let record3 = (~fields, ~decode) => {
   let (f1, f2, f3) = fields
-  make(~typ=Object3(f1, f2, f3), ~decode, ())
+  make(~typ=Record3(f1, f2, f3), ~decode, ())
 }
 
 module JsonSchema = {
@@ -93,23 +93,23 @@ module JsonSchema = {
     s => {
       switch s.typ {
       | String => Required(FJS.string())
-      | Int => Required(FJS.int())
-      | Bool => Required(FJS.bool())
-      | Float => Required(FJS.float())
+      | Int => Required(FJS.integer())
+      | Bool => Required(FJS.boolean())
+      | Float => Required(FJS.number())
       | Option(s') =>
         switch makeMetaSchema(s') {
         | Optional(_) => raise(NestedOptionException)
         | Required(s'') => Optional(s'')
         }
-      | Object1((fn1, fs1)) =>
+      | Record1((fn1, fs1)) =>
         Required(FJS.object()->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData))
-      | Object2((fn1, fs1), (fn2, fs2)) =>
+      | Record2((fn1, fs1), (fn2, fs2)) =>
         Required(
           FJS.object()
           ->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData)
           ->FJS.prop(fn2, makeMetaSchema(fs2)->applyMetaData),
         )
-      | Object3((fn1, fs1), (fn2, fs2), (fn3, fs3)) =>
+      | Record3((fn1, fs1), (fn2, fs2), (fn3, fs3)) =>
         Required(
           FJS.object()
           ->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData)
