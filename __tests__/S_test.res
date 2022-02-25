@@ -1,8 +1,9 @@
 open Ava
 open S
 
-type recordWithOneStringField = {field1: string}
-type recordWithOneOptionalStringField = {optionalField1: option<string>}
+type recordWithOneStringField = {field: string}
+type recordWithOneOptionalStringField = {optionalField: option<string>}
+type recordWithOneOptionalAndOneRequiredStringField = {optionalField: option<string>, field: string}
 
 test("Schema of bool struct", t => {
   let struct = bool
@@ -41,7 +42,7 @@ test("Schema of float struct", t => {
 })
 
 test("Schema of record struct with one string field", t => {
-  let struct = record1(~fields=field("field1", string), ~decode=field1 => {field1: field1})
+  let struct = record1(~fields=field("field", string), ~decode=field => {field: field})
 
   switch JsonSchema.make(struct) {
   | Error(error) => t->Assert.fail(`Shouldn't be error. Error: ${(error :> string)}`)
@@ -50,9 +51,24 @@ test("Schema of record struct with one string field", t => {
 })
 
 test("Schema of record struct with one optional string field", t => {
-  let struct = record1(~fields=field("optionalField1", option(string)), ~decode=optionalField1 => {
-    optionalField1: optionalField1,
+  let struct = record1(~fields=field("optionalField", option(string)), ~decode=optionalField => {
+    optionalField: optionalField,
   })
+
+  switch JsonSchema.make(struct) {
+  | Error(error) => t->Assert.fail(`Shouldn't be error. Error: ${(error :> string)}`)
+  | Ok(jsonSchema) => t->Assert.snapshot(jsonSchema->JsonSchema.valueOf, ())
+  }
+})
+
+test("Schema of record struct with one optional and one required string field", t => {
+  let struct = record2(
+    ~fields=(field("field", string), field("optionalField", option(string))),
+    ~decode=((field, optionalField)) => {
+      field: field,
+      optionalField: optionalField,
+    },
+  )
 
   switch JsonSchema.make(struct) {
   | Error(error) => t->Assert.fail(`Shouldn't be error. Error: ${(error :> string)}`)
