@@ -3,6 +3,7 @@ open S
 
 type recordWithOneStringField = {field: string}
 type recordWithOneOptionalStringField = {optionalField: option<string>}
+type recordWithOneOptionalOptionalStringField = {optionalOptionalField: option<option<string>>}
 type recordWithOneOptionalAndOneRequiredStringField = {optionalField: option<string>, field: string}
 
 test("Schema of bool struct", t => {
@@ -81,6 +82,20 @@ Ava.test("Make JsonSchema returns error with optional root type", t => {
 
   switch JsonSchema.make(struct) {
   | Error(error) => t->Assert.is(error, #RootOptionJsonSchemaError, ())
+  | Ok(_) => t->Assert.fail(`Should be error`)
+  }
+})
+
+Ava.test("Make JsonSchema returns error with record field wrapped in option multiple times", t => {
+  let struct = record1(
+    ~fields=field("optionalOptionalField", option(option(string))),
+    ~decode=optionalOptionalField => {
+      optionalOptionalField: optionalOptionalField,
+    },
+  )
+
+  switch JsonSchema.make(struct) {
+  | Error(error) => t->Assert.is(error, #NestedOptionJsonSchemaError, ())
   | Ok(_) => t->Assert.fail(`Should be error`)
   }
 })

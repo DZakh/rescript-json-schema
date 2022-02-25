@@ -63,7 +63,7 @@ module JsonSchema = {
   exception NestedOptionException
   exception RootOptionException
 
-  type error = [#UnknownJsonSchemaError | #RootOptionJsonSchemaError]
+  type error = [#UnknownJsonSchemaError | #RootOptionJsonSchemaError | #NestedOptionJsonSchemaError]
   type json<'value> = FJS.json<'value>
   type rec t<_> =
     | JsonSchema({
@@ -130,7 +130,7 @@ module JsonSchema = {
         }),
       )
     } catch {
-    | NestedOptionException => Error(#UnknownJsonSchemaError)
+    | NestedOptionException => Error(#NestedOptionJsonSchemaError)
     | RootOptionException => Error(#RootOptionJsonSchemaError)
     | _ => Error(#UnknownJsonSchemaError)
     }
