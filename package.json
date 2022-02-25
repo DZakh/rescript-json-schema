@@ -31,12 +31,12 @@
   "scripts": {
     "res:build": "rescript",
     "res:dev": "rescript build -w",
-    "test": "ava"
+    "test": "ava",
+    "test:update-shanpshots": "ava --update-shanpshots"
   },
   "devDependencies": {
-    "ava": "^4.0.1",
     "rescript": "9.1.4",
-    "rescript-ava": "^3.15.0"
+    "rescript-ava": "git+https://github.com/DZakh-packages/rescript-ava.git"
   },
   "dependencies": {
     "fluent-json-schema": "3.0.1"

@@ -20,10 +20,11 @@ let object3: (
 ) => struct<'value, ('v1, 'v2, 'v3)>
 
 module JsonSchema: {
+  type error = [#JSON_SCHEMA_UNKNOWN_ERROR]
   type t<'value>
   type json<'value>
 
-  let make: struct<'value, 'ctx> => t<'value>
+  let make: struct<'value, 'ctx> => result<t<'value>, error>
 
   let valueOf: t<'value> => json<'value>
 }

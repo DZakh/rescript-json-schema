@@ -55,25 +55,32 @@ let object3 = (~fields, ~decode) => {
   make(~typ=Object3(f1, f2, f3), ~decode, ())
 }
 
-// TODO: Properly handle error
-exception Exception(string)
-
 module JsonSchema = {
+  exception NestedOptionException
+
+  type error = [#JSON_SCHEMA_UNKNOWN_ERROR]
   type json<'value> = FJS.json<'value>
-  type rec t<_> = JsonSchema({fluentSchema: FJS.t<'value>, struct: struct<'value, 'ctx>}): t<'value>
+  type rec t<_> =
+    | JsonSchema({
+        fluentSchema: FJS.t<'value>,
+        struct: struct<'value, 'ctx>,
+        json: json<'value>,
+      }): t<'value>
   type rec fluentSchema<'value> = FJS.t<'value>
   and meta<'value> =
     | Optional(fluentSchema<'value>)
     | Required(fluentSchema<option<'value>>)
-    | RootObject(fluentSchema<option<'value>>)
-  external unwrapRootObjectValueType: fluentSchema<option<'value>> => fluentSchema<'value> =
-    "%identity"
 
-  let applyMetaData = (state: meta<'value>): fluentSchema<'value> => {
+  external unwrapRootValueType: fluentSchema<option<'value>> => fluentSchema<'value> = "%identity"
+
+  let applyMetaData = (~isRoot=false, state: meta<'value>): fluentSchema<'value> => {
     switch state {
     | Optional(fluentSchema) => fluentSchema
-    | RootObject(fluentSchema) => fluentSchema->unwrapRootObjectValueType
-    | Required(fluentSchema) => fluentSchema->FJS.required()
+    | Required(fluentSchema) =>
+      switch isRoot {
+      | true => fluentSchema->unwrapRootValueType
+      | false => fluentSchema->FJS.required()
+      }
     }
   }
 
@@ -86,20 +93,19 @@ module JsonSchema = {
       | Bool => Required(FJS.bool())
       | Option(s') =>
         switch makeMetaSchema(s') {
-        | Optional(_) => raise(Exception("TODO:"))
+        | Optional(_) => raise(NestedOptionException)
         | Required(s'') => Optional(s'')
-        | RootObject(s'') => Optional(s'')
         }
       | Object1((fn1, fs1)) =>
-        RootObject(FJS.object()->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData))
+        Required(FJS.object()->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData))
       | Object2((fn1, fs1), (fn2, fs2)) =>
-        RootObject(
+        Required(
           FJS.object()
           ->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData)
           ->FJS.prop(fn2, makeMetaSchema(fs2)->applyMetaData),
         )
       | Object3((fn1, fs1), (fn2, fs2), (fn3, fs3)) =>
-        RootObject(
+        Required(
           FJS.object()
           ->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData)
           ->FJS.prop(fn2, makeMetaSchema(fs2)->applyMetaData)
@@ -109,15 +115,24 @@ module JsonSchema = {
     }
 
   let make = struct => {
-    let fluentSchema = makeMetaSchema(struct)->applyMetaData
-    JsonSchema({
-      fluentSchema: fluentSchema,
-      struct: struct,
-    })
+    try {
+      let fluentSchema = makeMetaSchema(struct)->applyMetaData(~isRoot=true)
+      let json = fluentSchema->FJS.valueOf
+      Ok(
+        JsonSchema({
+          fluentSchema: fluentSchema,
+          struct: struct,
+          json: json,
+        }),
+      )
+    } catch {
+    | NestedOptionException => Error(#JSON_SCHEMA_UNKNOWN_ERROR)
+    | _ => Error(#JSON_SCHEMA_UNKNOWN_ERROR)
+    }
   }
 
   let valueOf = jsonSchema => {
     let JsonSchema(jsonSchema') = jsonSchema
-    jsonSchema'.fluentSchema->FJS.valueOf
+    jsonSchema'.json
   }
 }
