@@ -30,12 +30,20 @@
   ],
   "scripts": {
     "res:build": "rescript",
-    "res:dev": "rescript build -w"
+    "res:dev": "rescript build -w",
+    "test": "ava"
   },
   "devDependencies": {
-    "rescript": "9.1.4"
+    "ava": "^4.0.1",
+    "rescript": "9.1.4",
+    "rescript-ava": "^3.15.0"
   },
   "dependencies": {
     "fluent-json-schema": "3.0.1"
+  },
+  "ava": {
+    "files": [
+      "__tests__/**/*_test.bs.js"
+    ]
   }
 }

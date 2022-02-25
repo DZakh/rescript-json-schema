@@ -2,6 +2,7 @@
   "name": "rescript-json-schema",
   "namespace": false,
   "bsc-flags": ["-bs-no-version-header", "-bs-super-errors"],
+  "bs-dev-dependencies": ["rescript-ava"],
   "suffix": ".bs.js",
   "package-specs": {
     "module": "commonjs",
@@ -10,6 +11,10 @@
   "sources": [
     {
       "dir": "src"
+    },
+    {
+      "dir": "__tests__",
+      "type": "dev"
     }
   ],
   "warnings": {
