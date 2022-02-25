@@ -1,0 +1,41 @@
+{
+  "name": "rescript-json-schema",
+  "version": "0.1.0",
+  "description": "Type safe JSON schema for ReScript",
+  "keywords": [
+    "ReScript",
+    "json",
+    "type safe",
+    "encode",
+    "decode",
+    "validation",
+    "json schema",
+    "Ajv",
+    "openapi",
+    "swagger"
+  ],
+  "homepage": "https://github.com/DZakh-packages/rescript-json-schema#readme",
+  "bugs": {
+    "url": "https://github.com/DZakh-packages/rescript-json-schema/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DZakh-packages/rescript-json-schema.git"
+  },
+  "license": "MIT",
+  "author": "Dmitry Zakharov <dzakh.dev@gmail.com>",
+  "files": [
+    "src/",
+    "bsconfig.json"
+  ],
+  "scripts": {
+    "res:build": "rescript",
+    "res:dev": "rescript build -w"
+  },
+  "devDependencies": {
+    "rescript": "9.1.4"
+  },
+  "dependencies": {
+    "fluent-json-schema": "3.0.1"
+  }
+}
