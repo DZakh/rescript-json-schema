@@ -20,3 +20,10 @@ test("Schema of int struct", t => {
   | Ok(jsonSchema) => t->Assert.snapshot(jsonSchema->S.JsonSchema.valueOf, ())
   }
 })
+
+test("Schema of float struct", t => {
+  switch S.JsonSchema.make(S.float) {
+  | Error(error) => t->Assert.fail(`Shouldn't be error. Error: ${(error :> string)}`)
+  | Ok(jsonSchema) => t->Assert.snapshot(jsonSchema->S.JsonSchema.valueOf, ())
+  }
+})

@@ -4,6 +4,7 @@ type field<'value, 'ctx>
 let string: struct<string, string>
 let bool: struct<bool, bool>
 let int: struct<int, int>
+let float: struct<float, float>
 
 let field: (string, struct<'value, 'ctx>) => field<'value, 'ctx>
 

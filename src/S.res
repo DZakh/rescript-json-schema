@@ -9,6 +9,8 @@ module FJS = {
   external int: unit => t<option<int>> = "integer"
   @module("fluent-json-schema")
   external bool: unit => t<option<bool>> = "boolean"
+  @module("fluent-json-schema")
+  external float: unit => t<option<float>> = "number"
 
   @send external prop: (t<'v>, string, t<'p>) => t<'v> = "prop"
   @send external required: (t<option<'v>>, unit) => t<'v> = "required"
@@ -19,6 +21,7 @@ type rec struct<'value, 'ctx> = {typ: typ<'value, 'ctx>, decode: 'ctx => 'value}
 and typ<_, _> =
   | String: typ<string, string>
   | Int: typ<int, int>
+  | Float: typ<float, float>
   | Bool: typ<bool, bool>
   | Option(struct<'value, 'ctx>): typ<option<'value>, option<'ctx>>
   | Object1(field<'v1, 'c1>): typ<'value, 'v1>
@@ -33,6 +36,7 @@ let make = (~typ, ~decode, ()): struct<'value, 'ctx> => {
 let string = make(~typ=String, ~decode=v => v, ())
 let bool = make(~typ=Bool, ~decode=v => v, ())
 let int = make(~typ=Int, ~decode=v => v, ())
+let float = make(~typ=Float, ~decode=v => v, ())
 
 let field = (fieldName, fieldSchema) => {
   (fieldName, fieldSchema)
@@ -91,6 +95,7 @@ module JsonSchema = {
       | String => Required(FJS.string())
       | Int => Required(FJS.int())
       | Bool => Required(FJS.bool())
+      | Float => Required(FJS.float())
       | Option(s') =>
         switch makeMetaSchema(s') {
         | Optional(_) => raise(NestedOptionException)
