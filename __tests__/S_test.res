@@ -1,97 +1,85 @@
 open Ava
-open S
 
-type recordWithOneStringField = {field: string}
-type recordWithOneOptionalStringField = {optionalField: option<string>}
-type recordWithOneOptionalOptionalStringField = {optionalOptionalField: option<option<string>>}
-type recordWithOneOptionalAndOneRequiredStringField = {optionalField: option<string>, field: string}
-type throwsExpectation = {message: option<string>}
+test("Decodes unknown literal", t => {
+  let literal = "ReScript is Great!"
 
-test("Schema of bool struct", t => {
-  let struct = bool
+  let unknownLiteral = Js.Json.string(literal)
+  let literalStruct = S.string
 
-  t->Assert.snapshot(JsonSchema.make(struct), ())
+  t->Assert.is(literalStruct->S.decode(unknownLiteral), literal, ())
+  t->Assert.is(unknownLiteral->S.decodeWith(literalStruct), literal, ())
 })
 
-test("Schema of string struct", t => {
-  let struct = string
+test(
+  "Decodes unknown literal without validation. Note: Use Ajv.parse to safely decode with validation",
+  t => {
+    let literal = 123.
 
-  t->Assert.snapshot(JsonSchema.make(struct), ())
-})
+    let unknownLiteral = Js.Json.number(literal)
+    let literalStruct = S.string
 
-test("Schema of int struct", t => {
-  let struct = int
+    t->Assert.is(literalStruct->S.decode(unknownLiteral), literal, ())
+    t->Assert.is(unknownLiteral->S.decodeWith(literalStruct), literal, ())
+  },
+)
 
-  t->Assert.snapshot(JsonSchema.make(struct), ())
-})
+module TestRecordDecoding = {
+  type singleFieldRecord = {foo: string}
+  type multipleFieldsRecord = {foo: string, zoo: string}
+  type user = {name: string, email: string, age: int}
+  type nestedRecord = {singleFieldRecord: singleFieldRecord}
+  type optionalNestedRecord = {singleFieldRecord: option<singleFieldRecord>}
 
-test("Schema of float struct", t => {
-  let struct = float
+  external unsafeToUnknown: 'value => Js.Json.t = "%identity"
 
-  t->Assert.snapshot(JsonSchema.make(struct), ())
-})
+  test("Decodes unknown record with single field", t => {
+    let record = {foo: "bar"}
 
-test("Schema of strings array struct", t => {
-  let struct = array(string)
+    let unknownRecord = record->unsafeToUnknown
+    let recordStruct = S.record1(~fields=S.field("foo", S.string), ~construct=foo => {foo: foo})
 
-  t->Assert.snapshot(JsonSchema.make(struct), ())
-})
-
-test("Schema of record struct with one string field", t => {
-  let struct = record1(~fields=field("field", string), ~decode=field => {field: field})
-
-  t->Assert.snapshot(JsonSchema.make(struct), ())
-})
-
-test("Schema of record struct with one optional string field", t => {
-  let struct = record1(~fields=field("optionalField", option(string)), ~decode=optionalField => {
-    optionalField: optionalField,
+    t->Assert.deepEqual(recordStruct->S.decode(unknownRecord), record, ())
+    t->Assert.deepEqual(unknownRecord->S.decodeWith(recordStruct), record, ())
   })
 
-  t->Assert.snapshot(JsonSchema.make(struct), ())
-})
+  test("Decodes unknown record with multiple fields", t => {
+    let record = {foo: "bar", zoo: "jee"}
 
-test("Schema of record struct with one optional and one required string field", t => {
-  let struct = record2(
-    ~fields=(field("field", string), field("optionalField", option(string))),
-    ~decode=((field, optionalField)) => {
-      field: field,
-      optionalField: optionalField,
-    },
-  )
+    let unknownRecord = record->unsafeToUnknown
+    let recordStruct = S.record2(
+      ~fields=(S.field("foo", S.string), S.field("zoo", S.string)),
+      ~construct=((foo, zoo)) => {foo: foo, zoo: zoo},
+    )
 
-  t->Assert.snapshot(JsonSchema.make(struct), ())
-})
+    t->Assert.deepEqual(recordStruct->S.decode(unknownRecord), record, ())
+    t->Assert.deepEqual(unknownRecord->S.decodeWith(recordStruct), record, ())
+  })
 
-Ava.test("Make JsonSchema throws error with optional root type", t => {
-  let struct = option(string)
+  test("Decodes unknown record with mapped field", t => {
+    let record = {name: "Dmitry", email: "dzakh.dev@gmail.com", age: 21}
 
-  t->Assert.throws(
-    () => {
-      JsonSchema.make(struct)->ignore
-    },
-    ~expectations={
-      message: Some("The root struct can\'t be optional."),
-    },
-    (),
-  )
-})
+    let unknownRecord =
+      %raw(`{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21}`)->unsafeToUnknown
+    let recordStruct = S.record3(
+      ~fields=(S.field("Name", S.string), S.field("Email", S.string), S.field("Age", S.int)),
+      ~construct=((name, email, age)) => {name: name, email: email, age: age},
+    )
 
-Ava.test("Make JsonSchema throws error with record field wrapped in option multiple times", t => {
-  let struct = record1(
-    ~fields=field("optionalOptionalField", option(option(string))),
-    ~decode=optionalOptionalField => {
-      optionalOptionalField: optionalOptionalField,
-    },
-  )
+    t->Assert.deepEqual(recordStruct->S.decode(unknownRecord), record, ())
+    t->Assert.deepEqual(unknownRecord->S.decodeWith(recordStruct), record, ())
+  })
+}
 
-  t->Assert.throws(
-    () => {
-      JsonSchema.make(struct)->ignore
-    },
-    ~expectations={
-      message: Some("The option struct can\'t be nested in another option struct."),
-    },
+test("Decodes unknown array of literals", t => {
+  let arrayOfLiterals = ["ReScript is Great!"]
+
+  let unknownArrayOfLiterals = Js.Json.stringArray(arrayOfLiterals)
+  let arrayOfLiteralsStruct = S.array(S.string)
+
+  t->Assert.deepEqual(arrayOfLiteralsStruct->S.decode(unknownArrayOfLiterals), arrayOfLiterals, ())
+  t->Assert.deepEqual(
+    unknownArrayOfLiterals->S.decodeWith(arrayOfLiteralsStruct),
+    arrayOfLiterals,
     (),
   )
 })

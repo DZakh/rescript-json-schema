@@ -35,6 +35,7 @@
     "test:update-shanpshots": "ava --update-shanpshots"
   },
   "devDependencies": {
+    "ajv": "^8.10.0",
     "rescript": "9.1.4",
     "rescript-ava": "git+https://github.com/DZakh-packages/rescript-ava.git"
   },

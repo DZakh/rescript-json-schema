@@ -1,9 +1,8 @@
 open Ava
-open S
 
 test("Guard works with literal schema", t => {
-  let struct = bool
-  let jsonSchema = JsonSchema.make(struct)
+  let struct = S.bool
+  let jsonSchema = S.JsonSchema.make(struct)
 
   let ajv = Ajv.make()
   let boolValidator = ajv->Ajv.Validator.make(jsonSchema)
@@ -12,15 +11,19 @@ test("Guard works with literal schema", t => {
   t->Assert.is(boolValidator->Ajv.Validator.is(123), false, ())
 })
 
-module RecordSchemaGuard = {
+module TestRecordSchemaGuard = {
   type user = {name: string, email: option<string>, age: int}
 
   let validateUser = data => {
-    let struct = record3(
-      ~fields=(field("Name", string), field("Email", option(string)), field("Age", int)),
-      ~decode=((name, email, age)) => {name: name, email: email, age: age},
+    let struct = S.record3(
+      ~fields=(
+        S.field("Name", S.string),
+        S.field("Email", S.option(S.string)),
+        S.field("Age", S.int),
+      ),
+      ~construct=((name, email, age)) => {name: name, email: email, age: age},
     )
-    let jsonSchema = JsonSchema.make(struct)
+    let jsonSchema = S.JsonSchema.make(struct)
 
     let ajv = Ajv.make()
     let userValidator = ajv->Ajv.Validator.make(jsonSchema)
