@@ -330,7 +330,8 @@ module JsonSchema = {
     | NestedOptionException =>
       Js.Exn.raiseError("The option struct can't be nested in another option struct.")
     | RootOptionException => Js.Exn.raiseError("The root struct can't be optional.")
-
+    // TODO: Handle FluentSchema error
+    // TODO: Raise custom instance of error
     | _ => Js.Exn.raiseError("Unknown RescriptJsonSchema error.")
     }
   }
