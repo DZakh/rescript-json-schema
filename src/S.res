@@ -106,8 +106,16 @@ let field = (fieldName, fieldSchema) => {
 }
 
 let array = struct => make(~kind=Array(struct), ())
+
+external unsafeToOption: 'a => option<'a> = "%identity"
 let option = struct => {
-  make(~kind=Option(struct), ())
+  make(
+    ~kind=Option(struct),
+    ~decoder=unknown => {
+      unknown->unsafeToOption->Js.Option.map((. unknown') => _decode(struct, unknown'), _)
+    },
+    (),
+  )
 }
 
 let record1 = (~fields, ~construct) => {

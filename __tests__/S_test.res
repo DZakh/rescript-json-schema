@@ -68,6 +68,38 @@ module TestRecordDecoding = {
     t->Assert.deepEqual(recordStruct->S.decode(unknownRecord), record, ())
     t->Assert.deepEqual(unknownRecord->S.decodeWith(recordStruct), record, ())
   })
+
+  test("Decodes unknown record with optional nested record", t => {
+    let recordWithSomeField = {singleFieldRecord: Some({foo: "bar"})}
+    let recordWithNoneField = {singleFieldRecord: None}
+
+    let unknownRecordWithSomeField =
+      %raw(`{"singleFieldRecord":{"MUST_BE_MAPPED":"bar"}}`)->unsafeToUnknown
+    let unknownRecordWithNoneField = %raw(`{}`)->unsafeToUnknown
+
+    let recordStruct = S.record1(
+      ~fields=S.field(
+        "singleFieldRecord",
+        S.option(
+          S.record1(~fields=S.field("MUST_BE_MAPPED", S.string), ~construct=foo => {foo: foo}),
+        ),
+      ),
+      ~construct=singleFieldRecord => {singleFieldRecord: singleFieldRecord},
+    )
+
+    t->Assert.deepEqual(recordStruct->S.decode(unknownRecordWithSomeField), recordWithSomeField, ())
+    t->Assert.deepEqual(
+      unknownRecordWithSomeField->S.decodeWith(recordStruct),
+      recordWithSomeField,
+      (),
+    )
+    t->Assert.deepEqual(recordStruct->S.decode(unknownRecordWithNoneField), recordWithNoneField, ())
+    t->Assert.deepEqual(
+      unknownRecordWithNoneField->S.decodeWith(recordStruct),
+      recordWithNoneField,
+      (),
+    )
+  })
 }
 
 test("Decodes unknown array of literals", t => {
