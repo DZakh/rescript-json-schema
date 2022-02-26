@@ -31,6 +31,12 @@ test("Schema of float struct", t => {
   t->Assert.snapshot(JsonSchema.make(struct), ())
 })
 
+test("Schema of strings array struct", t => {
+  let struct = array(string)
+
+  t->Assert.snapshot(JsonSchema.make(struct), ())
+})
+
 test("Schema of record struct with one string field", t => {
   let struct = record1(~fields=field("field", string), ~decode=field => {field: field})
 

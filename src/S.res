@@ -11,9 +11,12 @@ module FJS = {
   external boolean: unit => t<option<bool>> = "boolean"
   @module("fluent-json-schema")
   external number: unit => t<option<float>> = "number"
+  @module("fluent-json-schema")
+  external array: unit => t<option<array<'item>>> = "array"
 
   @send external prop: (t<'v>, string, t<'p>) => t<'v> = "prop"
   @send external required: (t<option<'v>>, unit) => t<'v> = "required"
+  @send external items: (t<option<array<'item>>>, t<'item>) => t<option<array<'item>>> = "items"
   @send external valueOf: t<'v> => json<'v> = "valueOf"
 }
 
@@ -24,6 +27,7 @@ and typ<_, _> =
   | Float: typ<float, float>
   | Bool: typ<bool, bool>
   | Option(struct<'value, 'ctx>): typ<option<'value>, option<'ctx>>
+  | Array(struct<'value, 'ctx>): typ<array<'value>, array<'ctx>>
   | Record1(field<'v1, 'c1>): typ<'value, 'v1>
   | Record2(field<'v1, 'c1>, field<'v2, 'c2>): typ<'value, ('v1, 'v2)>
   | Record3(field<'v1, 'c1>, field<'v2, 'c2>, field<'v3, 'c3>): typ<'value, ('v1, 'v2, 'v3)>
@@ -103,8 +107,9 @@ let field = (fieldName, fieldSchema) => {
   (fieldName, fieldSchema)
 }
 
-let option = s => {
-  make(~typ=Option(s), ~decode=ctx => ctx->Belt.Option.mapU((. ctx') => s.decode(ctx')), ())
+let array = struct => make(~typ=Array(struct), ~decode=v => v, ())
+let option = struct => {
+  make(~typ=Option(struct), ~decode=v => v, ())
 }
 
 let record1 = (~fields, ~decode) => {
@@ -160,12 +165,12 @@ module JsonSchema = {
 
   external unwrapRootValueType: fluentSchema<option<'value>> => fluentSchema<'value> = "%identity"
 
-  let applyMetaData = (~isRoot=false, meta: meta<'value>): fluentSchema<'value> => {
-    switch (meta, isRoot) {
-    | (Optional(_), true) => raise(RootOptionException)
-    | (Optional(fluentSchema), false) => fluentSchema
-    | (Required(fluentSchema), true) => fluentSchema->unwrapRootValueType
-    | (Required(fluentSchema), false) => fluentSchema->FJS.required()
+  let applyMetaData = (~isRecordField=true, meta: meta<'value>): fluentSchema<'value> => {
+    switch (meta, isRecordField) {
+    | (Optional(_), false) => raise(RootOptionException)
+    | (Optional(fluentSchema), true) => fluentSchema
+    | (Required(fluentSchema), false) => fluentSchema->unwrapRootValueType
+    | (Required(fluentSchema), true) => fluentSchema->FJS.required()
     }
   }
 
@@ -177,6 +182,8 @@ module JsonSchema = {
       | Int => Required(FJS.integer())
       | Bool => Required(FJS.boolean())
       | Float => Required(FJS.number())
+      | Array(s') =>
+        Required(FJS.array()->FJS.items(makeMetaSchema(s')->applyMetaData(~isRecordField=false)))
       | Option(s') =>
         switch makeMetaSchema(s') {
         | Optional(_) => raise(NestedOptionException)
@@ -317,13 +324,13 @@ module JsonSchema = {
 
   let make = struct => {
     try {
-      let fluentSchema = makeMetaSchema(struct)->applyMetaData(~isRoot=true)
+      let fluentSchema = makeMetaSchema(struct)->applyMetaData(~isRecordField=false)
       fluentSchema->FJS.valueOf
     } catch {
     | NestedOptionException =>
       Js.Exn.raiseError("The option struct can't be nested in another option struct.")
     | RootOptionException => Js.Exn.raiseError("The root struct can't be optional.")
-    // TODO: Handle FluentJsonSchemaError
+
     | _ => Js.Exn.raiseError("Unknown RescriptJsonSchema error.")
     }
   }

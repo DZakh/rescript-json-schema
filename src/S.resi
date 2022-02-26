@@ -8,7 +8,8 @@ let float: struct<float, float>
 
 let field: (string, struct<'value, 'ctx>) => field<'value, 'ctx>
 
-let option: struct<'value, 'ctx> => struct<option<'value>, option<'ctx>>
+let array: struct<'value, 'value> => struct<array<'value>, array<'value>>
+let option: struct<'value, 'value> => struct<option<'value>, option<'value>>
 
 let record1: (~fields: field<'v1, 'c1>, ~decode: 'v1 => 'value) => struct<'value, 'v1>
 let record2: (
