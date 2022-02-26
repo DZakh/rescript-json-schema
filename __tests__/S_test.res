@@ -23,6 +23,20 @@ test(
   },
 )
 
+test("Decodes unknown array of literals", t => {
+  let arrayOfLiterals = ["ReScript is Great!"]
+
+  let unknownArrayOfLiterals = Js.Json.stringArray(arrayOfLiterals)
+  let arrayOfLiteralsStruct = S.array(S.string)
+
+  t->Assert.deepEqual(arrayOfLiteralsStruct->S.decode(unknownArrayOfLiterals), arrayOfLiterals, ())
+  t->Assert.deepEqual(
+    unknownArrayOfLiterals->S.decodeWith(arrayOfLiteralsStruct),
+    arrayOfLiterals,
+    (),
+  )
+})
+
 module TestRecordDecoding = {
   type singleFieldRecord = {foo: string}
   type multipleFieldsRecord = {foo: string, zoo: string}
@@ -100,18 +114,21 @@ module TestRecordDecoding = {
       (),
     )
   })
+
+  test("Decodes unknown array of records", t => {
+    let arrayOfRecords = [{foo: "bar"}, {foo: "baz"}]
+
+    let unknownArrayOfRecords =
+      %raw(`[{"MUST_BE_MAPPED":"bar"},{"MUST_BE_MAPPED":"baz"}]`)->unsafeToUnknown
+    let arrayOfRecordsStruct = S.array(
+      S.record1(~fields=S.field("MUST_BE_MAPPED", S.string), ~construct=foo => {foo: foo}),
+    )
+
+    t->Assert.deepEqual(arrayOfRecordsStruct->S.decode(unknownArrayOfRecords), arrayOfRecords, ())
+    t->Assert.deepEqual(
+      unknownArrayOfRecords->S.decodeWith(arrayOfRecordsStruct),
+      arrayOfRecords,
+      (),
+    )
+  })
 }
-
-test("Decodes unknown array of literals", t => {
-  let arrayOfLiterals = ["ReScript is Great!"]
-
-  let unknownArrayOfLiterals = Js.Json.stringArray(arrayOfLiterals)
-  let arrayOfLiteralsStruct = S.array(S.string)
-
-  t->Assert.deepEqual(arrayOfLiteralsStruct->S.decode(unknownArrayOfLiterals), arrayOfLiterals, ())
-  t->Assert.deepEqual(
-    unknownArrayOfLiterals->S.decodeWith(arrayOfLiteralsStruct),
-    arrayOfLiterals,
-    (),
-  )
-})

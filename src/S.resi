@@ -1,3 +1,4 @@
+type unknown = Js.Json.t
 type struct<'value>
 type field<'value>
 
@@ -21,8 +22,8 @@ let record3: (
   ~construct: (('v1, 'v2, 'v3)) => 'value,
 ) => struct<'value>
 
-let decode: (struct<'value>, Js.Json.t) => 'value
-let decodeWith: (Js.Json.t, struct<'value>) => 'value
+let decode: (struct<'value>, unknown) => 'value
+let decodeWith: (unknown, struct<'value>) => 'value
 
 module JsonSchema: {
   type t<'value>

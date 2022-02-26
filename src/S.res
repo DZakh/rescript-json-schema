@@ -20,7 +20,8 @@ module FJS = {
   @send external valueOf: t<'v> => json<'v> = "valueOf"
 }
 
-type rec struct<'value> = {kind: kind<'value>, decoder: option<Js.Json.t => 'value>}
+type unknown = Js.Json.t
+type rec struct<'value> = {kind: kind<'value>, decoder: option<unknown => 'value>}
 and kind<_> =
   | String: kind<string>
   | Int: kind<int>
@@ -38,9 +39,9 @@ let make = (~kind, ~decoder=?, ()): struct<'value> => {
   {kind: kind, decoder: decoder}
 }
 
-external unsafeDecoder: Js.Json.t => 'value = "%identity"
+external unsafeDecoder: unknown => 'value = "%identity"
 let _decode:
-  type src. (struct<src>, Js.Json.t) => src =
+  type value. (struct<value>, unknown) => value =
   (struct, unknown) => {
     switch struct.decoder {
     | Some(decoder) => unknown->decoder
@@ -91,7 +92,7 @@ function(fields, construct, decode) {
 }
 `)
 
-  let decoder = (self: t<'value, 'ctx, 'fields>, unknown: Js.Json.t): 'value => {
+  let decoder = (self: t<'value, 'ctx, 'fields>, unknown: unknown): 'value => {
     _decoder(~fields=self.fields, ~construct=self.construct, ~decode=_decode)(unknown)
   }
 }
@@ -105,14 +106,25 @@ let field = (fieldName, fieldSchema) => {
   (fieldName, fieldSchema)
 }
 
-let array = struct => make(~kind=Array(struct), ())
+external unsafeUnknownToArray: unknown => array<unknown> = "%identity"
+let array = struct =>
+  make(
+    ~kind=Array(struct),
+    ~decoder=unknown => {
+      unknown->unsafeUnknownToArray->Js.Array2.map(_decode(struct))
+    },
+    (),
+  )
 
-external unsafeToOption: 'a => option<'a> = "%identity"
+external unsafeUnknownToOption: unknown => option<unknown> = "%identity"
 let option = struct => {
   make(
     ~kind=Option(struct),
     ~decoder=unknown => {
-      unknown->unsafeToOption->Js.Option.map((. unknown') => _decode(struct, unknown'), _)
+      switch unknown->unsafeUnknownToOption {
+      | Some(unknown') => Some(_decode(struct, unknown'))
+      | None => None
+      }
     },
     (),
   )
@@ -153,7 +165,7 @@ module JsonSchema = {
   }
 
   let rec makeMetaSchema:
-    type src. struct<src> => meta<src> =
+    type value. struct<value> => meta<value> =
     struct => {
       switch struct.kind {
       | String => Required(FJS.string())
