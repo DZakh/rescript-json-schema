@@ -95,9 +95,6 @@ let record10: (
 
 module JsonSchema: {
   type t<'value>
-  type json<'value>
 
   let make: struct<'value, 'ctx> => t<'value>
-
-  let valueOf: t<'value> => json<'value>
 }

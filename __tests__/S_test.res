@@ -10,31 +10,31 @@ type throwsExpectation = {message: option<string>}
 test("Schema of bool struct", t => {
   let struct = bool
 
-  t->Assert.snapshot(JsonSchema.make(struct)->JsonSchema.valueOf, ())
+  t->Assert.snapshot(JsonSchema.make(struct), ())
 })
 
 test("Schema of string struct", t => {
   let struct = string
 
-  t->Assert.snapshot(JsonSchema.make(struct)->JsonSchema.valueOf, ())
+  t->Assert.snapshot(JsonSchema.make(struct), ())
 })
 
 test("Schema of int struct", t => {
   let struct = int
 
-  t->Assert.snapshot(JsonSchema.make(struct)->JsonSchema.valueOf, ())
+  t->Assert.snapshot(JsonSchema.make(struct), ())
 })
 
 test("Schema of float struct", t => {
   let struct = float
 
-  t->Assert.snapshot(JsonSchema.make(struct)->JsonSchema.valueOf, ())
+  t->Assert.snapshot(JsonSchema.make(struct), ())
 })
 
 test("Schema of record struct with one string field", t => {
   let struct = record1(~fields=field("field", string), ~decode=field => {field: field})
 
-  t->Assert.snapshot(JsonSchema.make(struct)->JsonSchema.valueOf, ())
+  t->Assert.snapshot(JsonSchema.make(struct), ())
 })
 
 test("Schema of record struct with one optional string field", t => {
@@ -42,7 +42,7 @@ test("Schema of record struct with one optional string field", t => {
     optionalField: optionalField,
   })
 
-  t->Assert.snapshot(JsonSchema.make(struct)->JsonSchema.valueOf, ())
+  t->Assert.snapshot(JsonSchema.make(struct), ())
 })
 
 test("Schema of record struct with one optional and one required string field", t => {
@@ -54,7 +54,7 @@ test("Schema of record struct with one optional and one required string field", 
     },
   )
 
-  t->Assert.snapshot(JsonSchema.make(struct)->JsonSchema.valueOf, ())
+  t->Assert.snapshot(JsonSchema.make(struct), ())
 })
 
 Ava.test("Make JsonSchema throws error with optional root type", t => {
@@ -62,7 +62,7 @@ Ava.test("Make JsonSchema throws error with optional root type", t => {
 
   t->Assert.throws(
     () => {
-      JsonSchema.make(struct)->JsonSchema.valueOf->ignore
+      JsonSchema.make(struct)->ignore
     },
     ~expectations={
       message: Some("The root struct can\'t be optional."),
@@ -81,7 +81,7 @@ Ava.test("Make JsonSchema throws error with record field wrapped in option multi
 
   t->Assert.throws(
     () => {
-      JsonSchema.make(struct)->JsonSchema.valueOf->ignore
+      JsonSchema.make(struct)->ignore
     },
     ~expectations={
       message: Some("The option struct can\'t be nested in another option struct."),
