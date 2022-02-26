@@ -6,5 +6,5 @@ module Validator: {
 
   let make: (ajv, S.JsonSchema.t<'value>) => t<'value>
 
-  let validate: (t<'value>, 'data) => bool
+  let is: (t<'value>, 'data) => bool
 }

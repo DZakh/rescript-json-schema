@@ -6,7 +6,7 @@ module Validator = {
 
   @send external make: (ajv, S.JsonSchema.t<'value>) => t<'value> = "compile"
 
-  let validate = %raw(`
+  let is = %raw(`
     function(validator, data) {
       return validator(data)
     }
