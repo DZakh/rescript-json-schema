@@ -15,11 +15,7 @@ module TestRecordSchemaGuard = {
 
   let validateUser = data => {
     let struct = S.record3(
-      ~fields=(
-        S.field("Name", S.string),
-        S.field("Email", S.option(S.string)),
-        S.field("Age", S.int),
-      ),
+      ~fields=(("Name", S.string), ("Email", S.option(S.string)), ("Age", S.int)),
       ~construct=((name, email, age)) => {name: name, email: email, age: age},
     )
 
@@ -72,11 +68,7 @@ module TestRecordSchemaParse = {
 
   let parseUser = data => {
     let struct = S.record3(
-      ~fields=(
-        S.field("Name", S.string),
-        S.field("Email", S.option(S.string)),
-        S.field("Age", S.int),
-      ),
+      ~fields=(("Name", S.string), ("Email", S.option(S.string)), ("Age", S.int)),
       ~construct=((name, email, age)) => {name: name, email: email, age: age},
     )
 

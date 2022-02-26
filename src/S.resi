@@ -1,6 +1,6 @@
 type unknown = Js.Json.t
 type struct<'value>
-type field<'value>
+type field<'value> = (string, struct<'value>)
 
 let unsafeToUnknown: 'unknown => unknown
 
@@ -8,8 +8,6 @@ let string: struct<string>
 let bool: struct<bool>
 let int: struct<int>
 let float: struct<float>
-
-let field: (string, struct<'value>) => field<'value>
 
 let array: struct<'value> => struct<array<'value>>
 let option: struct<'value> => struct<option<'value>>

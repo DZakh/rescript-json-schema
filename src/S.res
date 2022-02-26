@@ -69,7 +69,6 @@ and kind<_> =
         field<'v9>,
       ),
     ): kind<'value>
-
 and field<'value> = (string, struct<'value>)
 
 let make = (~kind, ~decoder=?, ()): struct<'value> => {
@@ -136,10 +135,6 @@ let string = make(~kind=String, ())
 let bool = make(~kind=Bool, ())
 let int = make(~kind=Int, ())
 let float = make(~kind=Float, ())
-
-let field = (fieldName, fieldSchema) => {
-  (fieldName, fieldSchema)
-}
 
 external unsafeUnknownToArray: unknown => array<unknown> = "%identity"
 let array = struct =>
