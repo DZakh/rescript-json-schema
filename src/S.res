@@ -20,22 +20,22 @@ module FJS = {
   @send external valueOf: t<'v> => json<'v> = "valueOf"
 }
 
-type rec struct<'value> = {typ: typ<'value>, decoder: option<Js.Json.t => 'value>}
-and typ<_> =
-  | String: typ<string>
-  | Int: typ<int>
-  | Float: typ<float>
-  | Bool: typ<bool>
-  | Option(struct<'value>): typ<option<'value>>
-  | Array(struct<'value>): typ<array<'value>>
-  | Record1(field<'v1>): typ<'value>
-  | Record2((field<'v1>, field<'v2>)): typ<'value>
-  | Record3((field<'v1>, field<'v2>, field<'v3>)): typ<'value>
+type rec struct<'value> = {kind: kind<'value>, decoder: option<Js.Json.t => 'value>}
+and kind<_> =
+  | String: kind<string>
+  | Int: kind<int>
+  | Float: kind<float>
+  | Bool: kind<bool>
+  | Option(struct<'value>): kind<option<'value>>
+  | Array(struct<'value>): kind<array<'value>>
+  | Record1(field<'v1>): kind<'value>
+  | Record2((field<'v1>, field<'v2>)): kind<'value>
+  | Record3((field<'v1>, field<'v2>, field<'v3>)): kind<'value>
 
 and field<'value> = (string, struct<'value>)
 
-let make = (~typ, ~decoder=?, ()): struct<'value> => {
-  {typ: typ, decoder: decoder}
+let make = (~kind, ~decoder=?, ()): struct<'value> => {
+  {kind: kind, decoder: decoder}
 }
 
 external unsafeDecoder: Js.Json.t => 'value = "%identity"
@@ -96,31 +96,31 @@ function(fields, construct, decode) {
   }
 }
 
-let string = make(~typ=String, ())
-let bool = make(~typ=Bool, ())
-let int = make(~typ=Int, ())
-let float = make(~typ=Float, ())
+let string = make(~kind=String, ())
+let bool = make(~kind=Bool, ())
+let int = make(~kind=Int, ())
+let float = make(~kind=Float, ())
 
 let field = (fieldName, fieldSchema) => {
   (fieldName, fieldSchema)
 }
 
-let array = struct => make(~typ=Array(struct), ())
+let array = struct => make(~kind=Array(struct), ())
 let option = struct => {
-  make(~typ=Option(struct), ())
+  make(~kind=Option(struct), ())
 }
 
 let record1 = (~fields, ~construct) => {
   let recordHelper = RecordHelper.make(~fields, ~construct)
-  make(~typ=Record1(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
+  make(~kind=Record1(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
 }
 let record2 = (~fields, ~construct) => {
   let recordHelper = RecordHelper.make(~fields, ~construct)
-  make(~typ=Record2(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
+  make(~kind=Record2(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
 }
 let record3 = (~fields, ~construct) => {
   let recordHelper = RecordHelper.make(~fields, ~construct)
-  make(~typ=Record3(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
+  make(~kind=Record3(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
 }
 
 module JsonSchema = {
@@ -147,7 +147,7 @@ module JsonSchema = {
   let rec makeMetaSchema:
     type src. struct<src> => meta<src> =
     struct => {
-      switch struct.typ {
+      switch struct.kind {
       | String => Required(FJS.string())
       | Int => Required(FJS.integer())
       | Bool => Required(FJS.boolean())
