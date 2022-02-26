@@ -90,21 +90,8 @@ let decodeWith = (unknown, struct) => {
   _decode(struct, unknown)
 }
 
-module RecordHelper = {
-  type construct<'value, 'ctx> = 'ctx => 'value
-  type t<'value, 'ctx, 'fields> = {
-    fields: 'fields,
-    construct: construct<'value, 'ctx>,
-  }
-
-  let make = (~fields, ~construct) => {
-    {
-      fields: fields,
-      construct: construct,
-    }
-  }
-
-  let _decoder = %raw(`
+module RecordDecoder = {
+  let _make = %raw(`
 function(fields, construct, decode) {
   var isSingleField = typeof fields[0] === "string";
   if (isSingleField) {
@@ -126,8 +113,8 @@ function(fields, construct, decode) {
 }
 `)
 
-  let decoder = (self: t<'value, 'ctx, 'fields>, unknown: unknown): 'value => {
-    _decoder(~fields=self.fields, ~construct=self.construct, ~decode=_decode)(unknown)
+  let make = (~fields: 'fields, ~construct: 'ctx => 'value, unknown: unknown): 'value => {
+    _make(~fields, ~construct, ~decode=_decode)(unknown)
   }
 }
 
@@ -161,40 +148,31 @@ let option = struct => {
 }
 
 let record1 = (~fields, ~construct) => {
-  let recordHelper = RecordHelper.make(~fields, ~construct)
-  make(~kind=Record1(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
+  make(~kind=Record1(fields), ~decoder=RecordDecoder.make(~fields, ~construct), ())
 }
 let record2 = (~fields, ~construct) => {
-  let recordHelper = RecordHelper.make(~fields, ~construct)
-  make(~kind=Record2(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
+  make(~kind=Record2(fields), ~decoder=RecordDecoder.make(~fields, ~construct), ())
 }
 let record3 = (~fields, ~construct) => {
-  let recordHelper = RecordHelper.make(~fields, ~construct)
-  make(~kind=Record3(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
+  make(~kind=Record3(fields), ~decoder=RecordDecoder.make(~fields, ~construct), ())
 }
 let record4 = (~fields, ~construct) => {
-  let recordHelper = RecordHelper.make(~fields, ~construct)
-  make(~kind=Record4(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
+  make(~kind=Record4(fields), ~decoder=RecordDecoder.make(~fields, ~construct), ())
 }
 let record5 = (~fields, ~construct) => {
-  let recordHelper = RecordHelper.make(~fields, ~construct)
-  make(~kind=Record5(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
+  make(~kind=Record5(fields), ~decoder=RecordDecoder.make(~fields, ~construct), ())
 }
 let record6 = (~fields, ~construct) => {
-  let recordHelper = RecordHelper.make(~fields, ~construct)
-  make(~kind=Record6(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
+  make(~kind=Record6(fields), ~decoder=RecordDecoder.make(~fields, ~construct), ())
 }
 let record7 = (~fields, ~construct) => {
-  let recordHelper = RecordHelper.make(~fields, ~construct)
-  make(~kind=Record7(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
+  make(~kind=Record7(fields), ~decoder=RecordDecoder.make(~fields, ~construct), ())
 }
 let record8 = (~fields, ~construct) => {
-  let recordHelper = RecordHelper.make(~fields, ~construct)
-  make(~kind=Record8(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
+  make(~kind=Record8(fields), ~decoder=RecordDecoder.make(~fields, ~construct), ())
 }
 let record9 = (~fields, ~construct) => {
-  let recordHelper = RecordHelper.make(~fields, ~construct)
-  make(~kind=Record9(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
+  make(~kind=Record9(fields), ~decoder=RecordDecoder.make(~fields, ~construct), ())
 }
 
 module JsonSchema = {
