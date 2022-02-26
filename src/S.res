@@ -21,6 +21,9 @@ module FJS = {
 }
 
 type unknown = Js.Json.t
+external unsafeToUnknown: 'unknown => unknown = "%identity"
+
+// TODO: Add title and description
 type rec struct<'value> = {kind: kind<'value>, decoder: option<unknown => 'value>}
 and kind<_> =
   | String: kind<string>
@@ -29,6 +32,9 @@ and kind<_> =
   | Bool: kind<bool>
   | Option(struct<'value>): kind<option<'value>>
   | Array(struct<'value>): kind<array<'value>>
+  // TODO: Add nullable
+  // TODO: Add raw
+  // TODO: Add custom
   | Record1(field<'v1>): kind<'value>
   | Record2((field<'v1>, field<'v2>)): kind<'value>
   | Record3((field<'v1>, field<'v2>, field<'v3>)): kind<'value>
@@ -49,9 +55,7 @@ let _decode:
     }
   }
 
-let decode = (struct, unknown) => {
-  _decode(struct, unknown)
-}
+let decode = _decode
 let decodeWith = (unknown, struct) => {
   _decode(struct, unknown)
 }

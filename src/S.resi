@@ -2,6 +2,8 @@ type unknown = Js.Json.t
 type struct<'value>
 type field<'value>
 
+let unsafeToUnknown: 'unknown => unknown
+
 let string: struct<string>
 let bool: struct<bool>
 let int: struct<int>

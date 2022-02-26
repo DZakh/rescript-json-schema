@@ -44,12 +44,10 @@ module TestRecordDecoding = {
   type nestedRecord = {singleFieldRecord: singleFieldRecord}
   type optionalNestedRecord = {singleFieldRecord: option<singleFieldRecord>}
 
-  external unsafeToUnknown: 'value => Js.Json.t = "%identity"
-
   test("Decodes unknown record with single field", t => {
     let record = {foo: "bar"}
 
-    let unknownRecord = record->unsafeToUnknown
+    let unknownRecord = record->S.unsafeToUnknown
     let recordStruct = S.record1(~fields=S.field("foo", S.string), ~construct=foo => {foo: foo})
 
     t->Assert.deepEqual(recordStruct->S.decode(unknownRecord), record, ())
@@ -59,7 +57,7 @@ module TestRecordDecoding = {
   test("Decodes unknown record with multiple fields", t => {
     let record = {foo: "bar", zoo: "jee"}
 
-    let unknownRecord = record->unsafeToUnknown
+    let unknownRecord = record->S.unsafeToUnknown
     let recordStruct = S.record2(
       ~fields=(S.field("foo", S.string), S.field("zoo", S.string)),
       ~construct=((foo, zoo)) => {foo: foo, zoo: zoo},
@@ -73,7 +71,7 @@ module TestRecordDecoding = {
     let record = {name: "Dmitry", email: "dzakh.dev@gmail.com", age: 21}
 
     let unknownRecord =
-      %raw(`{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21}`)->unsafeToUnknown
+      %raw(`{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21}`)->S.unsafeToUnknown
     let recordStruct = S.record3(
       ~fields=(S.field("Name", S.string), S.field("Email", S.string), S.field("Age", S.int)),
       ~construct=((name, email, age)) => {name: name, email: email, age: age},
@@ -88,8 +86,8 @@ module TestRecordDecoding = {
     let recordWithNoneField = {singleFieldRecord: None}
 
     let unknownRecordWithSomeField =
-      %raw(`{"singleFieldRecord":{"MUST_BE_MAPPED":"bar"}}`)->unsafeToUnknown
-    let unknownRecordWithNoneField = %raw(`{}`)->unsafeToUnknown
+      %raw(`{"singleFieldRecord":{"MUST_BE_MAPPED":"bar"}}`)->S.unsafeToUnknown
+    let unknownRecordWithNoneField = %raw(`{}`)->S.unsafeToUnknown
 
     let recordStruct = S.record1(
       ~fields=S.field(
@@ -119,7 +117,7 @@ module TestRecordDecoding = {
     let arrayOfRecords = [{foo: "bar"}, {foo: "baz"}]
 
     let unknownArrayOfRecords =
-      %raw(`[{"MUST_BE_MAPPED":"bar"},{"MUST_BE_MAPPED":"baz"}]`)->unsafeToUnknown
+      %raw(`[{"MUST_BE_MAPPED":"bar"},{"MUST_BE_MAPPED":"baz"}]`)->S.unsafeToUnknown
     let arrayOfRecordsStruct = S.array(
       S.record1(~fields=S.field("MUST_BE_MAPPED", S.string), ~construct=foo => {foo: foo}),
     )
