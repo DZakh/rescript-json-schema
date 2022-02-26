@@ -20,27 +20,27 @@ module FJS = {
   @send external valueOf: t<'v> => json<'v> = "valueOf"
 }
 
-type rec struct<'value, 'ctx> = {typ: typ<'value, 'ctx>, decoder: option<Js.Json.t => 'value>}
-and typ<_, _> =
-  | String: typ<string, string>
-  | Int: typ<int, int>
-  | Float: typ<float, float>
-  | Bool: typ<bool, bool>
-  | Option(struct<'value, 'ctx>): typ<option<'value>, option<'ctx>>
-  | Array(struct<'value, 'ctx>): typ<array<'value>, array<'ctx>>
-  | Record1(field<'v1, 'c1>): typ<'value, 'v1>
-  | Record2((field<'v1, 'c1>, field<'v2, 'c2>)): typ<'value, ('v1, 'v2)>
-  | Record3((field<'v1, 'c1>, field<'v2, 'c2>, field<'v3, 'c3>)): typ<'value, ('v1, 'v2, 'v3)>
+type rec struct<'value> = {typ: typ<'value>, decoder: option<Js.Json.t => 'value>}
+and typ<_> =
+  | String: typ<string>
+  | Int: typ<int>
+  | Float: typ<float>
+  | Bool: typ<bool>
+  | Option(struct<'value>): typ<option<'value>>
+  | Array(struct<'value>): typ<array<'value>>
+  | Record1(field<'v1>): typ<'value>
+  | Record2((field<'v1>, field<'v2>)): typ<'value>
+  | Record3((field<'v1>, field<'v2>, field<'v3>)): typ<'value>
 
-and field<'value, 'ctx> = (string, struct<'value, 'ctx>)
+and field<'value> = (string, struct<'value>)
 
-let make = (~typ, ~decoder=?, ()): struct<'value, 'ctx> => {
+let make = (~typ, ~decoder=?, ()): struct<'value> => {
   {typ: typ, decoder: decoder}
 }
 
 external unsafeDecoder: Js.Json.t => 'value = "%identity"
 let _decode:
-  type src ctx. (struct<src, ctx>, Js.Json.t) => src =
+  type src. (struct<src>, Js.Json.t) => src =
   (struct, unknown) => {
     switch struct.decoder {
     | Some(decoder) => unknown->decoder
@@ -145,9 +145,9 @@ module JsonSchema = {
   }
 
   let rec makeMetaSchema:
-    type src ctx. struct<src, ctx> => meta<src> =
-    s => {
-      switch s.typ {
+    type src. struct<src> => meta<src> =
+    struct => {
+      switch struct.typ {
       | String => Required(FJS.string())
       | Int => Required(FJS.integer())
       | Bool => Required(FJS.boolean())

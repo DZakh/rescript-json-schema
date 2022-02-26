@@ -1,31 +1,31 @@
-type struct<'value, 'ctx>
-type field<'value, 'ctx>
+type struct<'value>
+type field<'value>
 
-let string: struct<string, string>
-let bool: struct<bool, bool>
-let int: struct<int, int>
-let float: struct<float, float>
+let string: struct<string>
+let bool: struct<bool>
+let int: struct<int>
+let float: struct<float>
 
-let field: (string, struct<'value, 'ctx>) => field<'value, 'ctx>
+let field: (string, struct<'value>) => field<'value>
 
-let array: struct<'value, 'value> => struct<array<'value>, array<'value>>
-let option: struct<'value, 'value> => struct<option<'value>, option<'value>>
+let array: struct<'value> => struct<array<'value>>
+let option: struct<'value> => struct<option<'value>>
 
-let record1: (~fields: field<'v1, 'c1>, ~construct: 'v1 => 'value) => struct<'value, 'v1>
+let record1: (~fields: field<'v1>, ~construct: 'v1 => 'value) => struct<'value>
 let record2: (
-  ~fields: (field<'v1, 'c1>, field<'v2, 'c2>),
+  ~fields: (field<'v1>, field<'v2>),
   ~construct: (('v1, 'v2)) => 'value,
-) => struct<'value, ('v1, 'v2)>
+) => struct<'value>
 let record3: (
-  ~fields: (field<'v1, 'c1>, field<'v2, 'c2>, field<'v3, 'c3>),
+  ~fields: (field<'v1>, field<'v2>, field<'v3>),
   ~construct: (('v1, 'v2, 'v3)) => 'value,
-) => struct<'value, ('v1, 'v2, 'v3)>
+) => struct<'value>
 
-let decode: (struct<'value, 'ctx>, Js.Json.t) => 'value
-let decodeWith: (Js.Json.t, struct<'value, 'ctx>) => 'value
+let decode: (struct<'value>, Js.Json.t) => 'value
+let decodeWith: (Js.Json.t, struct<'value>) => 'value
 
 module JsonSchema: {
   type t<'value>
 
-  let make: struct<'value, 'ctx> => t<'value>
+  let make: struct<'value> => t<'value>
 }
