@@ -38,6 +38,37 @@ and kind<_> =
   | Record1(field<'v1>): kind<'value>
   | Record2((field<'v1>, field<'v2>)): kind<'value>
   | Record3((field<'v1>, field<'v2>, field<'v3>)): kind<'value>
+  | Record4((field<'v1>, field<'v2>, field<'v3>, field<'v4>)): kind<'value>
+  | Record5((field<'v1>, field<'v2>, field<'v3>, field<'v4>, field<'v5>)): kind<'value>
+  | Record6((field<'v1>, field<'v2>, field<'v3>, field<'v4>, field<'v5>, field<'v6>)): kind<'value>
+  | Record7(
+      (field<'v1>, field<'v2>, field<'v3>, field<'v4>, field<'v5>, field<'v6>, field<'v7>),
+    ): kind<'value>
+  | Record8(
+      (
+        field<'v1>,
+        field<'v2>,
+        field<'v3>,
+        field<'v4>,
+        field<'v5>,
+        field<'v6>,
+        field<'v7>,
+        field<'v8>,
+      ),
+    ): kind<'value>
+  | Record9(
+      (
+        field<'v1>,
+        field<'v2>,
+        field<'v3>,
+        field<'v4>,
+        field<'v5>,
+        field<'v6>,
+        field<'v7>,
+        field<'v8>,
+        field<'v9>,
+      ),
+    ): kind<'value>
 
 and field<'value> = (string, struct<'value>)
 
@@ -146,6 +177,30 @@ let record3 = (~fields, ~construct) => {
   let recordHelper = RecordHelper.make(~fields, ~construct)
   make(~kind=Record3(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
 }
+let record4 = (~fields, ~construct) => {
+  let recordHelper = RecordHelper.make(~fields, ~construct)
+  make(~kind=Record4(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
+}
+let record5 = (~fields, ~construct) => {
+  let recordHelper = RecordHelper.make(~fields, ~construct)
+  make(~kind=Record5(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
+}
+let record6 = (~fields, ~construct) => {
+  let recordHelper = RecordHelper.make(~fields, ~construct)
+  make(~kind=Record6(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
+}
+let record7 = (~fields, ~construct) => {
+  let recordHelper = RecordHelper.make(~fields, ~construct)
+  make(~kind=Record7(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
+}
+let record8 = (~fields, ~construct) => {
+  let recordHelper = RecordHelper.make(~fields, ~construct)
+  make(~kind=Record8(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
+}
+let record9 = (~fields, ~construct) => {
+  let recordHelper = RecordHelper.make(~fields, ~construct)
+  make(~kind=Record9(fields), ~decoder=recordHelper->RecordHelper.decoder, ())
+}
 
 module JsonSchema = {
   exception NestedOptionException
@@ -197,6 +252,96 @@ module JsonSchema = {
           ->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData)
           ->FJS.prop(fn2, makeMetaSchema(fs2)->applyMetaData)
           ->FJS.prop(fn3, makeMetaSchema(fs3)->applyMetaData),
+        )
+      | Record4((fn1, fs1), (fn2, fs2), (fn3, fs3), (fn4, fs4)) =>
+        Required(
+          FJS.object()
+          ->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData)
+          ->FJS.prop(fn2, makeMetaSchema(fs2)->applyMetaData)
+          ->FJS.prop(fn3, makeMetaSchema(fs3)->applyMetaData)
+          ->FJS.prop(fn4, makeMetaSchema(fs4)->applyMetaData),
+        )
+      | Record5((fn1, fs1), (fn2, fs2), (fn3, fs3), (fn4, fs4), (fn5, fs5)) =>
+        Required(
+          FJS.object()
+          ->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData)
+          ->FJS.prop(fn2, makeMetaSchema(fs2)->applyMetaData)
+          ->FJS.prop(fn3, makeMetaSchema(fs3)->applyMetaData)
+          ->FJS.prop(fn4, makeMetaSchema(fs4)->applyMetaData)
+          ->FJS.prop(fn5, makeMetaSchema(fs5)->applyMetaData),
+        )
+      | Record6((fn1, fs1), (fn2, fs2), (fn3, fs3), (fn4, fs4), (fn5, fs5), (fn6, fs6)) =>
+        Required(
+          FJS.object()
+          ->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData)
+          ->FJS.prop(fn2, makeMetaSchema(fs2)->applyMetaData)
+          ->FJS.prop(fn3, makeMetaSchema(fs3)->applyMetaData)
+          ->FJS.prop(fn4, makeMetaSchema(fs4)->applyMetaData)
+          ->FJS.prop(fn5, makeMetaSchema(fs5)->applyMetaData)
+          ->FJS.prop(fn6, makeMetaSchema(fs6)->applyMetaData),
+        )
+      | Record7(
+          (fn1, fs1),
+          (fn2, fs2),
+          (fn3, fs3),
+          (fn4, fs4),
+          (fn5, fs5),
+          (fn6, fs6),
+          (fn7, fs7),
+        ) =>
+        Required(
+          FJS.object()
+          ->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData)
+          ->FJS.prop(fn2, makeMetaSchema(fs2)->applyMetaData)
+          ->FJS.prop(fn3, makeMetaSchema(fs3)->applyMetaData)
+          ->FJS.prop(fn4, makeMetaSchema(fs4)->applyMetaData)
+          ->FJS.prop(fn5, makeMetaSchema(fs5)->applyMetaData)
+          ->FJS.prop(fn6, makeMetaSchema(fs6)->applyMetaData)
+          ->FJS.prop(fn7, makeMetaSchema(fs7)->applyMetaData),
+        )
+      | Record8(
+          (fn1, fs1),
+          (fn2, fs2),
+          (fn3, fs3),
+          (fn4, fs4),
+          (fn5, fs5),
+          (fn6, fs6),
+          (fn7, fs7),
+          (fn8, fs8),
+        ) =>
+        Required(
+          FJS.object()
+          ->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData)
+          ->FJS.prop(fn2, makeMetaSchema(fs2)->applyMetaData)
+          ->FJS.prop(fn3, makeMetaSchema(fs3)->applyMetaData)
+          ->FJS.prop(fn4, makeMetaSchema(fs4)->applyMetaData)
+          ->FJS.prop(fn5, makeMetaSchema(fs5)->applyMetaData)
+          ->FJS.prop(fn6, makeMetaSchema(fs6)->applyMetaData)
+          ->FJS.prop(fn7, makeMetaSchema(fs7)->applyMetaData)
+          ->FJS.prop(fn8, makeMetaSchema(fs8)->applyMetaData),
+        )
+      | Record9(
+          (fn1, fs1),
+          (fn2, fs2),
+          (fn3, fs3),
+          (fn4, fs4),
+          (fn5, fs5),
+          (fn6, fs6),
+          (fn7, fs7),
+          (fn8, fs8),
+          (fn9, fs9),
+        ) =>
+        Required(
+          FJS.object()
+          ->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData)
+          ->FJS.prop(fn2, makeMetaSchema(fs2)->applyMetaData)
+          ->FJS.prop(fn3, makeMetaSchema(fs3)->applyMetaData)
+          ->FJS.prop(fn4, makeMetaSchema(fs4)->applyMetaData)
+          ->FJS.prop(fn5, makeMetaSchema(fs5)->applyMetaData)
+          ->FJS.prop(fn6, makeMetaSchema(fs6)->applyMetaData)
+          ->FJS.prop(fn7, makeMetaSchema(fs7)->applyMetaData)
+          ->FJS.prop(fn8, makeMetaSchema(fs8)->applyMetaData)
+          ->FJS.prop(fn9, makeMetaSchema(fs9)->applyMetaData),
         )
       }
     }
