@@ -5,41 +5,42 @@ type recordWithOneOptionalStringField = {optionalField: option<string>}
 type recordWithOneOptionalOptionalStringField = {optionalOptionalField: option<option<string>>}
 type recordWithOneOptionalAndOneRequiredStringField = {optionalField: option<string>, field: string}
 type throwsExpectation = {message: option<string>}
+type nestedRecord = {recordWithOneStringField: recordWithOneStringField}
 
 test("Schema of bool struct", t => {
   let struct = S.bool
 
-  t->Assert.snapshot(S.JsonSchema.make(struct), ())
+  t->Assert.snapshot(JsonSchema.make(struct), ())
 })
 
 test("Schema of string struct", t => {
   let struct = S.string
 
-  t->Assert.snapshot(S.JsonSchema.make(struct), ())
+  t->Assert.snapshot(JsonSchema.make(struct), ())
 })
 
 test("Schema of int struct", t => {
   let struct = S.int
 
-  t->Assert.snapshot(S.JsonSchema.make(struct), ())
+  t->Assert.snapshot(JsonSchema.make(struct), ())
 })
 
 test("Schema of float struct", t => {
   let struct = S.float
 
-  t->Assert.snapshot(S.JsonSchema.make(struct), ())
+  t->Assert.snapshot(JsonSchema.make(struct), ())
 })
 
 test("Schema of strings array struct", t => {
   let struct = S.array(S.string)
 
-  t->Assert.snapshot(S.JsonSchema.make(struct), ())
+  t->Assert.snapshot(JsonSchema.make(struct), ())
 })
 
 test("Schema of record struct with one string field", t => {
   let struct = S.record1(~fields=("field", S.string), ~construct=field => {field: field})
 
-  t->Assert.snapshot(S.JsonSchema.make(struct), ())
+  t->Assert.snapshot(JsonSchema.make(struct), ())
 })
 
 test("Schema of record struct with one optional string field", t => {
@@ -50,7 +51,21 @@ test("Schema of record struct with one optional string field", t => {
     },
   )
 
-  t->Assert.snapshot(S.JsonSchema.make(struct), ())
+  t->Assert.snapshot(JsonSchema.make(struct), ())
+})
+
+failing("Schema of record struct with nested record", t => {
+  let struct = S.record1(
+    ~fields=(
+      "recordWithOneStringField",
+      S.record1(~fields=("Field", S.string), ~construct=field => {field: field}),
+    ),
+    ~construct=recordWithOneStringField => {
+      recordWithOneStringField: recordWithOneStringField,
+    },
+  )
+
+  t->Assert.is(JsonSchema.make(struct), %raw(`""`), ())
 })
 
 test("Schema of record struct with one optional and one required string field", t => {
@@ -62,7 +77,7 @@ test("Schema of record struct with one optional and one required string field", 
     },
   )
 
-  t->Assert.snapshot(S.JsonSchema.make(struct), ())
+  t->Assert.snapshot(JsonSchema.make(struct), ())
 })
 
 Ava.test("Make JsonSchema throws error with optional root type", t => {
@@ -70,7 +85,7 @@ Ava.test("Make JsonSchema throws error with optional root type", t => {
 
   t->Assert.throws(
     () => {
-      S.JsonSchema.make(struct)->ignore
+      JsonSchema.make(struct)->ignore
     },
     ~expectations={
       message: Some("The root struct can\'t be optional."),
@@ -89,7 +104,7 @@ Ava.test("Make JsonSchema throws error with record field wrapped in option multi
 
   t->Assert.throws(
     () => {
-      S.JsonSchema.make(struct)->ignore
+      JsonSchema.make(struct)->ignore
     },
     ~expectations={
       message: Some("The option struct can\'t be nested in another option struct."),

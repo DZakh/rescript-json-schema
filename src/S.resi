@@ -1,8 +1,52 @@
 type unknown = Js.Json.t
-type struct<'value>
-type field<'value> = (string, struct<'value>)
+
+type rec struct<'value>
+and kind<_> =
+  | String: kind<string>
+  | Int: kind<int>
+  | Float: kind<float>
+  | Bool: kind<bool>
+  | Option(struct<'value>): kind<option<'value>>
+  | Array(struct<'value>): kind<array<'value>>
+  | Record1(field<'v1>): kind<'value>
+  | Record2((field<'v1>, field<'v2>)): kind<'value>
+  | Record3((field<'v1>, field<'v2>, field<'v3>)): kind<'value>
+  | Record4((field<'v1>, field<'v2>, field<'v3>, field<'v4>)): kind<'value>
+  | Record5((field<'v1>, field<'v2>, field<'v3>, field<'v4>, field<'v5>)): kind<'value>
+  | Record6((field<'v1>, field<'v2>, field<'v3>, field<'v4>, field<'v5>, field<'v6>)): kind<'value>
+  | Record7(
+      (field<'v1>, field<'v2>, field<'v3>, field<'v4>, field<'v5>, field<'v6>, field<'v7>),
+    ): kind<'value>
+  | Record8(
+      (
+        field<'v1>,
+        field<'v2>,
+        field<'v3>,
+        field<'v4>,
+        field<'v5>,
+        field<'v6>,
+        field<'v7>,
+        field<'v8>,
+      ),
+    ): kind<'value>
+  | Record9(
+      (
+        field<'v1>,
+        field<'v2>,
+        field<'v3>,
+        field<'v4>,
+        field<'v5>,
+        field<'v6>,
+        field<'v7>,
+        field<'v8>,
+        field<'v9>,
+      ),
+    ): kind<'value>
+and field<'value> = (string, struct<'value>)
 
 let unsafeToUnknown: 'unknown => unknown
+
+let classify: struct<'value> => kind<'value>
 
 let string: struct<string>
 let bool: struct<bool>
@@ -67,9 +111,3 @@ let record9: (
 
 let decode: (struct<'value>, unknown) => 'value
 let decodeWith: (unknown, struct<'value>) => 'value
-
-module JsonSchema: {
-  type t<'value>
-
-  let make: struct<'value> => t<'value>
-}
