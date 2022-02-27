@@ -53,7 +53,7 @@ type article = {
   author: author,
 }
 
-let articleStruct: S.struct<article> = {
+let articleStruct: S.t<article> = {
   open S
   record5(
     ~fields=(
