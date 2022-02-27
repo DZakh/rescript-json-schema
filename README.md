@@ -1,6 +1,6 @@
 # ReScript JSON Schema
 
-Type safe JSON Schema for ReScript
+Typesafe JSON Schema for ReScript
 
 ## Status
 
@@ -41,7 +41,7 @@ Then add `rescript-json-schema` to `bs-dependencies` in your `bsconfig.json`:
 ## Usage
 ### Define a struct
 
-The main entity you will use is the **struct<'value>**. It describes the structure of the value, as well as contains meta information for parsing, serializing, and converting to JSON Schema.
+The main entity you will use is the **struct: S.t<'value>**. It describes the structure of the value, as well as contains meta information for parsing, serializing, and converting to JSON Schema.
 
 ```rescript
 type author = {id: float}
@@ -78,7 +78,7 @@ let articleStruct: S.struct<article> = {
 
 When the struct is defined it can be used to generate JSON Schema.
 
-> I recommend hiding the conversion to JSON Schema behind framework and work only with struct in application code.
+> I recommend hiding the conversion to JSON Schema behind a framework and working only with struct in application code.
 
 ```rescript
 Js.log(JsonSchema.make(articleStruct))
@@ -105,7 +105,7 @@ Js.log(JsonSchema.make(articleStruct))
 
 ### Decoding validated data
 
-If you have a data that you're 100% sure is valid, you can decode it to ReScript structure. This operation doesn't have any checks and is only needed for mapping.
+If you have data that you're 100% sure is valid, you can decode it to ReScript structure. This operation doesn't have any checks and is only needed for mapping.
 
 ```rescript
 let data = Js.Json.parseExn(`{
@@ -122,7 +122,7 @@ let article: article = articleStruct->S.decode(data)
 let article: article = data->S.decodeWith(articleStruct)
 ```
 
-The data json has capitalized field names, after decoding it's a valid ReScript structure.
+The JSON has capitalized field names, after decoding they are mapped to a valid ReScript structure.
 
 ### Parsing data
 
@@ -147,8 +147,8 @@ let articleParseResult: result<article, unit> = articleValidator->Ajv.Validator.
 ## V1 Roadmap
 
 - Add Custom kind
-- To make it usable with OpenAPI
+- Add better support for OpenAPI
 - Add more detailed errors
 - Add Nullable kind
 - Add ability to mixin raw schema
-
+- Add encoding
