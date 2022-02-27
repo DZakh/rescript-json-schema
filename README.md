@@ -146,9 +146,13 @@ let articleParseResult: result<article, unit> = articleValidator->Ajv.Validator.
 
 ## V1 Roadmap
 
-- Add Custom kind
-- Add better support for OpenAPI
-- Add more detailed errors
-- Add Nullable kind
-- Add ability to mixin raw schema
-- Add encoding
+- [ ] Add Custom kind
+- [ ] Add more detailed errors
+- [ ] Add Nullable kind
+- [ ] Add ability to mixin raw schema
+- [ ] Add encoding
+- [ ] Add enums with mapping to variants
+- [ ] Add better support for OpenAPI
+  - [ ] Add description field 
+  - [ ] Add example/examples field 
+  - [ ] Add deprecated field
