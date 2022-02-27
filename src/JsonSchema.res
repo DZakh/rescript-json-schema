@@ -14,8 +14,6 @@ module FJS = {
   @module("fluent-json-schema")
   external array: unit => t<option<array<'item>>> = "array"
 
-  @send external prop: (t<'v>, string, t<'p>) => t<'v> = "prop"
-  @send external required: (t<option<'v>>, unit) => t<'v> = "required"
   @send external items: (t<option<array<'item>>>, t<'item>) => t<option<array<'item>>> = "items"
   @send external valueOf: t<'v> => json<'v> = "valueOf"
 }
@@ -29,18 +27,55 @@ and meta<'value> =
   | Optional(fluentSchema<'value>)
   | Required(fluentSchema<option<'value>>)
 
-external unwrapRootValueType: fluentSchema<option<'value>> => fluentSchema<'value> = "%identity"
+external unsafeUnwrapFluentSchema: fluentSchema<option<'value>> => fluentSchema<'value> =
+  "%identity"
 
-let applyMetaData = (~isRecordField=true, meta: meta<'value>): fluentSchema<'value> => {
-  switch (meta, isRecordField) {
-  | (Optional(_), false) => raise(RootOptionException)
-  | (Optional(fluentSchema), true) => fluentSchema
-  | (Required(fluentSchema), false) => fluentSchema->unwrapRootValueType
-  | (Required(fluentSchema), true) => fluentSchema->FJS.required()
+let applyFluentSchemaMeta = (meta: meta<'value>): fluentSchema<'value> => {
+  switch meta {
+  | Optional(_) => raise(RootOptionException)
+  | Required(fluentSchema) => fluentSchema->unsafeUnwrapFluentSchema
   }
 }
 
-let rec makeMetaSchema:
+module RecordFluentSchema = {
+  type fieldSchema<'value> = {
+    fluentSchema: fluentSchema<'value>,
+    isRequired: bool,
+  }
+
+  let _make = %raw(`
+function(fields, makeFieldSchema, objectFluentSchema) {
+  var requiredFieldNames = [];
+  fields.forEach(function(field) {
+    var fieldName = field[0],
+      fieldStruct = field[1],
+      fieldSchema = makeFieldSchema(fieldStruct);
+    if (fieldSchema.isRequired) {
+      requiredFieldNames.push(fieldName);
+    }
+    objectFluentSchema = objectFluentSchema.prop(fieldName, fieldSchema.fluentSchema);
+  })
+  return objectFluentSchema.required(requiredFieldNames);
+}`)
+
+  let make = (~fields, ~makeFluentSchemaWithMeta: S.struct<'value> => meta<'value>) => {
+    _make(
+      ~fields,
+      ~makeFieldSchema=struct => {
+        switch makeFluentSchemaWithMeta(struct) {
+        | Optional(fluentSchema) => {fluentSchema: fluentSchema, isRequired: false}
+        | Required(fluentSchema) => {
+            fluentSchema: fluentSchema->unsafeUnwrapFluentSchema,
+            isRequired: true,
+          }
+        }
+      },
+      ~objectFluentSchema=FJS.object(),
+    )
+  }
+}
+
+let rec makeFluentSchemaWithMeta:
   type value. S.struct<value> => meta<value> =
   struct => {
     switch struct->S.classify {
@@ -49,124 +84,28 @@ let rec makeMetaSchema:
     | S.Bool => Required(FJS.boolean())
     | S.Float => Required(FJS.number())
     | S.Array(s') =>
-      Required(FJS.array()->FJS.items(makeMetaSchema(s')->applyMetaData(~isRecordField=false)))
+      Required(FJS.array()->FJS.items(makeFluentSchemaWithMeta(s')->applyFluentSchemaMeta))
     | S.Option(s') =>
-      switch makeMetaSchema(s') {
+      switch makeFluentSchemaWithMeta(s') {
       | Optional(_) => raise(NestedOptionException)
       | Required(s'') => Optional(s'')
       }
-    | S.Record1((fn1, fs1)) =>
-      Required(FJS.object()->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData))
-    | S.Record2((fn1, fs1), (fn2, fs2)) =>
-      Required(
-        FJS.object()
-        ->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData)
-        ->FJS.prop(fn2, makeMetaSchema(fs2)->applyMetaData),
-      )
-    | S.Record3((fn1, fs1), (fn2, fs2), (fn3, fs3)) =>
-      Required(
-        FJS.object()
-        ->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData)
-        ->FJS.prop(fn2, makeMetaSchema(fs2)->applyMetaData)
-        ->FJS.prop(fn3, makeMetaSchema(fs3)->applyMetaData),
-      )
-    | S.Record4((fn1, fs1), (fn2, fs2), (fn3, fs3), (fn4, fs4)) =>
-      Required(
-        FJS.object()
-        ->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData)
-        ->FJS.prop(fn2, makeMetaSchema(fs2)->applyMetaData)
-        ->FJS.prop(fn3, makeMetaSchema(fs3)->applyMetaData)
-        ->FJS.prop(fn4, makeMetaSchema(fs4)->applyMetaData),
-      )
-    | S.Record5((fn1, fs1), (fn2, fs2), (fn3, fs3), (fn4, fs4), (fn5, fs5)) =>
-      Required(
-        FJS.object()
-        ->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData)
-        ->FJS.prop(fn2, makeMetaSchema(fs2)->applyMetaData)
-        ->FJS.prop(fn3, makeMetaSchema(fs3)->applyMetaData)
-        ->FJS.prop(fn4, makeMetaSchema(fs4)->applyMetaData)
-        ->FJS.prop(fn5, makeMetaSchema(fs5)->applyMetaData),
-      )
-    | S.Record6((fn1, fs1), (fn2, fs2), (fn3, fs3), (fn4, fs4), (fn5, fs5), (fn6, fs6)) =>
-      Required(
-        FJS.object()
-        ->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData)
-        ->FJS.prop(fn2, makeMetaSchema(fs2)->applyMetaData)
-        ->FJS.prop(fn3, makeMetaSchema(fs3)->applyMetaData)
-        ->FJS.prop(fn4, makeMetaSchema(fs4)->applyMetaData)
-        ->FJS.prop(fn5, makeMetaSchema(fs5)->applyMetaData)
-        ->FJS.prop(fn6, makeMetaSchema(fs6)->applyMetaData),
-      )
-    | S.Record7(
-        (fn1, fs1),
-        (fn2, fs2),
-        (fn3, fs3),
-        (fn4, fs4),
-        (fn5, fs5),
-        (fn6, fs6),
-        (fn7, fs7),
-      ) =>
-      Required(
-        FJS.object()
-        ->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData)
-        ->FJS.prop(fn2, makeMetaSchema(fs2)->applyMetaData)
-        ->FJS.prop(fn3, makeMetaSchema(fs3)->applyMetaData)
-        ->FJS.prop(fn4, makeMetaSchema(fs4)->applyMetaData)
-        ->FJS.prop(fn5, makeMetaSchema(fs5)->applyMetaData)
-        ->FJS.prop(fn6, makeMetaSchema(fs6)->applyMetaData)
-        ->FJS.prop(fn7, makeMetaSchema(fs7)->applyMetaData),
-      )
-    | S.Record8(
-        (fn1, fs1),
-        (fn2, fs2),
-        (fn3, fs3),
-        (fn4, fs4),
-        (fn5, fs5),
-        (fn6, fs6),
-        (fn7, fs7),
-        (fn8, fs8),
-      ) =>
-      Required(
-        FJS.object()
-        ->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData)
-        ->FJS.prop(fn2, makeMetaSchema(fs2)->applyMetaData)
-        ->FJS.prop(fn3, makeMetaSchema(fs3)->applyMetaData)
-        ->FJS.prop(fn4, makeMetaSchema(fs4)->applyMetaData)
-        ->FJS.prop(fn5, makeMetaSchema(fs5)->applyMetaData)
-        ->FJS.prop(fn6, makeMetaSchema(fs6)->applyMetaData)
-        ->FJS.prop(fn7, makeMetaSchema(fs7)->applyMetaData)
-        ->FJS.prop(fn8, makeMetaSchema(fs8)->applyMetaData),
-      )
-    | S.Record9(
-        (fn1, fs1),
-        (fn2, fs2),
-        (fn3, fs3),
-        (fn4, fs4),
-        (fn5, fs5),
-        (fn6, fs6),
-        (fn7, fs7),
-        (fn8, fs8),
-        (fn9, fs9),
-      ) =>
-      Required(
-        FJS.object()
-        ->FJS.prop(fn1, makeMetaSchema(fs1)->applyMetaData)
-        ->FJS.prop(fn2, makeMetaSchema(fs2)->applyMetaData)
-        ->FJS.prop(fn3, makeMetaSchema(fs3)->applyMetaData)
-        ->FJS.prop(fn4, makeMetaSchema(fs4)->applyMetaData)
-        ->FJS.prop(fn5, makeMetaSchema(fs5)->applyMetaData)
-        ->FJS.prop(fn6, makeMetaSchema(fs6)->applyMetaData)
-        ->FJS.prop(fn7, makeMetaSchema(fs7)->applyMetaData)
-        ->FJS.prop(fn8, makeMetaSchema(fs8)->applyMetaData)
-        ->FJS.prop(fn9, makeMetaSchema(fs9)->applyMetaData),
-      )
+    | S.Record1(fields) =>
+      Required(RecordFluentSchema.make(~fields=[fields], ~makeFluentSchemaWithMeta))
+    | S.Record2(fields) => Required(RecordFluentSchema.make(~fields, ~makeFluentSchemaWithMeta))
+    | S.Record3(fields) => Required(RecordFluentSchema.make(~fields, ~makeFluentSchemaWithMeta))
+    | S.Record4(fields) => Required(RecordFluentSchema.make(~fields, ~makeFluentSchemaWithMeta))
+    | S.Record5(fields) => Required(RecordFluentSchema.make(~fields, ~makeFluentSchemaWithMeta))
+    | S.Record6(fields) => Required(RecordFluentSchema.make(~fields, ~makeFluentSchemaWithMeta))
+    | S.Record7(fields) => Required(RecordFluentSchema.make(~fields, ~makeFluentSchemaWithMeta))
+    | S.Record8(fields) => Required(RecordFluentSchema.make(~fields, ~makeFluentSchemaWithMeta))
+    | S.Record9(fields) => Required(RecordFluentSchema.make(~fields, ~makeFluentSchemaWithMeta))
     }
   }
 
 let make = struct => {
   try {
-    let fluentSchema = makeMetaSchema(struct)->applyMetaData(~isRecordField=false)
-    fluentSchema->FJS.valueOf
+    makeFluentSchemaWithMeta(struct)->applyFluentSchemaMeta->FJS.valueOf
   } catch {
   | NestedOptionException =>
     Js.Exn.raiseError("The option struct can't be nested in another option struct.")

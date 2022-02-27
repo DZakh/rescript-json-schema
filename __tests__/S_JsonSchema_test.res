@@ -54,7 +54,7 @@ test("Schema of record struct with one optional string field", t => {
   t->Assert.snapshot(JsonSchema.make(struct), ())
 })
 
-failing("Schema of record struct with nested record", t => {
+test("Schema of record struct with nested record", t => {
   let struct = S.record1(
     ~fields=(
       "recordWithOneStringField",
@@ -65,7 +65,7 @@ failing("Schema of record struct with nested record", t => {
     },
   )
 
-  t->Assert.is(JsonSchema.make(struct), %raw(`""`), ())
+  t->Assert.snapshot(JsonSchema.make(struct), ())
 })
 
 test("Schema of record struct with one optional and one required string field", t => {
