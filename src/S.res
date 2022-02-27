@@ -2,14 +2,14 @@ type unknown = Js.Json.t
 external unsafeToUnknown: 'unknown => unknown = "%identity"
 
 // TODO: Add title and description
-type rec struct<'value> = {kind: kind<'value>, decoder: option<unknown => 'value>}
+type rec t<'value> = {kind: kind<'value>, decoder: option<unknown => 'value>}
 and kind<_> =
   | String: kind<string>
   | Int: kind<int>
   | Float: kind<float>
   | Bool: kind<bool>
-  | Option(struct<'value>): kind<option<'value>>
-  | Array(struct<'value>): kind<array<'value>>
+  | Option(t<'value>): kind<option<'value>>
+  | Array(t<'value>): kind<array<'value>>
   // TODO: Add nullable
   // TODO: Add raw
   // TODO: Add custom
@@ -47,9 +47,9 @@ and kind<_> =
         field<'v9>,
       ),
     ): kind<'value>
-and field<'value> = (string, struct<'value>)
+and field<'value> = (string, t<'value>)
 
-let make = (~kind, ~decoder=?, ()): struct<'value> => {
+let make = (~kind, ~decoder=?, ()): t<'value> => {
   {kind: kind, decoder: decoder}
 }
 
@@ -57,7 +57,7 @@ let classify = struct => struct.kind
 
 external unsafeDecoder: unknown => 'value = "%identity"
 let _decode:
-  type value. (struct<value>, unknown) => value =
+  type value. (t<value>, unknown) => value =
   (struct, unknown) => {
     switch struct.decoder {
     | Some(decoder) => unknown->decoder

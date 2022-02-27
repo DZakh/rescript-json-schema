@@ -58,7 +58,7 @@ function(fields, makeFieldSchema, objectFluentSchema) {
   return objectFluentSchema.required(requiredFieldNames);
 }`)
 
-  let make = (~fields, ~makeFluentSchemaWithMeta: S.struct<'value> => meta<'value>) => {
+  let make = (~fields, ~makeFluentSchemaWithMeta: S.t<'value> => meta<'value>) => {
     _make(
       ~fields,
       ~makeFieldSchema=struct => {
@@ -76,7 +76,7 @@ function(fields, makeFieldSchema, objectFluentSchema) {
 }
 
 let rec makeFluentSchemaWithMeta:
-  type value. S.struct<value> => meta<value> =
+  type value. S.t<value> => meta<value> =
   struct => {
     switch struct->S.classify {
     | S.String => Required(FJS.string())

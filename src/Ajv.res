@@ -3,7 +3,7 @@ type ajv
 
 module Validator = {
   type ajvValidator
-  type t<'value> = {struct: S.struct<'value>, ajvValidator: ajvValidator}
+  type t<'value> = {struct: S.t<'value>, ajvValidator: ajvValidator}
 
   @send external _make: (ajv, JsonSchema.t<'value>) => ajvValidator = "compile"
   let make = (ajv, struct) => {
