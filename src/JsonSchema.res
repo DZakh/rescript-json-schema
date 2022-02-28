@@ -20,6 +20,7 @@ module FJS = {
 
 exception NestedOptionException
 exception RootOptionException
+exception ArrayItemOptionException
 
 type t<'value> = FJS.json<'value>
 type rec fluentSchema<'value> = FJS.t<'value>
@@ -29,13 +30,6 @@ and meta<'value> =
 
 external unsafeUnwrapFluentSchema: fluentSchema<option<'value>> => fluentSchema<'value> =
   "%identity"
-
-let applyFluentSchemaMeta = (meta: meta<'value>): fluentSchema<'value> => {
-  switch meta {
-  | Optional(_) => raise(RootOptionException)
-  | Required(fluentSchema) => fluentSchema->unsafeUnwrapFluentSchema
-  }
-}
 
 module RecordFluentSchema = {
   type fieldSchema<'value> = {
@@ -83,7 +77,15 @@ let rec makeBranch:
     | S.Int => Required(FJS.integer())
     | S.Bool => Required(FJS.boolean())
     | S.Float => Required(FJS.number())
-    | S.Array(s') => Required(FJS.array()->FJS.items(makeBranch(s')->applyFluentSchemaMeta))
+    | S.Array(s') =>
+      Required(
+        FJS.array()->FJS.items(
+          switch makeBranch(s') {
+          | Optional(_) => raise(ArrayItemOptionException)
+          | Required(fluentSchema) => fluentSchema->unsafeUnwrapFluentSchema
+          },
+        ),
+      )
     | S.Option(s') =>
       switch makeBranch(s') {
       | Optional(_) => raise(NestedOptionException)
@@ -103,11 +105,15 @@ let rec makeBranch:
 
 let make = struct => {
   try {
-    makeBranch(struct)->applyFluentSchemaMeta->FJS.valueOf
+    switch makeBranch(struct) {
+    | Optional(_) => raise(RootOptionException)
+    | Required(fluentSchema) => fluentSchema->unsafeUnwrapFluentSchema
+    }->FJS.valueOf
   } catch {
   | NestedOptionException =>
-    Js.Exn.raiseError("The option struct can't be nested in another option struct.")
-  | RootOptionException => Js.Exn.raiseError("The root struct can't be optional.")
+    Js.Exn.raiseError("The option struct can't be nested in another option struct")
+  | RootOptionException => Js.Exn.raiseError("The root struct can't be optional")
+  | ArrayItemOptionException => Js.Exn.raiseError("Optional array item struct isn't supported")
   // TODO: Handle FluentSchema error
   // TODO: Raise custom instance of error
   | _ => Js.Exn.raiseError("Unknown RescriptJsonSchema error.")

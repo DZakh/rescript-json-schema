@@ -88,7 +88,7 @@ Ava.test("Make JsonSchema throws error with optional root type", t => {
       JsonSchema.make(struct)->ignore
     },
     ~expectations={
-      message: Some("The root struct can\'t be optional."),
+      message: Some("The root struct can\'t be optional"),
     },
     (),
   )
@@ -107,7 +107,7 @@ Ava.test("Make JsonSchema throws error with record field wrapped in option multi
       JsonSchema.make(struct)->ignore
     },
     ~expectations={
-      message: Some("The option struct can\'t be nested in another option struct."),
+      message: Some("The option struct can\'t be nested in another option struct"),
     },
     (),
   )

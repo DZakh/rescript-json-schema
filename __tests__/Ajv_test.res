@@ -10,6 +10,19 @@ test("Guard works with primitive schema", t => {
   t->Assert.is(boolValidator->Ajv.Validator.is(123->S.unsafeToUnknown), false, ())
 })
 
+failing("Guard works with array of optional primitives schema", t => {
+  let struct = S.array(S.option(S.bool))
+
+  let ajv = Ajv.make()
+  let boolValidator = ajv->Ajv.Validator.make(struct)
+
+  t->Assert.is(
+    boolValidator->Ajv.Validator.is(%raw(`[true, undefined]`)->S.unsafeToUnknown),
+    true,
+    (),
+  )
+})
+
 module TestRecordSchemaGuard = {
   type user = {name: string, email: option<string>, age: int}
 
