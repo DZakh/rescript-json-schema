@@ -122,3 +122,38 @@ module TestRecordSchemaParse = {
     )
   })
 }
+
+module TestNestedRecordSchemaParse = {
+  type user = {name: string, email: option<string>, age: int}
+  type account = {id: string, user: user}
+
+  let parseAccount = data => {
+    let struct = S.record2(
+      ~fields=(
+        ("Id", S.string),
+        (
+          "User",
+          S.record3(
+            ~fields=(("Name", S.string), ("Email", S.option(S.string)), ("Age", S.int)),
+            ~constructor=((name, email, age)) => {name: name, email: email, age: age},
+          ),
+        ),
+      ),
+      ~constructor=((id, user)) => {id: id, user: user},
+    )
+
+    let ajv = Ajv.make()
+    let userValidator = ajv->Ajv.Validator.make(struct)
+    userValidator->Ajv.Validator.parse(data->S.unsafeToUnknown)
+  }
+
+  test("[Nested record schema parse] Record with all valid fields", t => {
+    t->Assert.deepEqual(
+      parseAccount(
+        %raw(`{"Id":"foo","User":{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21}}`),
+      ),
+      Ok({id: "foo", user: {name: "Dmitry", email: Some("dzakh.dev@gmail.com"), age: 21}}),
+      (),
+    )
+  })
+}

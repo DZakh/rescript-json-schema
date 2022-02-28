@@ -156,7 +156,7 @@ let articleParseResult: result<article, unit> = articleValidator->Ajv.Validator.
 - [ ] Add never struct
 - [ ] Add ability to mixin raw schema
 - [ ] Add encoding
-- [ ] Remove Fluent JSON Schema from dependencies
+- [v] Remove Fluent JSON Schema from dependencies
 - [ ] Make unknown an abstract type
 - [ ] Add better support for OpenAPI
   - [ ] Add description field 

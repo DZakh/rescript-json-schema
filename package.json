@@ -41,7 +41,7 @@
     "rescript-ava": "git+https://github.com/DZakh-packages/rescript-ava.git"
   },
   "dependencies": {
-    "fluent-json-schema": "3.0.1"
+    "deepmerge": "^4.2.2"
   },
   "ava": {
     "files": [
