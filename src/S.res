@@ -1,8 +1,12 @@
 type unknown = Js.Json.t
 external unsafeToUnknown: 'unknown => unknown = "%identity"
 
-// TODO: Add title and description
-type rec t<'value> = {kind: kind<'value>, decoder: option<unknown => 'value>}
+// TODO: Add title and description (probably not here)
+type rec t<'value> = {
+  kind: kind<'value>,
+  decoder: option<unknown => 'value>,
+  meta: Js.Dict.t<unknown>,
+}
 and kind<_> =
   | String: kind<string>
   | Int: kind<int>
@@ -11,7 +15,6 @@ and kind<_> =
   | Option(t<'value>): kind<option<'value>>
   | Array(t<'value>): kind<array<'value>>
   // TODO: Add nullable
-  // TODO: Add raw
   // TODO: Add custom
   | Record1(field<'v1>): kind<'value>
   | Record2((field<'v1>, field<'v2>)): kind<'value>
@@ -50,10 +53,29 @@ and kind<_> =
 and field<'value> = (string, t<'value>)
 
 let make = (~kind, ~decoder=?, ()): t<'value> => {
-  {kind: kind, decoder: decoder}
+  {kind: kind, decoder: decoder, meta: Js.Dict.empty()}
 }
 
+@module
+external mergeMeta: (unknown, unknown) => unknown = "deepmerge"
+
 let classify = struct => struct.kind
+let getMeta = (struct, ~namespace) => {
+  let maybeExistingMeta = struct.meta->Js.Dict.get(namespace)
+  switch maybeExistingMeta {
+  | Some(existingMeta) => existingMeta
+  | None => Js.Dict.empty()->Js.Json.object_
+  }
+}
+let mixinMeta = (struct, ~namespace, ~meta) => {
+  let maybeExistingMeta = struct.meta->Js.Dict.get(namespace)
+  let nextMeta = switch maybeExistingMeta {
+  | Some(existingMeta) => mergeMeta(existingMeta, meta)
+  | None => meta
+  }
+  struct.meta->Js.Dict.set(namespace, nextMeta)
+  struct
+}
 
 external unsafeDecoder: unknown => 'value = "%identity"
 let _decode:

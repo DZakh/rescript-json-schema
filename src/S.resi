@@ -47,6 +47,8 @@ and field<'value> = (string, t<'value>)
 let unsafeToUnknown: 'unknown => unknown
 
 let classify: t<'value> => kind<'value>
+let getMeta: (t<'value>, ~namespace: string) => unknown
+let mixinMeta: (t<'value>, ~namespace: string, ~meta: unknown) => t<'value>
 
 let string: t<string>
 let bool: t<bool>
