@@ -93,7 +93,7 @@ let rec makeBranch:
         },
       )
     | S.Option(s') =>
-      switch makeBranch(s') {
+      switch makeBranch(s'->S.mixinMeta(~namespace=rawSchemaNamespace, ~meta=rawSchema)) {
       | Optional(_) => raise(NestedOptionException)
       | Required(s'') => Optional(s'')
       }

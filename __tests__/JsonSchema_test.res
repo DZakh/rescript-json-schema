@@ -124,3 +124,14 @@ test("Primitive struct schema with additional raw schema", t => {
 
   t->Assert.snapshot(JsonSchema.make(struct), ())
 })
+
+test("Additional raw schema works with optional fields", t => {
+  let struct = S.record1(
+    ~fields=("optionalField", S.option(S.string())->JsonSchema.raw(%raw(`{nullable: true}`))),
+    ~constructor=optionalField => {
+      optionalField: optionalField,
+    },
+  )
+
+  t->Assert.snapshot(JsonSchema.make(struct), ())
+})
