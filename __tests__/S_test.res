@@ -1,38 +1,42 @@
 open Ava
 
-test("Decodes unknown literal", t => {
-  let literal = "ReScript is Great!"
+test("Decodes unknown primitive", t => {
+  let primitive = "ReScript is Great!"
 
-  let unknownLiteral = Js.Json.string(literal)
-  let literalStruct = S.string
+  let unknownPrimitive = Js.Json.string(primitive)
+  let primitiveStruct = S.string
 
-  t->Assert.is(literalStruct->S.decode(unknownLiteral), literal, ())
-  t->Assert.is(unknownLiteral->S.decodeWith(literalStruct), literal, ())
+  t->Assert.is(primitiveStruct->S.decode(unknownPrimitive), primitive, ())
+  t->Assert.is(unknownPrimitive->S.decodeWith(primitiveStruct), primitive, ())
 })
 
 test(
-  "Decodes unknown literal without validation. Note: Use Ajv.parse to safely decode with validation",
+  "Decodes unknown primitive without validation. Note: Use Ajv.parse to safely decode with validation",
   t => {
-    let literal = 123.
+    let primitive = 123.
 
-    let unknownLiteral = Js.Json.number(literal)
-    let literalStruct = S.string
+    let unknownPrimitive = Js.Json.number(primitive)
+    let primitiveStruct = S.string
 
-    t->Assert.is(literalStruct->S.decode(unknownLiteral), literal, ())
-    t->Assert.is(unknownLiteral->S.decodeWith(literalStruct), literal, ())
+    t->Assert.is(primitiveStruct->S.decode(unknownPrimitive), primitive, ())
+    t->Assert.is(unknownPrimitive->S.decodeWith(primitiveStruct), primitive, ())
   },
 )
 
-test("Decodes unknown array of literals", t => {
-  let arrayOfLiterals = ["ReScript is Great!"]
+test("Decodes unknown array of primitives", t => {
+  let arrayOfPrimitives = ["ReScript is Great!"]
 
-  let unknownArrayOfLiterals = Js.Json.stringArray(arrayOfLiterals)
-  let arrayOfLiteralsStruct = S.array(S.string)
+  let unknownArrayOfPrimitives = Js.Json.stringArray(arrayOfPrimitives)
+  let arrayOfPrimitivesStruct = S.array(S.string)
 
-  t->Assert.deepEqual(arrayOfLiteralsStruct->S.decode(unknownArrayOfLiterals), arrayOfLiterals, ())
   t->Assert.deepEqual(
-    unknownArrayOfLiterals->S.decodeWith(arrayOfLiteralsStruct),
-    arrayOfLiterals,
+    arrayOfPrimitivesStruct->S.decode(unknownArrayOfPrimitives),
+    arrayOfPrimitives,
+    (),
+  )
+  t->Assert.deepEqual(
+    unknownArrayOfPrimitives->S.decodeWith(arrayOfPrimitivesStruct),
+    arrayOfPrimitives,
     (),
   )
 })

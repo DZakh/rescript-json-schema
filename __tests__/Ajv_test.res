@@ -1,6 +1,6 @@
 open Ava
 
-test("Guard works with literal schema", t => {
+test("Guard works with primitive schema", t => {
   let struct = S.bool
 
   let ajv = Ajv.make()

@@ -58,11 +58,11 @@ function(fields, makeFieldSchema, objectFluentSchema) {
   return objectFluentSchema.required(requiredFieldNames);
 }`)
 
-  let make = (~fields, ~makeFluentSchemaWithMeta: S.t<'value> => meta<'value>) => {
+  let make = (~fields, ~makeBranch: S.t<'value> => meta<'value>) => {
     _make(
       ~fields,
       ~makeFieldSchema=struct => {
-        switch makeFluentSchemaWithMeta(struct) {
+        switch makeBranch(struct) {
         | Optional(fluentSchema) => {fluentSchema: fluentSchema, isRequired: false}
         | Required(fluentSchema) => {
             fluentSchema: fluentSchema->unsafeUnwrapFluentSchema,
@@ -75,7 +75,7 @@ function(fields, makeFieldSchema, objectFluentSchema) {
   }
 }
 
-let rec makeFluentSchemaWithMeta:
+let rec makeBranch:
   type value. S.t<value> => meta<value> =
   struct => {
     switch struct->S.classify {
@@ -83,29 +83,27 @@ let rec makeFluentSchemaWithMeta:
     | S.Int => Required(FJS.integer())
     | S.Bool => Required(FJS.boolean())
     | S.Float => Required(FJS.number())
-    | S.Array(s') =>
-      Required(FJS.array()->FJS.items(makeFluentSchemaWithMeta(s')->applyFluentSchemaMeta))
+    | S.Array(s') => Required(FJS.array()->FJS.items(makeBranch(s')->applyFluentSchemaMeta))
     | S.Option(s') =>
-      switch makeFluentSchemaWithMeta(s') {
+      switch makeBranch(s') {
       | Optional(_) => raise(NestedOptionException)
       | Required(s'') => Optional(s'')
       }
-    | S.Record1(fields) =>
-      Required(RecordFluentSchema.make(~fields=[fields], ~makeFluentSchemaWithMeta))
-    | S.Record2(fields) => Required(RecordFluentSchema.make(~fields, ~makeFluentSchemaWithMeta))
-    | S.Record3(fields) => Required(RecordFluentSchema.make(~fields, ~makeFluentSchemaWithMeta))
-    | S.Record4(fields) => Required(RecordFluentSchema.make(~fields, ~makeFluentSchemaWithMeta))
-    | S.Record5(fields) => Required(RecordFluentSchema.make(~fields, ~makeFluentSchemaWithMeta))
-    | S.Record6(fields) => Required(RecordFluentSchema.make(~fields, ~makeFluentSchemaWithMeta))
-    | S.Record7(fields) => Required(RecordFluentSchema.make(~fields, ~makeFluentSchemaWithMeta))
-    | S.Record8(fields) => Required(RecordFluentSchema.make(~fields, ~makeFluentSchemaWithMeta))
-    | S.Record9(fields) => Required(RecordFluentSchema.make(~fields, ~makeFluentSchemaWithMeta))
+    | S.Record1(fields) => Required(RecordFluentSchema.make(~fields=[fields], ~makeBranch))
+    | S.Record2(fields) => Required(RecordFluentSchema.make(~fields, ~makeBranch))
+    | S.Record3(fields) => Required(RecordFluentSchema.make(~fields, ~makeBranch))
+    | S.Record4(fields) => Required(RecordFluentSchema.make(~fields, ~makeBranch))
+    | S.Record5(fields) => Required(RecordFluentSchema.make(~fields, ~makeBranch))
+    | S.Record6(fields) => Required(RecordFluentSchema.make(~fields, ~makeBranch))
+    | S.Record7(fields) => Required(RecordFluentSchema.make(~fields, ~makeBranch))
+    | S.Record8(fields) => Required(RecordFluentSchema.make(~fields, ~makeBranch))
+    | S.Record9(fields) => Required(RecordFluentSchema.make(~fields, ~makeBranch))
     }
   }
 
 let make = struct => {
   try {
-    makeFluentSchemaWithMeta(struct)->applyFluentSchemaMeta->FJS.valueOf
+    makeBranch(struct)->applyFluentSchemaMeta->FJS.valueOf
   } catch {
   | NestedOptionException =>
     Js.Exn.raiseError("The option struct can't be nested in another option struct.")
