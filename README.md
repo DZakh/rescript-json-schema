@@ -146,12 +146,16 @@ let articleParseResult: result<article, unit> = articleValidator->Ajv.Validator.
 
 ## V1 Roadmap
 
-- [ ] Add Custom kind
+- [ ] Add Custom struct
 - [ ] Add more detailed errors
-- [ ] Add Nullable kind
+- [ ] Add Literal struct
+- [ ] Add Union struct
+- [ ] Add default modifier
+- [ ] Add nullable modifier
+- [ ] Add unknown struct
+- [ ] Add never struct
 - [ ] Add ability to mixin raw schema
 - [ ] Add encoding
-- [ ] Add enums with mapping to variants
 - [ ] Remove Fluent JSON Schema from dependencies
 - [ ] Make unknown an abstract type
 - [ ] Add better support for OpenAPI
