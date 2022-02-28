@@ -53,25 +53,23 @@ type article = {
   author: author,
 }
 
-let articleStruct: S.t<article> = {
-  open S
-  record5(
-    ~fields=(
-      ("Id", float),
-      ("Title", string),
-      ("Description", option(string)),
-      ("Tags", array(string)),
-      ("Author", record1(~fields=("Id", float), ~constructor=id => {id: id})),
-    ),
-    ~constructor=((id, title, description, tags, author)) => {
-      id: id,
-      title: title,
-      description: description,
-      tags: tags,
-      author: author,
-    },
-  )
-}
+
+let articleStruct: S.t<article> = S.record5(
+  ~fields=(
+    ("Id", S.float()),
+    ("Title", S.string()),
+    ("Description", S.option(S.string())),
+    ("Tags", S.array(S.string())),
+    ("Author", S.record1(~fields=("Id", S.float()), ~constructor=id => {id: id})),
+  ),
+  ~constructor=((id, title, description, tags, author)) => {
+    id: id,
+    title: title,
+    description: description,
+    tags: tags,
+    author: author,
+  },
+)
 ```
 
 ### Make JSON Schema
@@ -154,11 +152,10 @@ let articleParseResult: result<article, unit> = articleValidator->Ajv.Validator.
 - [ ] Add nullable modifier
 - [ ] Add unknown struct
 - [ ] Add never struct
-- [ ] Add ability to mixin raw schema
+- [v] Add ability to mixin raw schema
 - [ ] Add encoding
 - [v] Remove Fluent JSON Schema from dependencies
-- [ ] Make unknown an abstract type
 - [ ] Add better support for OpenAPI
-  - [ ] Add description field 
+  - [v] Add description field 
   - [ ] Add example/examples field 
   - [ ] Add deprecated field

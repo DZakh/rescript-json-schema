@@ -4,7 +4,7 @@ test("Decodes unknown primitive", t => {
   let primitive = "ReScript is Great!"
 
   let unknownPrimitive = Js.Json.string(primitive)
-  let primitiveStruct = S.string
+  let primitiveStruct = S.string()
 
   t->Assert.is(primitiveStruct->S.decode(unknownPrimitive), primitive, ())
   t->Assert.is(unknownPrimitive->S.decodeWith(primitiveStruct), primitive, ())
@@ -16,7 +16,7 @@ test(
     let primitive = 123.
 
     let unknownPrimitive = Js.Json.number(primitive)
-    let primitiveStruct = S.string
+    let primitiveStruct = S.string()
 
     t->Assert.is(primitiveStruct->S.decode(unknownPrimitive), primitive, ())
     t->Assert.is(unknownPrimitive->S.decodeWith(primitiveStruct), primitive, ())
@@ -27,7 +27,7 @@ test("Decodes unknown array of primitives", t => {
   let arrayOfPrimitives = ["ReScript is Great!"]
 
   let unknownArrayOfPrimitives = Js.Json.stringArray(arrayOfPrimitives)
-  let arrayOfPrimitivesStruct = S.array(S.string)
+  let arrayOfPrimitivesStruct = S.array(S.string())
 
   t->Assert.deepEqual(
     arrayOfPrimitivesStruct->S.decode(unknownArrayOfPrimitives),
@@ -52,7 +52,7 @@ module TestRecordDecoding = {
     let record = {foo: "bar"}
 
     let unknownRecord = record->S.unsafeToUnknown
-    let recordStruct = S.record1(~fields=("foo", S.string), ~constructor=foo => {foo: foo})
+    let recordStruct = S.record1(~fields=("foo", S.string()), ~constructor=foo => {foo: foo})
 
     t->Assert.deepEqual(recordStruct->S.decode(unknownRecord), record, ())
     t->Assert.deepEqual(unknownRecord->S.decodeWith(recordStruct), record, ())
@@ -62,7 +62,7 @@ module TestRecordDecoding = {
     let record = {foo: "bar", zoo: "jee"}
 
     let unknownRecord = record->S.unsafeToUnknown
-    let recordStruct = S.record2(~fields=(("foo", S.string), ("zoo", S.string)), ~constructor=((
+    let recordStruct = S.record2(~fields=(("foo", S.string()), ("zoo", S.string())), ~constructor=((
       foo,
       zoo,
     )) => {foo: foo, zoo: zoo})
@@ -77,7 +77,7 @@ module TestRecordDecoding = {
     let unknownRecord =
       %raw(`{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21}`)->S.unsafeToUnknown
     let recordStruct = S.record3(
-      ~fields=(("Name", S.string), ("Email", S.string), ("Age", S.int)),
+      ~fields=(("Name", S.string()), ("Email", S.string()), ("Age", S.int())),
       ~constructor=((name, email, age)) => {name: name, email: email, age: age},
     )
 
@@ -96,7 +96,7 @@ module TestRecordDecoding = {
     let recordStruct = S.record1(
       ~fields=(
         "singleFieldRecord",
-        S.option(S.record1(~fields=("MUST_BE_MAPPED", S.string), ~constructor=foo => {foo: foo})),
+        S.option(S.record1(~fields=("MUST_BE_MAPPED", S.string()), ~constructor=foo => {foo: foo})),
       ),
       ~constructor=singleFieldRecord => {singleFieldRecord: singleFieldRecord},
     )
@@ -121,7 +121,7 @@ module TestRecordDecoding = {
     let unknownArrayOfRecords =
       %raw(`[{"MUST_BE_MAPPED":"bar"},{"MUST_BE_MAPPED":"baz"}]`)->S.unsafeToUnknown
     let arrayOfRecordsStruct = S.array(
-      S.record1(~fields=("MUST_BE_MAPPED", S.string), ~constructor=foo => {foo: foo}),
+      S.record1(~fields=("MUST_BE_MAPPED", S.string()), ~constructor=foo => {foo: foo}),
     )
 
     t->Assert.deepEqual(arrayOfRecordsStruct->S.decode(unknownArrayOfRecords), arrayOfRecords, ())

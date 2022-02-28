@@ -120,10 +120,10 @@ function(fields, constructor, decode) {
   }
 }
 
-let string = make(~kind=String, ())
-let bool = make(~kind=Bool, ())
-let int = make(~kind=Int, ())
-let float = make(~kind=Float, ())
+let string = () => make(~kind=String, ())
+let bool = () => make(~kind=Bool, ())
+let int = () => make(~kind=Int, ())
+let float = () => make(~kind=Float, ())
 
 external unsafeUnknownToArray: unknown => array<unknown> = "%identity"
 let array = struct =>

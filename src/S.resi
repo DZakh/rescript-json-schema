@@ -44,17 +44,10 @@ and kind<_> =
     ): kind<'value>
 and field<'value> = (string, t<'value>)
 
-let unsafeToUnknown: 'unknown => unknown
-
-let classify: t<'value> => kind<'value>
-let getMeta: (t<'value>, ~namespace: string) => unknown
-let mixinMeta: (t<'value>, ~namespace: string, ~meta: unknown) => t<'value>
-
-let string: t<string>
-let bool: t<bool>
-let int: t<int>
-let float: t<float>
-
+let string: unit => t<string>
+let bool: unit => t<bool>
+let int: unit => t<int>
+let float: unit => t<float>
 let array: t<'value> => t<array<'value>>
 let option: t<'value> => t<option<'value>>
 
@@ -110,3 +103,8 @@ let record9: (
 
 let decode: (t<'value>, unknown) => 'value
 let decodeWith: (unknown, t<'value>) => 'value
+
+let unsafeToUnknown: 'any => unknown
+let classify: t<'value> => kind<'value>
+let getMeta: (t<'value>, ~namespace: string) => unknown
+let mixinMeta: (t<'value>, ~namespace: string, ~meta: unknown) => t<'value>

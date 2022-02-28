@@ -33,7 +33,7 @@
     "res:build": "rescript build -with-deps",
     "res:dev": "rescript build -w",
     "test": "ava",
-    "test:update-shanpshots": "ava --update-shanpshots"
+    "test:update": "ava --update-snapshots"
   },
   "devDependencies": {
     "ajv": "^8.10.0",

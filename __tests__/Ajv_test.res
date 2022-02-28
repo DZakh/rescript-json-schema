@@ -1,7 +1,7 @@
 open Ava
 
 test("Guard works with primitive schema", t => {
-  let struct = S.bool
+  let struct = S.bool()
 
   let ajv = Ajv.make()
   let boolValidator = ajv->Ajv.Validator.make(struct)
@@ -11,7 +11,7 @@ test("Guard works with primitive schema", t => {
 })
 
 failing("Guard works with array of optional primitives schema", t => {
-  let struct = S.array(S.option(S.bool))
+  let struct = S.array(S.option(S.bool()))
 
   let ajv = Ajv.make()
   let boolValidator = ajv->Ajv.Validator.make(struct)
@@ -28,7 +28,7 @@ module TestRecordSchemaGuard = {
 
   let validateUser = data => {
     let struct = S.record3(
-      ~fields=(("Name", S.string), ("Email", S.option(S.string)), ("Age", S.int)),
+      ~fields=(("Name", S.string()), ("Email", S.option(S.string())), ("Age", S.int())),
       ~constructor=((name, email, age)) => {name: name, email: email, age: age},
     )
 
@@ -81,7 +81,7 @@ module TestRecordSchemaParse = {
 
   let parseUser = data => {
     let struct = S.record3(
-      ~fields=(("Name", S.string), ("Email", S.option(S.string)), ("Age", S.int)),
+      ~fields=(("Name", S.string()), ("Email", S.option(S.string())), ("Age", S.int())),
       ~constructor=((name, email, age)) => {name: name, email: email, age: age},
     )
 
@@ -130,11 +130,11 @@ module TestNestedRecordSchemaParse = {
   let parseAccount = data => {
     let struct = S.record2(
       ~fields=(
-        ("Id", S.string),
+        ("Id", S.string()),
         (
           "User",
           S.record3(
-            ~fields=(("Name", S.string), ("Email", S.option(S.string)), ("Age", S.int)),
+            ~fields=(("Name", S.string()), ("Email", S.option(S.string())), ("Age", S.int())),
             ~constructor=((name, email, age)) => {name: name, email: email, age: age},
           ),
         ),
