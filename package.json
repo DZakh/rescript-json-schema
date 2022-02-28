@@ -30,7 +30,7 @@
     "bsconfig.json"
   ],
   "scripts": {
-    "res:build": "rescript",
+    "res:build": "rescript build -with-deps",
     "res:dev": "rescript build -w",
     "test": "ava",
     "test:update-shanpshots": "ava --update-shanpshots"

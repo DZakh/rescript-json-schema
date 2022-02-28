@@ -61,9 +61,9 @@ let articleStruct: S.t<article> = {
       ("Title", string),
       ("Description", option(string)),
       ("Tags", array(string)),
-      ("Author", record1(~fields=("Id", float), ~construct=id => {id: id})),
+      ("Author", record1(~fields=("Id", float), ~constructor=id => {id: id})),
     ),
-    ~construct=((id, title, description, tags, author)) => {
+    ~constructor=((id, title, description, tags, author)) => {
       id: id,
       title: title,
       description: description,

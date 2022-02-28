@@ -48,7 +48,7 @@ module TestRecordDecoding = {
     let record = {foo: "bar"}
 
     let unknownRecord = record->S.unsafeToUnknown
-    let recordStruct = S.record1(~fields=("foo", S.string), ~construct=foo => {foo: foo})
+    let recordStruct = S.record1(~fields=("foo", S.string), ~constructor=foo => {foo: foo})
 
     t->Assert.deepEqual(recordStruct->S.decode(unknownRecord), record, ())
     t->Assert.deepEqual(unknownRecord->S.decodeWith(recordStruct), record, ())
@@ -58,7 +58,7 @@ module TestRecordDecoding = {
     let record = {foo: "bar", zoo: "jee"}
 
     let unknownRecord = record->S.unsafeToUnknown
-    let recordStruct = S.record2(~fields=(("foo", S.string), ("zoo", S.string)), ~construct=((
+    let recordStruct = S.record2(~fields=(("foo", S.string), ("zoo", S.string)), ~constructor=((
       foo,
       zoo,
     )) => {foo: foo, zoo: zoo})
@@ -74,7 +74,7 @@ module TestRecordDecoding = {
       %raw(`{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21}`)->S.unsafeToUnknown
     let recordStruct = S.record3(
       ~fields=(("Name", S.string), ("Email", S.string), ("Age", S.int)),
-      ~construct=((name, email, age)) => {name: name, email: email, age: age},
+      ~constructor=((name, email, age)) => {name: name, email: email, age: age},
     )
 
     t->Assert.deepEqual(recordStruct->S.decode(unknownRecord), record, ())
@@ -92,9 +92,9 @@ module TestRecordDecoding = {
     let recordStruct = S.record1(
       ~fields=(
         "singleFieldRecord",
-        S.option(S.record1(~fields=("MUST_BE_MAPPED", S.string), ~construct=foo => {foo: foo})),
+        S.option(S.record1(~fields=("MUST_BE_MAPPED", S.string), ~constructor=foo => {foo: foo})),
       ),
-      ~construct=singleFieldRecord => {singleFieldRecord: singleFieldRecord},
+      ~constructor=singleFieldRecord => {singleFieldRecord: singleFieldRecord},
     )
 
     t->Assert.deepEqual(recordStruct->S.decode(unknownRecordWithSomeField), recordWithSomeField, ())
@@ -117,7 +117,7 @@ module TestRecordDecoding = {
     let unknownArrayOfRecords =
       %raw(`[{"MUST_BE_MAPPED":"bar"},{"MUST_BE_MAPPED":"baz"}]`)->S.unsafeToUnknown
     let arrayOfRecordsStruct = S.array(
-      S.record1(~fields=("MUST_BE_MAPPED", S.string), ~construct=foo => {foo: foo}),
+      S.record1(~fields=("MUST_BE_MAPPED", S.string), ~constructor=foo => {foo: foo}),
     )
 
     t->Assert.deepEqual(arrayOfRecordsStruct->S.decode(unknownArrayOfRecords), arrayOfRecords, ())

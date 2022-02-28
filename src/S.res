@@ -72,13 +72,13 @@ let decodeWith = (unknown, struct) => {
 
 module RecordDecoder = {
   let _make = %raw(`
-function(fields, construct, decode) {
+function(fields, constructor, decode) {
   var isSingleField = typeof fields[0] === "string";
   if (isSingleField) {
     return function(unknown) {
       var fieldName = fields[0],
         fieldStruct = fields[1];
-      return construct(decode(fieldStruct, unknown[fieldName]));
+      return constructor(decode(fieldStruct, unknown[fieldName]));
     }
   }
   return function(unknown) {
@@ -88,13 +88,13 @@ function(fields, construct, decode) {
         fieldStruct = field[1];
       ctx.push(decode(fieldStruct, unknown[fieldName]));
     })
-    return construct(ctx);
+    return constructor(ctx);
   }
 }
 `)
 
-  let make = (~fields: 'fields, ~construct: 'ctx => 'value, unknown: unknown): 'value => {
-    _make(~fields, ~construct, ~decode=_decode)(unknown)
+  let make = (~fields: 'fields, ~constructor: 'ctx => 'value, unknown: unknown): 'value => {
+    _make(~fields, ~constructor, ~decode=_decode)(unknown)
   }
 }
 
@@ -127,30 +127,30 @@ let option = struct => {
   )
 }
 
-let record1 = (~fields, ~construct) => {
-  make(~kind=Record1(fields), ~decoder=RecordDecoder.make(~fields, ~construct), ())
+let record1 = (~fields, ~constructor) => {
+  make(~kind=Record1(fields), ~decoder=RecordDecoder.make(~fields, ~constructor), ())
 }
-let record2 = (~fields, ~construct) => {
-  make(~kind=Record2(fields), ~decoder=RecordDecoder.make(~fields, ~construct), ())
+let record2 = (~fields, ~constructor) => {
+  make(~kind=Record2(fields), ~decoder=RecordDecoder.make(~fields, ~constructor), ())
 }
-let record3 = (~fields, ~construct) => {
-  make(~kind=Record3(fields), ~decoder=RecordDecoder.make(~fields, ~construct), ())
+let record3 = (~fields, ~constructor) => {
+  make(~kind=Record3(fields), ~decoder=RecordDecoder.make(~fields, ~constructor), ())
 }
-let record4 = (~fields, ~construct) => {
-  make(~kind=Record4(fields), ~decoder=RecordDecoder.make(~fields, ~construct), ())
+let record4 = (~fields, ~constructor) => {
+  make(~kind=Record4(fields), ~decoder=RecordDecoder.make(~fields, ~constructor), ())
 }
-let record5 = (~fields, ~construct) => {
-  make(~kind=Record5(fields), ~decoder=RecordDecoder.make(~fields, ~construct), ())
+let record5 = (~fields, ~constructor) => {
+  make(~kind=Record5(fields), ~decoder=RecordDecoder.make(~fields, ~constructor), ())
 }
-let record6 = (~fields, ~construct) => {
-  make(~kind=Record6(fields), ~decoder=RecordDecoder.make(~fields, ~construct), ())
+let record6 = (~fields, ~constructor) => {
+  make(~kind=Record6(fields), ~decoder=RecordDecoder.make(~fields, ~constructor), ())
 }
-let record7 = (~fields, ~construct) => {
-  make(~kind=Record7(fields), ~decoder=RecordDecoder.make(~fields, ~construct), ())
+let record7 = (~fields, ~constructor) => {
+  make(~kind=Record7(fields), ~decoder=RecordDecoder.make(~fields, ~constructor), ())
 }
-let record8 = (~fields, ~construct) => {
-  make(~kind=Record8(fields), ~decoder=RecordDecoder.make(~fields, ~construct), ())
+let record8 = (~fields, ~constructor) => {
+  make(~kind=Record8(fields), ~decoder=RecordDecoder.make(~fields, ~constructor), ())
 }
-let record9 = (~fields, ~construct) => {
-  make(~kind=Record9(fields), ~decoder=RecordDecoder.make(~fields, ~construct), ())
+let record9 = (~fields, ~constructor) => {
+  make(~kind=Record9(fields), ~decoder=RecordDecoder.make(~fields, ~constructor), ())
 }

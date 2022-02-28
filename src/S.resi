@@ -56,27 +56,27 @@ let float: t<float>
 let array: t<'value> => t<array<'value>>
 let option: t<'value> => t<option<'value>>
 
-let record1: (~fields: field<'v1>, ~construct: 'v1 => 'value) => t<'value>
-let record2: (~fields: (field<'v1>, field<'v2>), ~construct: (('v1, 'v2)) => 'value) => t<'value>
+let record1: (~fields: field<'v1>, ~constructor: 'v1 => 'value) => t<'value>
+let record2: (~fields: (field<'v1>, field<'v2>), ~constructor: (('v1, 'v2)) => 'value) => t<'value>
 let record3: (
   ~fields: (field<'v1>, field<'v2>, field<'v3>),
-  ~construct: (('v1, 'v2, 'v3)) => 'value,
+  ~constructor: (('v1, 'v2, 'v3)) => 'value,
 ) => t<'value>
 let record4: (
   ~fields: (field<'v1>, field<'v2>, field<'v3>, field<'v4>),
-  ~construct: (('v1, 'v2, 'v3, 'v4)) => 'value,
+  ~constructor: (('v1, 'v2, 'v3, 'v4)) => 'value,
 ) => t<'value>
 let record5: (
   ~fields: (field<'v1>, field<'v2>, field<'v3>, field<'v4>, field<'v5>),
-  ~construct: (('v1, 'v2, 'v3, 'v4, 'v5)) => 'value,
+  ~constructor: (('v1, 'v2, 'v3, 'v4, 'v5)) => 'value,
 ) => t<'value>
 let record6: (
   ~fields: (field<'v1>, field<'v2>, field<'v3>, field<'v4>, field<'v5>, field<'v6>),
-  ~construct: (('v1, 'v2, 'v3, 'v4, 'v5, 'v6)) => 'value,
+  ~constructor: (('v1, 'v2, 'v3, 'v4, 'v5, 'v6)) => 'value,
 ) => t<'value>
 let record7: (
   ~fields: (field<'v1>, field<'v2>, field<'v3>, field<'v4>, field<'v5>, field<'v6>, field<'v7>),
-  ~construct: (('v1, 'v2, 'v3, 'v4, 'v5, 'v6, 'v7)) => 'value,
+  ~constructor: (('v1, 'v2, 'v3, 'v4, 'v5, 'v6, 'v7)) => 'value,
 ) => t<'value>
 let record8: (
   ~fields: (
@@ -89,7 +89,7 @@ let record8: (
     field<'v7>,
     field<'v8>,
   ),
-  ~construct: (('v1, 'v2, 'v3, 'v4, 'v5, 'v6, 'v7, 'v8)) => 'value,
+  ~constructor: (('v1, 'v2, 'v3, 'v4, 'v5, 'v6, 'v7, 'v8)) => 'value,
 ) => t<'value>
 let record9: (
   ~fields: (
@@ -103,7 +103,7 @@ let record9: (
     field<'v8>,
     field<'v9>,
   ),
-  ~construct: (('v1, 'v2, 'v3, 'v4, 'v5, 'v6, 'v7, 'v8, 'v9)) => 'value,
+  ~constructor: (('v1, 'v2, 'v3, 'v4, 'v5, 'v6, 'v7, 'v8, 'v9)) => 'value,
 ) => t<'value>
 
 let decode: (t<'value>, unknown) => 'value

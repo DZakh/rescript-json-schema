@@ -16,7 +16,7 @@ module TestRecordSchemaGuard = {
   let validateUser = data => {
     let struct = S.record3(
       ~fields=(("Name", S.string), ("Email", S.option(S.string)), ("Age", S.int)),
-      ~construct=((name, email, age)) => {name: name, email: email, age: age},
+      ~constructor=((name, email, age)) => {name: name, email: email, age: age},
     )
 
     let ajv = Ajv.make()
@@ -69,7 +69,7 @@ module TestRecordSchemaParse = {
   let parseUser = data => {
     let struct = S.record3(
       ~fields=(("Name", S.string), ("Email", S.option(S.string)), ("Age", S.int)),
-      ~construct=((name, email, age)) => {name: name, email: email, age: age},
+      ~constructor=((name, email, age)) => {name: name, email: email, age: age},
     )
 
     let ajv = Ajv.make()
