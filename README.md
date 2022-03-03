@@ -53,14 +53,13 @@ type article = {
   author: author,
 }
 
-
 let articleStruct: S.t<article> = S.record5(
   ~fields=(
     ("Id", S.float()),
     ("Title", S.string()),
     ("Description", S.option(S.string())),
     ("Tags", S.array(S.string())),
-    ("Author", S.record1(~fields=("Id", S.float()), ~constructor=id => {id: id})),
+    ("Author", S.record1(~fields=("Id", S.float()), ~constructor=id => {id: id}->Ok, ())),
   ),
   ~constructor=((id, title, description, tags, author)) => {
     id: id,
@@ -68,7 +67,8 @@ let articleStruct: S.t<article> = S.record5(
     description: description,
     tags: tags,
     author: author,
-  },
+  }->Ok,
+  ()
 )
 ```
 
@@ -115,9 +115,9 @@ let data = Js.Json.parseExn(`{
   }
 }`)
 
-let article: article = articleStruct->S.decode(data)
+let decodeResult: result<article, string> = articleStruct->S.decode(data)
 // or
-let article: article = data->S.decodeWith(articleStruct)
+let decodeResult: result<article, string> = data->S.decodeWith(articleStruct)
 ```
 
 The JSON has capitalized field names, after decoding they are mapped to a valid ReScript structure.
@@ -139,13 +139,13 @@ let data = Js.Json.parseExn(`{
 
 let ajv = Ajv.make()
 let articleValidator = ajv->Ajv.Validator.make(articleStruct)
-let articleParseResult: result<article, unit> = articleValidator->Ajv.Validator.parse(data)
+let articleParseResult: result<article, string> = articleValidator->Ajv.Validator.parse(data)
 ```
 
 ## V1 Roadmap
 
 - [ ] Add Custom struct
-- [ ] Add more detailed errors
+- [ ] Return more useful errors
 - [ ] Add Literal struct
 - [ ] Add Union struct
 - [ ] Add default modifier

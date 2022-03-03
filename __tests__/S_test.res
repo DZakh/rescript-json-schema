@@ -1,4 +1,5 @@
 open Ava
+type throwsExpectation = {message: option<string>}
 
 test("Decodes unknown primitive", t => {
   let primitive = "ReScript is Great!"
@@ -6,8 +7,8 @@ test("Decodes unknown primitive", t => {
   let unknownPrimitive = Js.Json.string(primitive)
   let primitiveStruct = S.string()
 
-  t->Assert.is(primitiveStruct->S.decode(unknownPrimitive), primitive, ())
-  t->Assert.is(unknownPrimitive->S.decodeWith(primitiveStruct), primitive, ())
+  t->Assert.deepEqual(primitiveStruct->S.decode(unknownPrimitive), Ok(primitive), ())
+  t->Assert.deepEqual(unknownPrimitive->S.decodeWith(primitiveStruct), Ok(primitive), ())
 })
 
 test(
@@ -18,8 +19,8 @@ test(
     let unknownPrimitive = Js.Json.number(primitive)
     let primitiveStruct = S.string()
 
-    t->Assert.is(primitiveStruct->S.decode(unknownPrimitive), primitive, ())
-    t->Assert.is(unknownPrimitive->S.decodeWith(primitiveStruct), primitive, ())
+    t->Assert.deepEqual(primitiveStruct->S.decode(unknownPrimitive), Ok(primitive), ())
+    t->Assert.deepEqual(unknownPrimitive->S.decodeWith(primitiveStruct), Ok(primitive), ())
   },
 )
 
@@ -31,44 +32,49 @@ test("Decodes unknown array of primitives", t => {
 
   t->Assert.deepEqual(
     arrayOfPrimitivesStruct->S.decode(unknownArrayOfPrimitives),
-    arrayOfPrimitives,
+    Ok(arrayOfPrimitives),
     (),
   )
   t->Assert.deepEqual(
     unknownArrayOfPrimitives->S.decodeWith(arrayOfPrimitivesStruct),
-    arrayOfPrimitives,
+    Ok(arrayOfPrimitives),
     (),
   )
 })
 
 module TestRecordDecoding = {
   type singleFieldRecord = {foo: string}
-  type multipleFieldsRecord = {foo: string, zoo: string}
+  type multipleFieldsRecord = {boo: string, zoo: string}
   type user = {name: string, email: string, age: int}
-  type nestedRecord = {singleFieldRecord: singleFieldRecord}
+  type nestedRecord = {nested: singleFieldRecord}
   type optionalNestedRecord = {singleFieldRecord: option<singleFieldRecord>}
 
   test("Decodes unknown record with single field", t => {
     let record = {foo: "bar"}
 
     let unknownRecord = record->S.unsafeToUnknown
-    let recordStruct = S.record1(~fields=("foo", S.string()), ~constructor=foo => {foo: foo})
+    let recordStruct = S.record1(
+      ~fields=("foo", S.string()),
+      ~constructor=foo => {foo: foo}->Ok,
+      (),
+    )
 
-    t->Assert.deepEqual(recordStruct->S.decode(unknownRecord), record, ())
-    t->Assert.deepEqual(unknownRecord->S.decodeWith(recordStruct), record, ())
+    t->Assert.deepEqual(recordStruct->S.decode(unknownRecord), Ok(record), ())
+    t->Assert.deepEqual(unknownRecord->S.decodeWith(recordStruct), Ok(record), ())
   })
 
   test("Decodes unknown record with multiple fields", t => {
-    let record = {foo: "bar", zoo: "jee"}
+    let record = {boo: "bar", zoo: "jee"}
 
     let unknownRecord = record->S.unsafeToUnknown
-    let recordStruct = S.record2(~fields=(("foo", S.string()), ("zoo", S.string())), ~constructor=((
-      foo,
-      zoo,
-    )) => {foo: foo, zoo: zoo})
+    let recordStruct = S.record2(
+      ~fields=(("boo", S.string()), ("zoo", S.string())),
+      ~constructor=((boo, zoo)) => {boo: boo, zoo: zoo}->Ok,
+      (),
+    )
 
-    t->Assert.deepEqual(recordStruct->S.decode(unknownRecord), record, ())
-    t->Assert.deepEqual(unknownRecord->S.decodeWith(recordStruct), record, ())
+    t->Assert.deepEqual(recordStruct->S.decode(unknownRecord), Ok(record), ())
+    t->Assert.deepEqual(unknownRecord->S.decodeWith(recordStruct), Ok(record), ())
   })
 
   test("Decodes unknown record with mapped field", t => {
@@ -78,11 +84,12 @@ module TestRecordDecoding = {
       %raw(`{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21}`)->S.unsafeToUnknown
     let recordStruct = S.record3(
       ~fields=(("Name", S.string()), ("Email", S.string()), ("Age", S.int())),
-      ~constructor=((name, email, age)) => {name: name, email: email, age: age},
+      ~constructor=((name, email, age)) => {name: name, email: email, age: age}->Ok,
+      (),
     )
 
-    t->Assert.deepEqual(recordStruct->S.decode(unknownRecord), record, ())
-    t->Assert.deepEqual(unknownRecord->S.decodeWith(recordStruct), record, ())
+    t->Assert.deepEqual(recordStruct->S.decode(unknownRecord), Ok(record), ())
+    t->Assert.deepEqual(unknownRecord->S.decodeWith(recordStruct), Ok(record), ())
   })
 
   test("Decodes unknown record with optional nested record", t => {
@@ -96,21 +103,32 @@ module TestRecordDecoding = {
     let recordStruct = S.record1(
       ~fields=(
         "singleFieldRecord",
-        S.option(S.record1(~fields=("MUST_BE_MAPPED", S.string()), ~constructor=foo => {foo: foo})),
+        S.option(
+          S.record1(~fields=("MUST_BE_MAPPED", S.string()), ~constructor=foo => {foo: foo}->Ok, ()),
+        ),
       ),
-      ~constructor=singleFieldRecord => {singleFieldRecord: singleFieldRecord},
-    )
-
-    t->Assert.deepEqual(recordStruct->S.decode(unknownRecordWithSomeField), recordWithSomeField, ())
-    t->Assert.deepEqual(
-      unknownRecordWithSomeField->S.decodeWith(recordStruct),
-      recordWithSomeField,
+      ~constructor=singleFieldRecord => {singleFieldRecord: singleFieldRecord}->Ok,
       (),
     )
-    t->Assert.deepEqual(recordStruct->S.decode(unknownRecordWithNoneField), recordWithNoneField, ())
+
+    t->Assert.deepEqual(
+      recordStruct->S.decode(unknownRecordWithSomeField),
+      Ok(recordWithSomeField),
+      (),
+    )
+    t->Assert.deepEqual(
+      unknownRecordWithSomeField->S.decodeWith(recordStruct),
+      Ok(recordWithSomeField),
+      (),
+    )
+    t->Assert.deepEqual(
+      recordStruct->S.decode(unknownRecordWithNoneField),
+      Ok(recordWithNoneField),
+      (),
+    )
     t->Assert.deepEqual(
       unknownRecordWithNoneField->S.decodeWith(recordStruct),
-      recordWithNoneField,
+      Ok(recordWithNoneField),
       (),
     )
   })
@@ -121,13 +139,119 @@ module TestRecordDecoding = {
     let unknownArrayOfRecords =
       %raw(`[{"MUST_BE_MAPPED":"bar"},{"MUST_BE_MAPPED":"baz"}]`)->S.unsafeToUnknown
     let arrayOfRecordsStruct = S.array(
-      S.record1(~fields=("MUST_BE_MAPPED", S.string()), ~constructor=foo => {foo: foo}),
+      S.record1(~fields=("MUST_BE_MAPPED", S.string()), ~constructor=foo => {foo: foo}->Ok, ()),
     )
 
-    t->Assert.deepEqual(arrayOfRecordsStruct->S.decode(unknownArrayOfRecords), arrayOfRecords, ())
+    t->Assert.deepEqual(
+      arrayOfRecordsStruct->S.decode(unknownArrayOfRecords),
+      Ok(arrayOfRecords),
+      (),
+    )
     t->Assert.deepEqual(
       unknownArrayOfRecords->S.decodeWith(arrayOfRecordsStruct),
-      arrayOfRecords,
+      Ok(arrayOfRecords),
+      (),
+    )
+  })
+
+  test("Throws for a Record factory without either a constructor, or a destructor", t => {
+    t->Assert.throws(
+      () => {
+        S.record1(~fields=("any", S.string()), ())->ignore
+      },
+      ~expectations={
+        message: Some("For a Record struct either a constructor, or a destructor is required"),
+      },
+      (),
+    )
+  })
+
+  test("Record decoding fails when constructor isn't provided", t => {
+    let record = {foo: "bar"}
+
+    let unknownRecord = record->S.unsafeToUnknown
+    let recordStruct = S.record1(~fields=("foo", S.string()), ~destructor=({foo}) => foo->Ok, ())
+
+    t->Assert.deepEqual(
+      recordStruct->S.decode(unknownRecord),
+      Error("Struct missing decoder at root"),
+      (),
+    )
+    t->Assert.deepEqual(
+      unknownRecord->S.decodeWith(recordStruct),
+      Error("Struct missing decoder at root"),
+      (),
+    )
+  })
+
+  test("Nested record decoding fails when constructor isn't provided", t => {
+    let record = {nested: {foo: "bar"}}
+
+    let unknownRecord = record->S.unsafeToUnknown
+    let recordStruct = S.record1(
+      ~fields=(
+        "nested",
+        S.record1(~fields=("foo", S.string()), ~destructor=({foo}) => foo->Ok, ()),
+      ),
+      ~constructor=nested => {nested: nested}->Ok,
+      (),
+    )
+
+    t->Assert.deepEqual(
+      recordStruct->S.decode(unknownRecord),
+      Error(`Struct missing decoder at ."nested"`),
+      (),
+    )
+    t->Assert.deepEqual(
+      unknownRecord->S.decodeWith(recordStruct),
+      Error(`Struct missing decoder at ."nested"`),
+      (),
+    )
+  })
+
+  test("Decoding fails when user returns error in a root record constructor", t => {
+    let record = {foo: "bar"}
+
+    let unknownRecord = record->S.unsafeToUnknown
+    let recordStruct = S.record1(
+      ~fields=("foo", S.string()),
+      ~constructor=_ => Error("User error"),
+      (),
+    )
+
+    t->Assert.deepEqual(
+      recordStruct->S.decode(unknownRecord),
+      Error("Struct decoding failed at root. Reason: User error"),
+      (),
+    )
+    t->Assert.deepEqual(
+      unknownRecord->S.decodeWith(recordStruct),
+      Error("Struct decoding failed at root. Reason: User error"),
+      (),
+    )
+  })
+
+  test("Decoding fails when user returns error in a nested record constructor", t => {
+    let record = {nested: {foo: "bar"}}
+
+    let unknownRecord = record->S.unsafeToUnknown
+    let recordStruct = S.record1(
+      ~fields=(
+        "nested",
+        S.record1(~fields=("foo", S.string()), ~constructor=_ => Error("User error"), ()),
+      ),
+      ~constructor=nested => {nested: nested}->Ok,
+      (),
+    )
+
+    t->Assert.deepEqual(
+      recordStruct->S.decode(unknownRecord),
+      Error(`Struct decoding failed at ."nested". Reason: User error`),
+      (),
+    )
+    t->Assert.deepEqual(
+      unknownRecord->S.decodeWith(recordStruct),
+      Error(`Struct decoding failed at ."nested". Reason: User error`),
       (),
     )
   })

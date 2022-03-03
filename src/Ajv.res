@@ -24,11 +24,11 @@ module Validator = {
 
   // TODO: Add validate function with validation error messages
 
-  let parse = (self: t<'value>, unknown: S.unknown): result<'value, unit> => {
+  let parse = (self: t<'value>, unknown: S.unknown): result<'value, string> => {
     switch self->is(unknown) {
-    | true => Ok(self.struct->S.decode(unknown))
     // TODO: Properly handle errors
-    | false => Error()
+    | true => self.struct->S.decode(unknown)
+    | false => Error("Validation failed")
     }
   }
 }

@@ -8,5 +8,5 @@ module Validator: {
 
   let is: (t<'value>, S.unknown) => bool
 
-  let parse: (t<'value>, S.unknown) => result<'value, unit>
+  let parse: (t<'value>, S.unknown) => result<'value, string>
 }
