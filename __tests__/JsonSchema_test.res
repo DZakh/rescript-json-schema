@@ -4,7 +4,6 @@ type recordWithOneStringField = {field: string}
 type recordWithOneOptionalStringField = {optionalField: option<string>}
 type recordWithOneOptionalOptionalStringField = {optionalOptionalField: option<option<string>>}
 type recordWithOneOptionalAndOneRequiredStringField = {optionalField: option<string>, field: string}
-type throwsExpectation = {message: option<string>}
 type nestedRecord = {recordWithOneStringField: recordWithOneStringField}
 
 test("Schema of bool struct", t => {
@@ -93,15 +92,9 @@ test("Schema of record struct with one optional and one required string field", 
 test("Make JsonSchema throws error with optional root type", t => {
   let struct = S.option(S.string())
 
-  t->Assert.throws(
-    () => {
-      JsonSchema.make(struct)->ignore
-    },
-    ~expectations={
-      message: Some("The root struct can\'t be optional"),
-    },
-    (),
-  )
+  t->Assert.throws(() => {
+    JsonSchema.make(struct)->ignore
+  }, ~expectations=ThrowsException.make(~message="The root struct can\'t be optional", ()), ())
 })
 
 test("Make JsonSchema throws error with record field wrapped in option multiple times", t => {
@@ -114,15 +107,12 @@ test("Make JsonSchema throws error with record field wrapped in option multiple 
     (),
   )
 
-  t->Assert.throws(
-    () => {
-      JsonSchema.make(struct)->ignore
-    },
-    ~expectations={
-      message: Some("The option struct can\'t be nested in another option struct"),
-    },
+  t->Assert.throws(() => {
+    JsonSchema.make(struct)->ignore
+  }, ~expectations=ThrowsException.make(
+    ~message="The option struct can\'t be nested in another option struct",
     (),
-  )
+  ), ())
 })
 
 test("Primitive struct schema with description", t => {

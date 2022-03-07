@@ -1,5 +1,4 @@
 open Ava
-type throwsExpectation = {message: option<string>}
 
 test("Decodes unknown primitive", t => {
   let primitive = "ReScript is Great!"
@@ -155,15 +154,12 @@ module TestRecordDecoding = {
   })
 
   test("Throws for a Record factory without either a constructor, or a destructor", t => {
-    t->Assert.throws(
-      () => {
-        S.record1(~fields=("any", S.string()), ())->ignore
-      },
-      ~expectations={
-        message: Some("For a Record struct either a constructor, or a destructor is required"),
-      },
+    t->Assert.throws(() => {
+      S.record1(~fields=("any", S.string()), ())->ignore
+    }, ~expectations=ThrowsException.make(
+      ~message="For a Record struct either a constructor, or a destructor is required",
       (),
-    )
+    ), ())
   })
 
   test("Record decoding fails when constructor isn't provided", t => {

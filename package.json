@@ -38,7 +38,7 @@
   "devDependencies": {
     "ajv": "^8.10.0",
     "rescript": "9.1.4",
-    "rescript-ava": "git+https://github.com/DZakh-packages/rescript-ava.git"
+    "rescript-ava": "github:DZakh-packages/rescript-ava#4c27cb31049012950036eab1167abada2f24264c"
   },
   "dependencies": {
     "deepmerge": "^4.2.2"
