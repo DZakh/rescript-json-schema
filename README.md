@@ -103,7 +103,7 @@ Js.log(JsonSchema.make(articleStruct))
 
 ### Decoding validated data
 
-If you have data that you're 100% sure is valid, you can decode it to ReScript structure. This operation doesn't have any checks and is only needed for mapping.
+If you have data that you're 100% sure is valid, you can construct it to ReScript value. This operation doesn't have any checks and is only needed for mapping.
 
 ```rescript
 let data = Js.Json.parseExn(`{
@@ -115,16 +115,16 @@ let data = Js.Json.parseExn(`{
   }
 }`)
 
-let decodeResult: result<article, string> = articleStruct->S.decode(data)
+let constructResult: result<article, string> = articleStruct->S.construct(data)
 // or
-let decodeResult: result<article, string> = data->S.decodeWith(articleStruct)
+let constructResult: result<article, string> = data->S.constructWith(articleStruct)
 ```
 
 The JSON has capitalized field names, after decoding they are mapped to a valid ReScript structure.
 
 ### Parsing data
 
-The decoding is suitable for cases when the data is already valid, or else you'll get runtime error or invalid state.  
+The `constructor` is suitable for cases when the data is already valid, or else you'll get a runtime error or invalid state.  
 To work with unknown data use built-in [Ajv](https://ajv.js.org/) bindings.
 
 ```rescript

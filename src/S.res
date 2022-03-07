@@ -24,19 +24,19 @@ module Error = {
 
   type rec t = {kind: kind, mutable location: location}
   and kind =
-    | MissingDecoder
+    | MissingConstructor
     // | MissingEncoder
-    | DecodingFailed(string)
+    | ConstructingFailed(string)
 
-  module MissingDecoder = {
+  module MissingConstructor = {
     let make = () => {
-      {kind: MissingDecoder, location: []}
+      {kind: MissingConstructor, location: []}
     }
   }
 
-  module DecodingFailed = {
+  module ConstructingFailed = {
     let make = reason => {
-      {kind: DecodingFailed(reason), location: []}
+      {kind: ConstructingFailed(reason), location: []}
     }
   }
 
@@ -59,13 +59,14 @@ module Error = {
   let toString = error => {
     let withLocationInfo = error.location->Js.Array2.length !== 0
     switch (error.kind, withLocationInfo) {
-    | (MissingDecoder, true) => `Struct missing decoder at ${error.location->formatLocation}`
-    | (MissingDecoder, false) => `Struct missing decoder at root`
+    | (MissingConstructor, true) =>
+      `Struct missing constructor at ${error.location->formatLocation}`
+    | (MissingConstructor, false) => `Struct missing constructor at root`
     // | (MissingEncoder, true) => `Struct missing encoder at ${error.location->formatLocation}`
     // | (MissingEncoder, false) => `Struct missing encoder at root`
-    | (DecodingFailed(reason), true) =>
-      `Struct decoding failed at ${error.location->formatLocation}. Reason: ${reason}`
-    | (DecodingFailed(reason), false) => `Struct decoding failed at root. Reason: ${reason}`
+    | (ConstructingFailed(reason), true) =>
+      `Struct constructing failed at ${error.location->formatLocation}. Reason: ${reason}`
+    | (ConstructingFailed(reason), false) => `Struct constructing failed at root. Reason: ${reason}`
     }
   }
 }
@@ -76,7 +77,7 @@ external unsafeToUnknown: 'unknown => unknown = "%identity"
 // TODO: Add title and description (probably not here)
 type rec t<'value> = {
   kind: kind<'value>,
-  decoder: option<unknown => result<'value, Error.t>>,
+  constructor: option<unknown => result<'value, Error.t>>,
   meta: Js.Dict.t<unknown>,
 }
 and kind<_> =
@@ -124,8 +125,8 @@ and kind<_> =
     ): kind<'value>
 and field<'value> = (string, t<'value>)
 
-let make = (~kind, ~decoder=?, ()): t<'value> => {
-  {kind: kind, decoder: decoder, meta: Js.Dict.empty()}
+let make = (~kind, ~constructor=?, ()): t<'value> => {
+  {kind: kind, constructor: constructor, meta: Js.Dict.empty()}
 }
 
 @module
@@ -149,36 +150,37 @@ let mixinMeta = (struct, ~namespace, ~meta) => {
   struct
 }
 
-external unsafeDecoder: unknown => 'value = "%identity"
-let _decode:
+external unsafeConstructor: unknown => 'value = "%identity"
+
+let _construct:
   type value. (t<value>, unknown) => result<value, Error.t> =
   (struct, unknown) => {
-    switch struct.decoder {
-    | Some(decoder) => unknown->decoder
-    | None => unknown->unsafeDecoder->Ok
+    switch struct.constructor {
+    | Some(constructor) => unknown->constructor
+    | None => unknown->unsafeConstructor->Ok
     }
   }
 
-let decode = (struct, unknown) => {
-  _decode(struct, unknown)->ResultX.mapError(Error.toString)
+let construct = (struct, unknown) => {
+  _construct(struct, unknown)->ResultX.mapError(Error.toString)
 }
-let decodeWith = (unknown, struct) => {
-  decode(struct, unknown)
+let constructWith = (unknown, struct) => {
+  construct(struct, unknown)
 }
 
 module Record = {
-  type t<'value, 'fields, 'fieldValues> = {decoder: unknown => result<'value, Error.t>}
+  type t<'value, 'fields, 'fieldValues> = {constructor: unknown => result<'value, Error.t>}
 
   exception HackyAbort(Error.t)
 
-  let _decoder = %raw(`
-function(fields, constructor, decode) {
+  let _constructor = %raw(`
+function(fields, constructor, construct) {
   var isSingleField = typeof fields[0] === "string";
   if (isSingleField) {
     return function(unknown) {
       var fieldName = fields[0],
         fieldStruct = fields[1];
-      return constructor(decode(fieldStruct, fieldName, unknown[fieldName]));
+      return constructor(construct(fieldStruct, fieldName, unknown[fieldName]));
     }
   }
   return function(unknown) {
@@ -186,7 +188,7 @@ function(fields, constructor, decode) {
     fields.forEach(function (field) {
       var fieldName = field[0],
         fieldStruct = field[1];
-      ctx.push(decode(fieldStruct, fieldName, unknown[fieldName]));
+      ctx.push(construct(fieldStruct, fieldName, unknown[fieldName]));
     })
     return constructor(ctx);
   }
@@ -203,21 +205,21 @@ function(fields, constructor, decode) {
     }
 
     {
-      decoder: unknown => {
+      constructor: unknown => {
         switch constructor {
         | Some(constructor) =>
           try {
-            _decoder(~fields, ~constructor, ~decode=(struct, fieldName, fieldValue) => {
-              switch _decode(struct, fieldValue) {
+            _constructor(~fields, ~constructor, ~construct=(struct, fieldName, fieldValue) => {
+              switch _construct(struct, fieldValue) {
               | Ok(value) => value
               | Error(error) =>
                 raise(HackyAbort(error->Error.prependLocation(Error.Field(fieldName))))
               }
-            })(unknown)->ResultX.mapError(Error.DecodingFailed.make)
+            })(unknown)->ResultX.mapError(Error.ConstructingFailed.make)
           } catch {
           | HackyAbort(error) => Error(error)
           }
-        | None => Error.MissingDecoder.make()->Error
+        | None => Error.MissingConstructor.make()->Error
         }
       },
     }
@@ -233,11 +235,13 @@ external unsafeUnknownToArray: unknown => array<unknown> = "%identity"
 let array = struct =>
   make(
     ~kind=Array(struct),
-    ~decoder=unknown => {
+    ~constructor=unknown => {
       unknown
       ->unsafeUnknownToArray
       ->Js.Array2.mapi((unknownItem, idx) => {
-        struct->_decode(unknownItem)->ResultX.mapError(Error.prependLocation(_, Error.Index(idx)))
+        struct
+        ->_construct(unknownItem)
+        ->ResultX.mapError(Error.prependLocation(_, Error.Index(idx)))
       })
       ->ResultX.sequence
     },
@@ -248,9 +252,9 @@ external unsafeUnknownToOption: unknown => option<unknown> = "%identity"
 let option = struct => {
   make(
     ~kind=Option(struct),
-    ~decoder=unknown => {
+    ~constructor=unknown => {
       switch unknown->unsafeUnknownToOption {
-      | Some(unknown') => _decode(struct, unknown')->Belt.Result.map(known => Some(known))
+      | Some(unknown') => _construct(struct, unknown')->Belt.Result.map(known => Some(known))
       | None => Ok(None)
       }
     },
@@ -259,38 +263,38 @@ let option = struct => {
 }
 
 let record1 = (~fields, ~constructor=?, ~destructor=?, ()) => {
-  let {decoder} = Record.make(~fields, ~constructor, ~destructor)
-  make(~kind=Record1(fields), ~decoder, ())
+  let {constructor} = Record.make(~fields, ~constructor, ~destructor)
+  make(~kind=Record1(fields), ~constructor, ())
 }
 let record2 = (~fields, ~constructor=?, ~destructor=?, ()) => {
-  let {decoder} = Record.make(~fields, ~constructor, ~destructor)
-  make(~kind=Record2(fields), ~decoder, ())
+  let {constructor} = Record.make(~fields, ~constructor, ~destructor)
+  make(~kind=Record2(fields), ~constructor, ())
 }
 let record3 = (~fields, ~constructor=?, ~destructor=?, ()) => {
-  let {decoder} = Record.make(~fields, ~constructor, ~destructor)
-  make(~kind=Record3(fields), ~decoder, ())
+  let {constructor} = Record.make(~fields, ~constructor, ~destructor)
+  make(~kind=Record3(fields), ~constructor, ())
 }
 let record4 = (~fields, ~constructor=?, ~destructor=?, ()) => {
-  let {decoder} = Record.make(~fields, ~constructor, ~destructor)
-  make(~kind=Record4(fields), ~decoder, ())
+  let {constructor} = Record.make(~fields, ~constructor, ~destructor)
+  make(~kind=Record4(fields), ~constructor, ())
 }
 let record5 = (~fields, ~constructor=?, ~destructor=?, ()) => {
-  let {decoder} = Record.make(~fields, ~constructor, ~destructor)
-  make(~kind=Record5(fields), ~decoder, ())
+  let {constructor} = Record.make(~fields, ~constructor, ~destructor)
+  make(~kind=Record5(fields), ~constructor, ())
 }
 let record6 = (~fields, ~constructor=?, ~destructor=?, ()) => {
-  let {decoder} = Record.make(~fields, ~constructor, ~destructor)
-  make(~kind=Record6(fields), ~decoder, ())
+  let {constructor} = Record.make(~fields, ~constructor, ~destructor)
+  make(~kind=Record6(fields), ~constructor, ())
 }
 let record7 = (~fields, ~constructor=?, ~destructor=?, ()) => {
-  let {decoder} = Record.make(~fields, ~constructor, ~destructor)
-  make(~kind=Record7(fields), ~decoder, ())
+  let {constructor} = Record.make(~fields, ~constructor, ~destructor)
+  make(~kind=Record7(fields), ~constructor, ())
 }
 let record8 = (~fields, ~constructor=?, ~destructor=?, ()) => {
-  let {decoder} = Record.make(~fields, ~constructor, ~destructor)
-  make(~kind=Record8(fields), ~decoder, ())
+  let {constructor} = Record.make(~fields, ~constructor, ~destructor)
+  make(~kind=Record8(fields), ~constructor, ())
 }
 let record9 = (~fields, ~constructor=?, ~destructor=?, ()) => {
-  let {decoder} = Record.make(~fields, ~constructor, ~destructor)
-  make(~kind=Record9(fields), ~decoder, ())
+  let {constructor} = Record.make(~fields, ~constructor, ~destructor)
+  make(~kind=Record9(fields), ~constructor, ())
 }

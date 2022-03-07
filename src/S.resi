@@ -125,8 +125,8 @@ let record9: (
   unit,
 ) => t<'value>
 
-let decode: (t<'value>, unknown) => result<'value, string>
-let decodeWith: (unknown, t<'value>) => result<'value, string>
+let construct: (t<'value>, unknown) => result<'value, string>
+let constructWith: (unknown, t<'value>) => result<'value, string>
 
 let unsafeToUnknown: 'any => unknown
 let classify: t<'value> => kind<'value>

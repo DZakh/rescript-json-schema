@@ -27,7 +27,7 @@ module Validator = {
   let parse = (self: t<'value>, unknown: S.unknown): result<'value, string> => {
     switch self->is(unknown) {
     // TODO: Properly handle errors
-    | true => self.struct->S.decode(unknown)
+    | true => self.struct->S.construct(unknown)
     | false => Error("Validation failed")
     }
   }
