@@ -128,6 +128,9 @@ let record9: (
 let construct: (t<'value>, unknown) => result<'value, string>
 let constructWith: (unknown, t<'value>) => result<'value, string>
 
+let destruct: (t<'value>, 'value) => result<unknown, string>
+let destructWith: ('value, t<'value>) => result<unknown, string>
+
 let unsafeToUnknown: 'any => unknown
 let classify: t<'value> => kind<'value>
 let getMeta: (t<'value>, ~namespace: string) => unknown

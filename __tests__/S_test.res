@@ -41,7 +41,35 @@ test("Constructs unknown array of primitives", t => {
   )
 })
 
-module TestRecordConstructing = {
+test("Destructs unknown primitive", t => {
+  let primitive = "ReScript is Great!"
+
+  let unknownPrimitive = Js.Json.string(primitive)
+  let primitiveStruct = S.string()
+
+  t->Assert.deepEqual(primitiveStruct->S.destruct(primitive), Ok(unknownPrimitive), ())
+  t->Assert.deepEqual(primitive->S.destructWith(primitiveStruct), Ok(unknownPrimitive), ())
+})
+
+test("Destructs unknown array of primitives", t => {
+  let arrayOfPrimitives = ["ReScript is Great!"]
+
+  let unknownArrayOfPrimitives = Js.Json.stringArray(arrayOfPrimitives)
+  let arrayOfPrimitivesStruct = S.array(S.string())
+
+  t->Assert.deepEqual(
+    arrayOfPrimitivesStruct->S.destruct(arrayOfPrimitives),
+    Ok(unknownArrayOfPrimitives),
+    (),
+  )
+  t->Assert.deepEqual(
+    arrayOfPrimitives->S.destructWith(arrayOfPrimitivesStruct),
+    Ok(unknownArrayOfPrimitives),
+    (),
+  )
+})
+
+module RecordConstructingAndDestructingTests = {
   type singleFieldRecord = {foo: string}
   type multipleFieldsRecord = {boo: string, zoo: string}
   type user = {name: string, email: string, age: int}
@@ -248,6 +276,216 @@ module TestRecordConstructing = {
     t->Assert.deepEqual(
       unknownRecord->S.constructWith(recordStruct),
       Error(`Struct constructing failed at ."nested". Reason: User error`),
+      (),
+    )
+  })
+
+  test("Destructs unknown record with single field", t => {
+    let record = {foo: "bar"}
+
+    let unknownRecord = record->S.unsafeToUnknown
+    let recordStruct = S.record1(~fields=("foo", S.string()), ~destructor=({foo}) => foo->Ok, ())
+
+    t->Assert.deepEqual(recordStruct->S.destruct(record), Ok(unknownRecord), ())
+    t->Assert.deepEqual(record->S.destructWith(recordStruct), Ok(unknownRecord), ())
+  })
+
+  test("Destructs unknown record with multiple fields", t => {
+    let record = {boo: "bar", zoo: "jee"}
+
+    let unknownRecord = record->S.unsafeToUnknown
+    let recordStruct = S.record2(
+      ~fields=(("boo", S.string()), ("zoo", S.string())),
+      ~destructor=({boo, zoo}) => (boo, zoo)->Ok,
+      (),
+    )
+
+    t->Assert.deepEqual(recordStruct->S.destruct(record), Ok(unknownRecord), ())
+    t->Assert.deepEqual(record->S.destructWith(recordStruct), Ok(unknownRecord), ())
+  })
+
+  test("Destructs unknown record with mapped field", t => {
+    let record = {name: "Dmitry", email: "dzakh.dev@gmail.com", age: 21}
+
+    let unknownRecord =
+      %raw(`{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21}`)->S.unsafeToUnknown
+    let recordStruct = S.record3(
+      ~fields=(("Name", S.string()), ("Email", S.string()), ("Age", S.int())),
+      ~destructor=({name, email, age}) => (name, email, age)->Ok,
+      (),
+    )
+
+    t->Assert.deepEqual(recordStruct->S.destruct(record), Ok(unknownRecord), ())
+    t->Assert.deepEqual(record->S.destructWith(recordStruct), Ok(unknownRecord), ())
+  })
+
+  test("Destructs unknown record with optional nested record", t => {
+    let recordWithSomeField = {singleFieldRecord: Some({foo: "bar"})}
+    let recordWithNoneField = {singleFieldRecord: None}
+
+    let unknownRecordWithSomeField =
+      %raw(`{"singleFieldRecord":{"MUST_BE_MAPPED":"bar"}}`)->S.unsafeToUnknown
+    let unknownRecordWithNoneField = %raw(`{"singleFieldRecord":undefined}`)->S.unsafeToUnknown
+
+    let recordStruct = S.record1(
+      ~fields=(
+        "singleFieldRecord",
+        S.option(
+          S.record1(~fields=("MUST_BE_MAPPED", S.string()), ~destructor=({foo}) => foo->Ok, ()),
+        ),
+      ),
+      ~destructor=({singleFieldRecord}) => singleFieldRecord->Ok,
+      (),
+    )
+
+    t->Assert.deepEqual(
+      recordStruct->S.destruct(recordWithSomeField),
+      Ok(unknownRecordWithSomeField),
+      (),
+    )
+    t->Assert.deepEqual(
+      recordWithSomeField->S.destructWith(recordStruct),
+      Ok(unknownRecordWithSomeField),
+      (),
+    )
+    t->Assert.deepEqual(
+      recordStruct->S.destruct(recordWithNoneField),
+      Ok(unknownRecordWithNoneField),
+      (),
+    )
+    t->Assert.deepEqual(
+      recordWithNoneField->S.destructWith(recordStruct),
+      Ok(unknownRecordWithNoneField),
+      (),
+    )
+  })
+
+  test("Destructs unknown array of records", t => {
+    let arrayOfRecords = [{foo: "bar"}, {foo: "baz"}]
+
+    let unknownArrayOfRecords =
+      %raw(`[{"MUST_BE_MAPPED":"bar"},{"MUST_BE_MAPPED":"baz"}]`)->S.unsafeToUnknown
+    let arrayOfRecordsStruct = S.array(
+      S.record1(~fields=("MUST_BE_MAPPED", S.string()), ~destructor=({foo}) => foo->Ok, ()),
+    )
+
+    t->Assert.deepEqual(
+      arrayOfRecordsStruct->S.destruct(arrayOfRecords),
+      Ok(unknownArrayOfRecords),
+      (),
+    )
+    t->Assert.deepEqual(
+      arrayOfRecords->S.destructWith(arrayOfRecordsStruct),
+      Ok(unknownArrayOfRecords),
+      (),
+    )
+  })
+
+  test("Record destructing fails when destructor isn't provided", t => {
+    let record = {foo: "bar"}
+
+    let recordStruct = S.record1(
+      ~fields=("foo", S.string()),
+      ~constructor=foo => {foo: foo}->Ok,
+      (),
+    )
+
+    t->Assert.deepEqual(
+      recordStruct->S.destruct(record),
+      Error("Struct missing destructor at root"),
+      (),
+    )
+    t->Assert.deepEqual(
+      record->S.destructWith(recordStruct),
+      Error("Struct missing destructor at root"),
+      (),
+    )
+  })
+
+  test("Nested record destructing fails when destructor isn't provided", t => {
+    let record = {nested: {foo: "bar"}}
+
+    let recordStruct = S.record1(
+      ~fields=(
+        "nested",
+        S.record1(~fields=("foo", S.string()), ~constructor=foo => {foo: foo}->Ok, ()),
+      ),
+      ~destructor=({nested}) => nested->Ok,
+      (),
+    )
+
+    t->Assert.deepEqual(
+      recordStruct->S.destruct(record),
+      Error(`Struct missing destructor at ."nested"`),
+      (),
+    )
+    t->Assert.deepEqual(
+      record->S.destructWith(recordStruct),
+      Error(`Struct missing destructor at ."nested"`),
+      (),
+    )
+  })
+
+  test("Destructing fails when user returns error in a root record destructor", t => {
+    let record = {foo: "bar"}
+
+    let recordStruct = S.record1(
+      ~fields=("foo", S.string()),
+      ~destructor=_ => Error("User error"),
+      (),
+    )
+
+    t->Assert.deepEqual(
+      recordStruct->S.destruct(record),
+      Error("Struct destructing failed at root. Reason: User error"),
+      (),
+    )
+    t->Assert.deepEqual(
+      record->S.destructWith(recordStruct),
+      Error("Struct destructing failed at root. Reason: User error"),
+      (),
+    )
+  })
+
+  test("Destructing fails when user returns error in a nested record destructor", t => {
+    let record = {nested: {foo: "bar"}}
+
+    let recordStruct = S.record1(
+      ~fields=(
+        "nested",
+        S.record1(~fields=("foo", S.string()), ~destructor=_ => Error("User error"), ()),
+      ),
+      ~destructor=({nested}) => nested->Ok,
+      (),
+    )
+
+    t->Assert.deepEqual(
+      recordStruct->S.destruct(record),
+      Error(`Struct destructing failed at ."nested". Reason: User error`),
+      (),
+    )
+    t->Assert.deepEqual(
+      record->S.destructWith(recordStruct),
+      Error(`Struct destructing failed at ."nested". Reason: User error`),
+      (),
+    )
+  })
+
+  test("Constructs a record with fields mapping and destructs it back to the initial state", t => {
+    let unknownRecord =
+      %raw(`{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21}`)->S.unsafeToUnknown
+    let recordStruct = S.record3(
+      ~fields=(("Name", S.string()), ("Email", S.string()), ("Age", S.int())),
+      ~constructor=((name, email, age)) => {name: name, email: email, age: age}->Ok,
+      ~destructor=({name, email, age}) => (name, email, age)->Ok,
+      (),
+    )
+
+    t->Assert.deepEqual(
+      recordStruct
+      ->S.construct(unknownRecord)
+      ->Belt.Result.map(record => recordStruct->S.destruct(record)),
+      Ok(Ok(unknownRecord)),
       (),
     )
   })
