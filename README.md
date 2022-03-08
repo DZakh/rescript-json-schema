@@ -152,10 +152,10 @@ let articleParseResult: result<article, string> = articleValidator->Ajv.Validato
 - [ ] Add nullable modifier
 - [ ] Add unknown struct
 - [ ] Add never struct
-- [v] Add ability to mixin raw schema
-- [v] Add destructing
-- [v] Remove Fluent JSON Schema from dependencies
+- [x] Add ability to mixin raw schema
+- [x] Add destructing
+- [x] Remove Fluent JSON Schema from dependencies
 - [ ] Add better support for OpenAPI
-  - [v] Add description field 
+  - [x] Add description field 
   - [ ] Add example/examples field 
   - [ ] Add deprecated field
