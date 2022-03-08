@@ -4,15 +4,15 @@ exception ArrayItemOptionException
 
 let rawSchemaNamespace = "rescript-json-schema:rawSchema"
 
-type rec t<'value>
-and stateful<'value> =
-  | Optional(t<'value>)
-  | Required(t<option<'value>>)
+type rec t
+and stateful =
+  | Optional(t)
+  | Required(t)
+
+external unsafeUnknownToJsonSchema: S.unknown => t = "%identity"
 
 @module
-external mergeSchemaWith: (t<'value>, 'additional) => t<'value> = "deepmerge"
-
-external unsafeApplyRequired: t<option<'value>> => t<'value> = "%identity"
+external mergeSchema: (t, t) => t = "deepmerge"
 
 module Raw = {
   module Description = {
@@ -22,12 +22,12 @@ module Raw = {
 }
 
 module Base = {
-  let schemaDialect = %raw(`{ $schema: 'http://json-schema.org/draft-07/schema#' }`)
+  let schemaDialect: t = %raw(`{ $schema: 'http://json-schema.org/draft-07/schema#' }`)
 
-  let string: t<option<string>> = %raw(`{ type: 'string' }`)
-  let integer: t<option<int>> = %raw(`{ type: 'integer' }`)
-  let number: t<option<float>> = %raw(`{ type: 'number' }`)
-  let boolean: t<option<bool>> = %raw(`{ type: 'boolean' }`)
+  let string: t = %raw(`{ type: 'string' }`)
+  let integer: t = %raw(`{ type: 'integer' }`)
+  let number: t = %raw(`{ type: 'number' }`)
+  let boolean: t = %raw(`{ type: 'boolean' }`)
 
   let _array = %raw(`function (itemSchema) {
     return {
@@ -35,12 +35,12 @@ module Base = {
       type: 'array'
     }
   }`)
-  let array = (itemSchema: t<'item>): t<option<array<'item>>> => {
+  let array = (itemSchema: t): t => {
     _array(itemSchema)
   }
 
   type recordFieldDetails<'value> = {
-    schema: t<'value>,
+    schema: t,
     isRequired: bool,
   }
   let _record = %raw(`function(fields, makeFieldDetails) {
@@ -63,12 +63,12 @@ module Base = {
     })
     return schema;
   }`)
-  let record = (~fields, ~makeBranch: S.t<'value> => stateful<'value>) => {
+  let record = (~fields, ~makeBranch: S.t<'value> => stateful): t => {
     _record(~fields, ~makeFieldDetails=struct => {
       switch makeBranch(struct) {
       | Optional(schema) => {schema: schema, isRequired: false}
       | Required(schema) => {
-          schema: schema->unsafeApplyRequired,
+          schema: schema,
           isRequired: true,
         }
       }
@@ -77,36 +77,38 @@ module Base = {
 }
 
 let rec makeBranch:
-  type value. S.t<value> => stateful<value> =
+  type value. S.t<value> => stateful =
   struct => {
-    let rawSchema = struct->S.getMeta(~namespace=rawSchemaNamespace)
+    let rawSchema = struct->S.getMeta(~namespace=rawSchemaNamespace)->unsafeUnknownToJsonSchema
     switch struct->S.classify {
-    | S.String => Required(Base.string->mergeSchemaWith(rawSchema))
-    | S.Int => Required(Base.integer->mergeSchemaWith(rawSchema))
-    | S.Bool => Required(Base.boolean->mergeSchemaWith(rawSchema))
-    | S.Float => Required(Base.number->mergeSchemaWith(rawSchema))
+    | S.String => Required(Base.string->mergeSchema(rawSchema))
+    | S.Int => Required(Base.integer->mergeSchema(rawSchema))
+    | S.Bool => Required(Base.boolean->mergeSchema(rawSchema))
+    | S.Float => Required(Base.number->mergeSchema(rawSchema))
     | S.Array(s') =>
       Required(
         switch makeBranch(s') {
         | Optional(_) => raise(ArrayItemOptionException)
-        | Required(schema) => Base.array(schema->unsafeApplyRequired)->mergeSchemaWith(rawSchema)
+        | Required(schema) => Base.array(schema)->mergeSchema(rawSchema)
         },
       )
     | S.Option(s') =>
-      switch makeBranch(s'->S.mixinMeta(~namespace=rawSchemaNamespace, ~meta=rawSchema)) {
+      switch makeBranch(
+        s'->S.mixinMeta(~namespace=rawSchemaNamespace, ~meta=rawSchema->S.unsafeToUnknown),
+      ) {
       | Optional(_) => raise(NestedOptionException)
       | Required(s'') => Optional(s'')
       }
     | S.Record1(fields) =>
-      Required(Base.record(~fields=[fields], ~makeBranch)->mergeSchemaWith(rawSchema))
-    | S.Record2(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchemaWith(rawSchema))
-    | S.Record3(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchemaWith(rawSchema))
-    | S.Record4(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchemaWith(rawSchema))
-    | S.Record5(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchemaWith(rawSchema))
-    | S.Record6(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchemaWith(rawSchema))
-    | S.Record7(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchemaWith(rawSchema))
-    | S.Record8(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchemaWith(rawSchema))
-    | S.Record9(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchemaWith(rawSchema))
+      Required(Base.record(~fields=[fields], ~makeBranch)->mergeSchema(rawSchema))
+    | S.Record2(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchema(rawSchema))
+    | S.Record3(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchema(rawSchema))
+    | S.Record4(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchema(rawSchema))
+    | S.Record5(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchema(rawSchema))
+    | S.Record6(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchema(rawSchema))
+    | S.Record7(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchema(rawSchema))
+    | S.Record8(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchema(rawSchema))
+    | S.Record9(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchema(rawSchema))
     }
   }
 
@@ -114,9 +116,9 @@ let make = struct => {
   try {
     let schema = switch makeBranch(struct) {
     | Optional(_) => raise(RootOptionException)
-    | Required(schema) => schema->unsafeApplyRequired
+    | Required(schema) => schema
     }
-    schema->mergeSchemaWith(Base.schemaDialect)
+    schema->mergeSchema(Base.schemaDialect)
   } catch {
   | NestedOptionException =>
     Js.Exn.raiseError("The option struct can't be nested in another option struct")
