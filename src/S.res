@@ -203,11 +203,6 @@ let destructWith = (unknown, struct) => {
 }
 
 module Record = {
-  type t<'value> = {
-    constructor: option<constructor<'value>>,
-    destructor: option<destructor<'value>>,
-  }
-
   exception HackyAbort(Error.t)
 
   let _constructor = %raw(`function(fields, customConstructor, construct) {
@@ -260,6 +255,7 @@ module Record = {
   }`)
 
   let make = (
+    ~kind: kind,
     ~fields: 'fields,
     ~customConstructor: option<'fieldValues => result<'value, string>>,
     ~customDestructor: option<'value => result<'fieldValues, string>>,
@@ -268,8 +264,9 @@ module Record = {
       raiseRestructError("For a Record struct either a constructor, or a destructor is required")
     }
 
-    {
-      constructor: customConstructor->Belt.Option.map(customConstructor => {
+    make(
+      ~kind,
+      ~constructor=?customConstructor->Belt.Option.map(customConstructor => {
         unknown => {
           try {
             _constructor(~fields, ~customConstructor, ~construct=(
@@ -288,7 +285,7 @@ module Record = {
           }
         }
       }),
-      destructor: customDestructor->Belt.Option.map(customDestructor => {
+      ~destructor=?customDestructor->Belt.Option.map(customDestructor => {
         value => {
           try {
             _destructor(
@@ -312,7 +309,8 @@ module Record = {
           }
         }
       }),
-    }
+      (),
+    )
   }
 }
 
@@ -441,8 +439,7 @@ let record1 = (
   ~destructor as customDestructor=?,
   (),
 ) => {
-  let {constructor, destructor} = Record.make(~fields, ~customConstructor, ~customDestructor)
-  make(~kind=Record1(fields), ~constructor?, ~destructor?, ())
+  Record.make(~kind=Record1(fields), ~fields, ~customConstructor, ~customDestructor)
 }
 let record2 = (
   ~fields,
@@ -450,8 +447,7 @@ let record2 = (
   ~destructor as customDestructor=?,
   (),
 ) => {
-  let {constructor, destructor} = Record.make(~fields, ~customConstructor, ~customDestructor)
-  make(~kind=Record2(fields), ~constructor?, ~destructor?, ())
+  Record.make(~kind=Record2(fields), ~fields, ~customConstructor, ~customDestructor)
 }
 let record3 = (
   ~fields,
@@ -459,8 +455,7 @@ let record3 = (
   ~destructor as customDestructor=?,
   (),
 ) => {
-  let {constructor, destructor} = Record.make(~fields, ~customConstructor, ~customDestructor)
-  make(~kind=Record3(fields), ~constructor?, ~destructor?, ())
+  Record.make(~kind=Record3(fields), ~fields, ~customConstructor, ~customDestructor)
 }
 let record4 = (
   ~fields,
@@ -468,8 +463,7 @@ let record4 = (
   ~destructor as customDestructor=?,
   (),
 ) => {
-  let {constructor, destructor} = Record.make(~fields, ~customConstructor, ~customDestructor)
-  make(~kind=Record4(fields), ~constructor?, ~destructor?, ())
+  Record.make(~kind=Record4(fields), ~fields, ~customConstructor, ~customDestructor)
 }
 let record5 = (
   ~fields,
@@ -477,8 +471,7 @@ let record5 = (
   ~destructor as customDestructor=?,
   (),
 ) => {
-  let {constructor, destructor} = Record.make(~fields, ~customConstructor, ~customDestructor)
-  make(~kind=Record5(fields), ~constructor?, ~destructor?, ())
+  Record.make(~kind=Record5(fields), ~fields, ~customConstructor, ~customDestructor)
 }
 let record6 = (
   ~fields,
@@ -486,8 +479,7 @@ let record6 = (
   ~destructor as customDestructor=?,
   (),
 ) => {
-  let {constructor, destructor} = Record.make(~fields, ~customConstructor, ~customDestructor)
-  make(~kind=Record6(fields), ~constructor?, ~destructor?, ())
+  Record.make(~kind=Record6(fields), ~fields, ~customConstructor, ~customDestructor)
 }
 let record7 = (
   ~fields,
@@ -495,8 +487,7 @@ let record7 = (
   ~destructor as customDestructor=?,
   (),
 ) => {
-  let {constructor, destructor} = Record.make(~fields, ~customConstructor, ~customDestructor)
-  make(~kind=Record7(fields), ~constructor?, ~destructor?, ())
+  Record.make(~kind=Record7(fields), ~fields, ~customConstructor, ~customDestructor)
 }
 let record8 = (
   ~fields,
@@ -504,8 +495,7 @@ let record8 = (
   ~destructor as customDestructor=?,
   (),
 ) => {
-  let {constructor, destructor} = Record.make(~fields, ~customConstructor, ~customDestructor)
-  make(~kind=Record8(fields), ~constructor?, ~destructor?, ())
+  Record.make(~kind=Record8(fields), ~fields, ~customConstructor, ~customDestructor)
 }
 let record9 = (
   ~fields,
@@ -513,6 +503,5 @@ let record9 = (
   ~destructor as customDestructor=?,
   (),
 ) => {
-  let {constructor, destructor} = Record.make(~fields, ~customConstructor, ~customDestructor)
-  make(~kind=Record9(fields), ~constructor?, ~destructor?, ())
+  Record.make(~kind=Record9(fields), ~fields, ~customConstructor, ~customDestructor)
 }
