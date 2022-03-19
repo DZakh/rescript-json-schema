@@ -6,7 +6,7 @@ module Validator: {
 
   let make: (ajv, S.t<'value>) => t<'value>
 
-  let is: (t<'value>, S.unknown) => bool
+  let is: (t<'value>, Js.Json.t) => bool
 
-  let parse: (t<'value>, S.unknown) => result<'value, string>
+  let parse: (t<'value>, Js.Json.t) => result<'value, string>
 }

@@ -1,13 +1,15 @@
 open Ava
 
+external unsafeToUnknown: 'unknown => Js.Json.t = "%identity"
+
 test("Guard works with primitive schema", t => {
   let struct = S.bool()
 
   let ajv = Ajv.make()
   let boolValidator = ajv->Ajv.Validator.make(struct)
 
-  t->Assert.is(boolValidator->Ajv.Validator.is(true->S.unsafeToUnknown), true, ())
-  t->Assert.is(boolValidator->Ajv.Validator.is(123->S.unsafeToUnknown), false, ())
+  t->Assert.is(boolValidator->Ajv.Validator.is(true->unsafeToUnknown), true, ())
+  t->Assert.is(boolValidator->Ajv.Validator.is(123->unsafeToUnknown), false, ())
 })
 
 failing("Guard works with array of optional primitives schema", t => {
@@ -17,7 +19,7 @@ failing("Guard works with array of optional primitives schema", t => {
   let boolValidator = ajv->Ajv.Validator.make(struct)
 
   t->Assert.is(
-    boolValidator->Ajv.Validator.is(%raw(`[true, undefined]`)->S.unsafeToUnknown),
+    boolValidator->Ajv.Validator.is(%raw(`[true, undefined]`)->unsafeToUnknown),
     true,
     (),
   )
@@ -35,7 +37,7 @@ module TestRecordSchemaGuard = {
 
     let ajv = Ajv.make()
     let userValidator = ajv->Ajv.Validator.make(struct)
-    userValidator->Ajv.Validator.is(data->S.unsafeToUnknown)
+    userValidator->Ajv.Validator.is(data->unsafeToUnknown)
   }
 
   test("[Record schema guard] Record with all valid fields is valid", t => {
@@ -89,7 +91,7 @@ module TestRecordSchemaParse = {
 
     let ajv = Ajv.make()
     let userValidator = ajv->Ajv.Validator.make(struct)
-    userValidator->Ajv.Validator.parse(data->S.unsafeToUnknown)
+    userValidator->Ajv.Validator.parse(data->unsafeToUnknown)
   }
 
   test("[Record schema parse] Record with all valid fields", t => {
@@ -148,7 +150,7 @@ module TestNestedRecordSchemaParse = {
 
     let ajv = Ajv.make()
     let userValidator = ajv->Ajv.Validator.make(struct)
-    userValidator->Ajv.Validator.parse(data->S.unsafeToUnknown)
+    userValidator->Ajv.Validator.parse(data->unsafeToUnknown)
   }
 
   test("[Nested record schema parse] Record with all valid fields", t => {

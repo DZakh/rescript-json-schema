@@ -9,7 +9,7 @@ and stateful =
   | Optional(t)
   | Required(t)
 
-external unsafeUnknownToJsonSchema: S.unknown => t = "%identity"
+external unsafeToJsonSchema: 'a => t = "%identity"
 
 @module
 external mergeSchema: (t, t) => t = "deepmerge"
@@ -79,7 +79,12 @@ module Base = {
 let rec makeBranch:
   type value. S.t<value> => stateful =
   struct => {
-    let rawSchema = struct->S.getMeta(~namespace=rawSchemaNamespace)->unsafeUnknownToJsonSchema
+    let rawSchema = {
+      switch struct->S.getMeta(~namespace=rawSchemaNamespace) {
+      | Some(unknownRawSchema) => unknownRawSchema
+      | None => Js.Dict.empty()
+      }
+    }->unsafeToJsonSchema
     switch struct->S.classify {
     | S.String => Required(Base.string->mergeSchema(rawSchema))
     | S.Int => Required(Base.integer->mergeSchema(rawSchema))
@@ -93,9 +98,7 @@ let rec makeBranch:
         },
       )
     | S.Option(s') =>
-      switch makeBranch(
-        s'->S.mixinMeta(~namespace=rawSchemaNamespace, ~meta=rawSchema->S.unsafeToUnknown),
-      ) {
+      switch makeBranch(s'->S.mixinMeta(~namespace=rawSchemaNamespace, ~meta=rawSchema)) {
       | Optional(_) => raise(NestedOptionException)
       | Required(s'') => Optional(s'')
       }
@@ -130,7 +133,12 @@ let make = struct => {
 }
 
 let raw = (struct, schema) => {
-  struct->S.mixinMeta(~namespace=rawSchemaNamespace, ~meta=schema->S.unsafeToUnknown)
+  let rawSchema = switch struct->S.getMeta(~namespace=rawSchemaNamespace) {
+  | Some(existingRawSchema) =>
+    existingRawSchema->unsafeToJsonSchema->mergeSchema(schema->unsafeToJsonSchema)
+  | None => schema->unsafeToJsonSchema
+  }
+  struct->S.mixinMeta(~namespace=rawSchemaNamespace, ~meta=rawSchema)
 }
 
 let description = (struct, value) => {

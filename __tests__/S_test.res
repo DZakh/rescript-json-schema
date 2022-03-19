@@ -1,5 +1,7 @@
 open Ava
 
+external unsafeToUnknown: 'unknown => Js.Json.t = "%identity"
+
 test("Constructs unknown primitive", t => {
   let primitive = "ReScript is Great!"
 
@@ -79,7 +81,7 @@ module RecordConstructingAndDestructingTests = {
   test("Constructs unknown record with single field", t => {
     let record = {foo: "bar"}
 
-    let unknownRecord = record->S.unsafeToUnknown
+    let unknownRecord = record->unsafeToUnknown
     let recordStruct = S.record1(
       ~fields=("foo", S.string()),
       ~constructor=foo => {foo: foo}->Ok,
@@ -93,7 +95,7 @@ module RecordConstructingAndDestructingTests = {
   test("Constructs unknown record with multiple fields", t => {
     let record = {boo: "bar", zoo: "jee"}
 
-    let unknownRecord = record->S.unsafeToUnknown
+    let unknownRecord = record->unsafeToUnknown
     let recordStruct = S.record2(
       ~fields=(("boo", S.string()), ("zoo", S.string())),
       ~constructor=((boo, zoo)) => {boo: boo, zoo: zoo}->Ok,
@@ -108,7 +110,7 @@ module RecordConstructingAndDestructingTests = {
     let record = {name: "Dmitry", email: "dzakh.dev@gmail.com", age: 21}
 
     let unknownRecord =
-      %raw(`{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21}`)->S.unsafeToUnknown
+      %raw(`{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21}`)->unsafeToUnknown
     let recordStruct = S.record3(
       ~fields=(("Name", S.string()), ("Email", S.string()), ("Age", S.int())),
       ~constructor=((name, email, age)) => {name: name, email: email, age: age}->Ok,
@@ -124,8 +126,8 @@ module RecordConstructingAndDestructingTests = {
     let recordWithNoneField = {singleFieldRecord: None}
 
     let unknownRecordWithSomeField =
-      %raw(`{"singleFieldRecord":{"MUST_BE_MAPPED":"bar"}}`)->S.unsafeToUnknown
-    let unknownRecordWithNoneField = %raw(`{}`)->S.unsafeToUnknown
+      %raw(`{"singleFieldRecord":{"MUST_BE_MAPPED":"bar"}}`)->unsafeToUnknown
+    let unknownRecordWithNoneField = %raw(`{}`)->unsafeToUnknown
 
     let recordStruct = S.record1(
       ~fields=(
@@ -164,7 +166,7 @@ module RecordConstructingAndDestructingTests = {
     let arrayOfRecords = [{foo: "bar"}, {foo: "baz"}]
 
     let unknownArrayOfRecords =
-      %raw(`[{"MUST_BE_MAPPED":"bar"},{"MUST_BE_MAPPED":"baz"}]`)->S.unsafeToUnknown
+      %raw(`[{"MUST_BE_MAPPED":"bar"},{"MUST_BE_MAPPED":"baz"}]`)->unsafeToUnknown
     let arrayOfRecordsStruct = S.array(
       S.record1(~fields=("MUST_BE_MAPPED", S.string()), ~constructor=foo => {foo: foo}->Ok, ()),
     )
@@ -193,7 +195,7 @@ module RecordConstructingAndDestructingTests = {
   test("Record constructing fails when constructor isn't provided", t => {
     let record = {foo: "bar"}
 
-    let unknownRecord = record->S.unsafeToUnknown
+    let unknownRecord = record->unsafeToUnknown
     let recordStruct = S.record1(~fields=("foo", S.string()), ~destructor=({foo}) => foo->Ok, ())
 
     t->Assert.deepEqual(
@@ -211,7 +213,7 @@ module RecordConstructingAndDestructingTests = {
   test("Nested record constructing fails when constructor isn't provided", t => {
     let record = {nested: {foo: "bar"}}
 
-    let unknownRecord = record->S.unsafeToUnknown
+    let unknownRecord = record->unsafeToUnknown
     let recordStruct = S.record1(
       ~fields=(
         "nested",
@@ -236,7 +238,7 @@ module RecordConstructingAndDestructingTests = {
   test("Constructing fails when user returns error in a root record constructor", t => {
     let record = {foo: "bar"}
 
-    let unknownRecord = record->S.unsafeToUnknown
+    let unknownRecord = record->unsafeToUnknown
     let recordStruct = S.record1(
       ~fields=("foo", S.string()),
       ~constructor=_ => Error("User error"),
@@ -258,7 +260,7 @@ module RecordConstructingAndDestructingTests = {
   test("Constructing fails when user returns error in a nested record constructor", t => {
     let record = {nested: {foo: "bar"}}
 
-    let unknownRecord = record->S.unsafeToUnknown
+    let unknownRecord = record->unsafeToUnknown
     let recordStruct = S.record1(
       ~fields=(
         "nested",
@@ -283,7 +285,7 @@ module RecordConstructingAndDestructingTests = {
   test("Destructs unknown record with single field", t => {
     let record = {foo: "bar"}
 
-    let unknownRecord = record->S.unsafeToUnknown
+    let unknownRecord = record->unsafeToUnknown
     let recordStruct = S.record1(~fields=("foo", S.string()), ~destructor=({foo}) => foo->Ok, ())
 
     t->Assert.deepEqual(recordStruct->S.destruct(record), Ok(unknownRecord), ())
@@ -293,7 +295,7 @@ module RecordConstructingAndDestructingTests = {
   test("Destructs unknown record with multiple fields", t => {
     let record = {boo: "bar", zoo: "jee"}
 
-    let unknownRecord = record->S.unsafeToUnknown
+    let unknownRecord = record->unsafeToUnknown
     let recordStruct = S.record2(
       ~fields=(("boo", S.string()), ("zoo", S.string())),
       ~destructor=({boo, zoo}) => (boo, zoo)->Ok,
@@ -308,7 +310,7 @@ module RecordConstructingAndDestructingTests = {
     let record = {name: "Dmitry", email: "dzakh.dev@gmail.com", age: 21}
 
     let unknownRecord =
-      %raw(`{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21}`)->S.unsafeToUnknown
+      %raw(`{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21}`)->unsafeToUnknown
     let recordStruct = S.record3(
       ~fields=(("Name", S.string()), ("Email", S.string()), ("Age", S.int())),
       ~destructor=({name, email, age}) => (name, email, age)->Ok,
@@ -324,8 +326,8 @@ module RecordConstructingAndDestructingTests = {
     let recordWithNoneField = {singleFieldRecord: None}
 
     let unknownRecordWithSomeField =
-      %raw(`{"singleFieldRecord":{"MUST_BE_MAPPED":"bar"}}`)->S.unsafeToUnknown
-    let unknownRecordWithNoneField = %raw(`{"singleFieldRecord":undefined}`)->S.unsafeToUnknown
+      %raw(`{"singleFieldRecord":{"MUST_BE_MAPPED":"bar"}}`)->unsafeToUnknown
+    let unknownRecordWithNoneField = %raw(`{"singleFieldRecord":undefined}`)->unsafeToUnknown
 
     let recordStruct = S.record1(
       ~fields=(
@@ -364,7 +366,7 @@ module RecordConstructingAndDestructingTests = {
     let arrayOfRecords = [{foo: "bar"}, {foo: "baz"}]
 
     let unknownArrayOfRecords =
-      %raw(`[{"MUST_BE_MAPPED":"bar"},{"MUST_BE_MAPPED":"baz"}]`)->S.unsafeToUnknown
+      %raw(`[{"MUST_BE_MAPPED":"bar"},{"MUST_BE_MAPPED":"baz"}]`)->unsafeToUnknown
     let arrayOfRecordsStruct = S.array(
       S.record1(~fields=("MUST_BE_MAPPED", S.string()), ~destructor=({foo}) => foo->Ok, ()),
     )
@@ -473,7 +475,7 @@ module RecordConstructingAndDestructingTests = {
 
   test("Constructs a record with fields mapping and destructs it back to the initial state", t => {
     let unknownRecord =
-      %raw(`{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21}`)->S.unsafeToUnknown
+      %raw(`{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21}`)->unsafeToUnknown
     let recordStruct = S.record3(
       ~fields=(("Name", S.string()), ("Email", S.string()), ("Age", S.int())),
       ~constructor=((name, email, age)) => {name: name, email: email, age: age}->Ok,

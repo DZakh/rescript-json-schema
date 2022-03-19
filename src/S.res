@@ -155,24 +155,12 @@ let make = (~kind, ~constructor=?, ~destructor=?, ()): t<'value> => {
   {kind: kind, constructor: constructor, destructor: destructor, meta: Js.Dict.empty()}
 }
 
-@module
-external mergeMeta: (unknown, unknown) => unknown = "deepmerge"
-
 let classify = struct => struct.kind
 let getMeta = (struct, ~namespace) => {
-  let maybeExistingMeta = struct.meta->Js.Dict.get(namespace)
-  switch maybeExistingMeta {
-  | Some(existingMeta) => existingMeta
-  | None => Js.Dict.empty()->Js.Json.object_
-  }
+  struct.meta->Js.Dict.get(namespace)->Belt.Option.map(unsafeFromUnknown)
 }
 let mixinMeta = (struct, ~namespace, ~meta) => {
-  let maybeExistingMeta = struct.meta->Js.Dict.get(namespace)
-  let nextMeta = switch maybeExistingMeta {
-  | Some(existingMeta) => mergeMeta(existingMeta, meta)
-  | None => meta
-  }
-  struct.meta->Js.Dict.set(namespace, nextMeta)
+  struct.meta->Js.Dict.set(namespace, meta->unsafeToUnknown)
   struct
 }
 
@@ -390,6 +378,7 @@ let float = () => {
   )
 }
 
+// TODO: Reduce the number of interation for constructing and destructing
 let array = struct =>
   make(
     ~kind=Array(struct),

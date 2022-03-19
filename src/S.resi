@@ -1,5 +1,3 @@
-type unknown = Js.Json.t
-
 type rec t<'value>
 and kind =
   | String: kind
@@ -125,13 +123,12 @@ let record9: (
   unit,
 ) => t<'value>
 
-let construct: (t<'value>, unknown) => result<'value, string>
-let constructWith: (unknown, t<'value>) => result<'value, string>
+let construct: (t<'value>, Js.Json.t) => result<'value, string>
+let constructWith: (Js.Json.t, t<'value>) => result<'value, string>
 
-let destruct: (t<'value>, 'value) => result<unknown, string>
-let destructWith: ('value, t<'value>) => result<unknown, string>
+let destruct: (t<'value>, 'value) => result<Js.Json.t, string>
+let destructWith: ('value, t<'value>) => result<Js.Json.t, string>
 
-let unsafeToUnknown: 'any => unknown
 let classify: t<'value> => kind
-let getMeta: (t<'value>, ~namespace: string) => unknown
-let mixinMeta: (t<'value>, ~namespace: string, ~meta: unknown) => t<'value>
+let getMeta: (t<'value>, ~namespace: string) => option<'meta>
+let mixinMeta: (t<'value>, ~namespace: string, ~meta: 'meta) => t<'value>

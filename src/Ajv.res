@@ -18,13 +18,13 @@ module Validator = {
     }
   `)
 
-  let is = (self: t<'value>, unknown: S.unknown): bool => {
+  let is = (self: t<'value>, unknown: Js.Json.t): bool => {
     _is(self.ajvValidator, unknown)
   }
 
   // TODO: Add validate function with validation error messages
 
-  let parse = (self: t<'value>, unknown: S.unknown): result<'value, string> => {
+  let parse = (self: t<'value>, unknown: Js.Json.t): result<'value, string> => {
     switch self->is(unknown) {
     // TODO: Properly handle errors
     | true => self.struct->S.construct(unknown)

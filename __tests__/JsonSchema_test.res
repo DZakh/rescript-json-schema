@@ -6,6 +6,7 @@ type recordWithOneOptionalOptionalStringField = {optionalOptionalField: option<o
 type recordWithOneOptionalAndOneRequiredStringField = {optionalField: option<string>, field: string}
 type nestedRecord = {recordWithOneStringField: recordWithOneStringField}
 
+// TODO: Stop using snapshots
 test("Schema of bool struct", t => {
   let struct = S.bool()
 
@@ -118,13 +119,45 @@ test("Make JsonSchema throws error with record field wrapped in option multiple 
 test("Primitive struct schema with description", t => {
   let struct = S.bool()->JsonSchema.description("A primitive struct")
 
-  t->Assert.snapshot(JsonSchema.make(struct), ())
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    %raw(`{
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      type: 'boolean',
+      description: 'A primitive struct',
+    }`),
+    (),
+  )
 })
 
 test("Primitive struct schema with additional raw schema", t => {
   let struct = S.bool()->JsonSchema.raw(%raw(`{nullable: true}`))
 
-  t->Assert.snapshot(JsonSchema.make(struct), ())
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    %raw(`{
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      type: 'boolean',
+      nullable: true,
+    }`),
+    (),
+  )
+})
+
+test("Multiple additional raw schemas are merged together", t => {
+  let struct =
+    S.bool()->JsonSchema.raw(%raw(`{nullable:true}`))->JsonSchema.raw(%raw(`{deprecated:true}`))
+
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    %raw(`{
+      '$schema': 'http://json-schema.org/draft-07/schema#',
+      type: 'boolean',
+      deprecated: true,
+      nullable: true,
+    }`),
+    (),
+  )
 })
 
 test("Additional raw schema works with optional fields", t => {
