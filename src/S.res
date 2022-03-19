@@ -79,11 +79,11 @@ module Error = {
     | (MissingDestructor, true) => `Struct missing destructor at ${error.location->formatLocation}`
     | (MissingDestructor, false) => `Struct missing destructor at root`
     | (ConstructingFailed(reason), true) =>
-      `Struct constructing failed at ${error.location->formatLocation}. Reason: ${reason}`
-    | (ConstructingFailed(reason), false) => `Struct constructing failed at root. Reason: ${reason}`
+      `Struct construction failed at ${error.location->formatLocation}. Reason: ${reason}`
+    | (ConstructingFailed(reason), false) => `Struct construction failed at root. Reason: ${reason}`
     | (DestructingFailed(reason), true) =>
-      `Struct destructing failed at ${error.location->formatLocation}. Reason: ${reason}`
-    | (DestructingFailed(reason), false) => `Struct destructing failed at root. Reason: ${reason}`
+      `Struct destruction failed at ${error.location->formatLocation}. Reason: ${reason}`
+    | (DestructingFailed(reason), false) => `Struct destruction failed at root. Reason: ${reason}`
     }
   }
 }
@@ -302,83 +302,71 @@ module Record = {
   }
 }
 
+module CoercedPrimitive = {
+  let make = (~customConstructor, ~customDestructor, kind) => {
+    if customConstructor->Belt.Option.isNone && customDestructor->Belt.Option.isNone {
+      raiseRestructError("For a Coerced struct either a constructor, or a destructor is required")
+    }
+
+    make(
+      ~kind,
+      ~constructor=?customConstructor->Belt.Option.map(customConstructor => {
+        unknown => {
+          customConstructor(unknown->unsafeFromUnknown)->ResultX.mapError(
+            Error.ConstructingFailed.make,
+          )
+        }
+      }),
+      ~destructor=?customDestructor->Belt.Option.map(customDestructor => {
+        value => {
+          switch customDestructor(value) {
+          | Ok(primitive) => primitive->unsafeToUnknown->Ok
+          | Error(reason) => Error.DestructingFailed.make(reason)->Error
+          }
+        }
+      }),
+      (),
+    )
+  }
+}
+
 module Primitive = {
-  module Constructor = {
-    let default: constructor<'value> = unknown => {
-      unknown->unsafeFromUnknown->Ok
-    }
-
-    // let make = (~customConstructor: option<'primitive => result<'value, string>>): constructor<
-    //   'value,
-    // > => {
-    //   switch customConstructor {
-    //   | Some(customConstructor) =>
-    //     unknown => {
-    //       customConstructor(unknown->unsafeFromUnknown)->ResultX.mapError(
-    //         Error.ConstructingFailed.make,
-    //       )
-    //     }
-    //   | None => default
-    //   }
-    // }
-  }
-
-  module Destructor = {
-    let default: destructor<'value> = value => {
-      value->unsafeToUnknown->Ok
-    }
-
-    // let make = (~customDestructor: option<'value => result<'primitive, string>>): destructor<
-    //   'value,
-    // > => {
-    //   switch customDestructor {
-    //   | Some(customDestructor) =>
-    //     value => {
-    //       switch customDestructor(value) {
-    //       | Ok(primitive) => primitive->unsafeToUnknown->Ok
-    //       | Error(reason) => Error.DestructingFailed.make(reason)->Error
-    //       }
-    //     }
-    //   | None => default
-    //   }
-    // }
+  let make = kind => {
+    make(
+      ~kind,
+      ~constructor=unknown => {
+        unknown->unsafeFromUnknown->Ok
+      },
+      ~destructor=value => {
+        value->unsafeToUnknown->Ok
+      },
+      (),
+    )
   }
 }
 
-let string = () => {
-  make(
-    ~kind=String,
-    ~constructor=Primitive.Constructor.default,
-    ~destructor=Primitive.Destructor.default,
-    (),
-  )
+let string = () => Primitive.make(String)
+let coercedString = (
+  ~constructor as customConstructor=?,
+  ~destructor as customDestructor=?,
+  (),
+) => {
+  CoercedPrimitive.make(~customConstructor, ~customDestructor, String)
 }
-let bool = () => {
-  make(
-    ~kind=Bool,
-    ~constructor=Primitive.Constructor.default,
-    ~destructor=Primitive.Destructor.default,
-    (),
-  )
+let bool = () => Primitive.make(Bool)
+let coercedBool = (~constructor as customConstructor=?, ~destructor as customDestructor=?, ()) => {
+  CoercedPrimitive.make(~customConstructor, ~customDestructor, Bool)
 }
-let int = () => {
-  make(
-    ~kind=Int,
-    ~constructor=Primitive.Constructor.default,
-    ~destructor=Primitive.Destructor.default,
-    (),
-  )
+let int = () => Primitive.make(Int)
+let coercedInt = (~constructor as customConstructor=?, ~destructor as customDestructor=?, ()) => {
+  CoercedPrimitive.make(~customConstructor, ~customDestructor, Int)
 }
-let float = () => {
-  make(
-    ~kind=Float,
-    ~constructor=Primitive.Constructor.default,
-    ~destructor=Primitive.Destructor.default,
-    (),
-  )
+let float = () => Primitive.make(Float)
+let coercedFloat = (~constructor as customConstructor=?, ~destructor as customDestructor=?, ()) => {
+  CoercedPrimitive.make(~customConstructor, ~customDestructor, Float)
 }
 
-// TODO: Reduce the number of interation for constructing and destructing
+// TODO: Reduce the number of interation for construction and destruction operations
 let array = struct =>
   make(
     ~kind=Array(struct),

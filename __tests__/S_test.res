@@ -6,22 +6,22 @@ test("Constructs unknown primitive", t => {
   let primitive = "ReScript is Great!"
 
   let unknownPrimitive = Js.Json.string(primitive)
-  let primitiveStruct = S.string()
+  let struct = S.string()
 
-  t->Assert.deepEqual(primitiveStruct->S.construct(unknownPrimitive), Ok(primitive), ())
-  t->Assert.deepEqual(unknownPrimitive->S.constructWith(primitiveStruct), Ok(primitive), ())
+  t->Assert.deepEqual(struct->S.construct(unknownPrimitive), Ok(primitive), ())
+  t->Assert.deepEqual(unknownPrimitive->S.constructWith(struct), Ok(primitive), ())
 })
 
 test(
   "Constructs unknown primitive without validation. Note: Use Ajv.parse to safely construct with validation",
   t => {
-    let primitive = 123.
+    let primitivee = 123.
 
-    let unknownPrimitive = Js.Json.number(primitive)
-    let primitiveStruct = S.string()
+    let unknownPrimitive = Js.Json.number(primitivee)
+    let struct = S.string()
 
-    t->Assert.deepEqual(primitiveStruct->S.construct(unknownPrimitive), Ok(primitive), ())
-    t->Assert.deepEqual(unknownPrimitive->S.constructWith(primitiveStruct), Ok(primitive), ())
+    t->Assert.unsafeDeepEqual(struct->S.construct(unknownPrimitive), Ok(primitivee), ())
+    t->Assert.unsafeDeepEqual(unknownPrimitive->S.constructWith(struct), Ok(primitivee), ())
   },
 )
 
@@ -29,49 +29,174 @@ test("Constructs unknown array of primitives", t => {
   let arrayOfPrimitives = ["ReScript is Great!"]
 
   let unknownArrayOfPrimitives = Js.Json.stringArray(arrayOfPrimitives)
-  let arrayOfPrimitivesStruct = S.array(S.string())
+  let struct = S.array(S.string())
 
-  t->Assert.deepEqual(
-    arrayOfPrimitivesStruct->S.construct(unknownArrayOfPrimitives),
-    Ok(arrayOfPrimitives),
-    (),
-  )
-  t->Assert.deepEqual(
-    unknownArrayOfPrimitives->S.constructWith(arrayOfPrimitivesStruct),
-    Ok(arrayOfPrimitives),
-    (),
-  )
+  t->Assert.deepEqual(struct->S.construct(unknownArrayOfPrimitives), Ok(arrayOfPrimitives), ())
+  t->Assert.deepEqual(unknownArrayOfPrimitives->S.constructWith(struct), Ok(arrayOfPrimitives), ())
 })
 
 test("Destructs unknown primitive", t => {
   let primitive = "ReScript is Great!"
 
   let unknownPrimitive = Js.Json.string(primitive)
-  let primitiveStruct = S.string()
+  let struct = S.string()
 
-  t->Assert.deepEqual(primitiveStruct->S.destruct(primitive), Ok(unknownPrimitive), ())
-  t->Assert.deepEqual(primitive->S.destructWith(primitiveStruct), Ok(unknownPrimitive), ())
+  t->Assert.deepEqual(struct->S.destruct(primitive), Ok(unknownPrimitive), ())
+  t->Assert.deepEqual(primitive->S.destructWith(struct), Ok(unknownPrimitive), ())
 })
 
 test("Destructs unknown array of primitives", t => {
   let arrayOfPrimitives = ["ReScript is Great!"]
 
   let unknownArrayOfPrimitives = Js.Json.stringArray(arrayOfPrimitives)
-  let arrayOfPrimitivesStruct = S.array(S.string())
+  let struct = S.array(S.string())
 
-  t->Assert.deepEqual(
-    arrayOfPrimitivesStruct->S.destruct(arrayOfPrimitives),
-    Ok(unknownArrayOfPrimitives),
-    (),
-  )
-  t->Assert.deepEqual(
-    arrayOfPrimitives->S.destructWith(arrayOfPrimitivesStruct),
-    Ok(unknownArrayOfPrimitives),
-    (),
-  )
+  t->Assert.deepEqual(struct->S.destruct(arrayOfPrimitives), Ok(unknownArrayOfPrimitives), ())
+  t->Assert.deepEqual(arrayOfPrimitives->S.destructWith(struct), Ok(unknownArrayOfPrimitives), ())
 })
 
-module RecordConstructingAndDestructingTests = {
+module PrimitiveCoercionTests = {
+  test("Constructs unknown primitive with coercion to the same type", t => {
+    let primitive = "  Hello world!"
+    let coercedPrimitive = "Hello world!"
+    let unknownPrimitive = primitive->unsafeToUnknown
+
+    let struct = S.coercedString(~constructor=value => value->Js.String2.trim->Ok, ())
+
+    t->Assert.deepEqual(struct->S.construct(unknownPrimitive), Ok(coercedPrimitive), ())
+    t->Assert.deepEqual(unknownPrimitive->S.constructWith(struct), Ok(coercedPrimitive), ())
+  })
+
+  test("Constructs unknown primitive with coercion to another type", t => {
+    let primitive = 123
+    let coercedPrimitive = 123.
+    let unknownPrimitive = primitive->unsafeToUnknown
+
+    let struct = S.coercedInt(~constructor=value => value->Js.Int.toFloat->Ok, ())
+
+    t->Assert.deepEqual(struct->S.construct(unknownPrimitive), Ok(coercedPrimitive), ())
+    t->Assert.deepEqual(unknownPrimitive->S.constructWith(struct), Ok(coercedPrimitive), ())
+  })
+
+  test("Throws for a CoercedPrimitive factory without either a constructor, or a destructor", t => {
+    t->Assert.throws(() => {
+      S.coercedString()->ignore
+    }, ~expectations=ThrowsException.make(
+      ~message="For a Coerced struct either a constructor, or a destructor is required",
+      (),
+    ), ())
+  })
+
+  test("CoercedPrimitive construction fails when constructor isn't provided", t => {
+    let primitive = "Hello world!"
+    let unknownPrimitive = primitive->unsafeToUnknown
+
+    let struct = S.coercedString(~destructor=value => value->Ok, ())
+
+    t->Assert.deepEqual(
+      struct->S.construct(unknownPrimitive),
+      Error("Struct missing constructor at root"),
+      (),
+    )
+    t->Assert.deepEqual(
+      unknownPrimitive->S.constructWith(struct),
+      Error("Struct missing constructor at root"),
+      (),
+    )
+  })
+
+  test("Construction fails when user returns error in a CoercedPrimitive constructor", t => {
+    let primitive = "Hello world!"
+    let unknownPrimitive = primitive->unsafeToUnknown
+    let struct = S.coercedString(~constructor=_ => Error("User error"), ())
+
+    t->Assert.deepEqual(
+      struct->S.construct(unknownPrimitive),
+      Error("Struct construction failed at root. Reason: User error"),
+      (),
+    )
+    t->Assert.deepEqual(
+      unknownPrimitive->S.constructWith(struct),
+      Error("Struct construction failed at root. Reason: User error"),
+      (),
+    )
+  })
+
+  test("Destructs unknown record with with coercion to the same type", t => {
+    let primitive = "  Hello world!"
+    let coercedPrimitive = "Hello world!"
+    let unknownCoercedPrimitive = coercedPrimitive->unsafeToUnknown
+
+    let struct = S.coercedString(~destructor=value => value->Js.String2.trim->Ok, ())
+
+    t->Assert.deepEqual(struct->S.destruct(primitive), Ok(unknownCoercedPrimitive), ())
+    t->Assert.deepEqual(primitive->S.destructWith(struct), Ok(unknownCoercedPrimitive), ())
+  })
+
+  test("Destructs unknown record with with coercion to another type", t => {
+    let primitive = 123
+    let coercedPrimitive = 123.
+    let unknownCoercedPrimitive = coercedPrimitive->unsafeToUnknown
+
+    let struct = S.coercedFloat(~destructor=value => value->Js.Int.toFloat->Ok, ())
+
+    t->Assert.deepEqual(struct->S.destruct(primitive), Ok(unknownCoercedPrimitive), ())
+    t->Assert.deepEqual(primitive->S.destructWith(struct), Ok(unknownCoercedPrimitive), ())
+  })
+
+  test("CoercedPrimitive destruction fails when destructor isn't provided", t => {
+    let primitive = "Hello world!"
+
+    let struct = S.coercedString(~constructor=value => value->Ok, ())
+
+    t->Assert.deepEqual(
+      struct->S.destruct(primitive),
+      Error("Struct missing destructor at root"),
+      (),
+    )
+    t->Assert.deepEqual(
+      primitive->S.destructWith(struct),
+      Error("Struct missing destructor at root"),
+      (),
+    )
+  })
+
+  test("Destruction fails when user returns error in a CoercedPrimitive destructor", t => {
+    let primitive = "Hello world!"
+
+    let struct = S.coercedString(~destructor=_ => Error("User error"), ())
+
+    t->Assert.deepEqual(
+      struct->S.destruct(primitive),
+      Error("Struct destruction failed at root. Reason: User error"),
+      (),
+    )
+    t->Assert.deepEqual(
+      primitive->S.destructWith(struct),
+      Error("Struct destruction failed at root. Reason: User error"),
+      (),
+    )
+  })
+
+  test("Constructs a CoercedPrimitive and destructs it back to the initial state", t => {
+    let primitive = 123
+    let unknownPrimitive = primitive->unsafeToUnknown
+
+    let struct = S.coercedInt(
+      ~constructor=int => int->Js.Int.toFloat->Ok,
+      ~destructor=value => value->Belt.Int.fromFloat->Ok,
+      (),
+    )
+
+    t->Assert.deepEqual(
+      struct->S.construct(unknownPrimitive)->Belt.Result.map(record => struct->S.destruct(record)),
+      Ok(Ok(unknownPrimitive)),
+      (),
+    )
+  })
+}
+
+module RecordCoercionTests = {
   type singleFieldRecord = {foo: string}
   type multipleFieldsRecord = {boo: string, zoo: string}
   type user = {name: string, email: string, age: int}
@@ -82,28 +207,24 @@ module RecordConstructingAndDestructingTests = {
     let record = {foo: "bar"}
 
     let unknownRecord = record->unsafeToUnknown
-    let recordStruct = S.record1(
-      ~fields=("foo", S.string()),
-      ~constructor=foo => {foo: foo}->Ok,
-      (),
-    )
+    let struct = S.record1(~fields=("foo", S.string()), ~constructor=foo => {foo: foo}->Ok, ())
 
-    t->Assert.deepEqual(recordStruct->S.construct(unknownRecord), Ok(record), ())
-    t->Assert.deepEqual(unknownRecord->S.constructWith(recordStruct), Ok(record), ())
+    t->Assert.deepEqual(struct->S.construct(unknownRecord), Ok(record), ())
+    t->Assert.deepEqual(unknownRecord->S.constructWith(struct), Ok(record), ())
   })
 
   test("Constructs unknown record with multiple fields", t => {
     let record = {boo: "bar", zoo: "jee"}
 
     let unknownRecord = record->unsafeToUnknown
-    let recordStruct = S.record2(
+    let struct = S.record2(
       ~fields=(("boo", S.string()), ("zoo", S.string())),
       ~constructor=((boo, zoo)) => {boo: boo, zoo: zoo}->Ok,
       (),
     )
 
-    t->Assert.deepEqual(recordStruct->S.construct(unknownRecord), Ok(record), ())
-    t->Assert.deepEqual(unknownRecord->S.constructWith(recordStruct), Ok(record), ())
+    t->Assert.deepEqual(struct->S.construct(unknownRecord), Ok(record), ())
+    t->Assert.deepEqual(unknownRecord->S.constructWith(struct), Ok(record), ())
   })
 
   test("Constructs unknown record with mapped field", t => {
@@ -111,14 +232,14 @@ module RecordConstructingAndDestructingTests = {
 
     let unknownRecord =
       %raw(`{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21}`)->unsafeToUnknown
-    let recordStruct = S.record3(
+    let struct = S.record3(
       ~fields=(("Name", S.string()), ("Email", S.string()), ("Age", S.int())),
       ~constructor=((name, email, age)) => {name: name, email: email, age: age}->Ok,
       (),
     )
 
-    t->Assert.deepEqual(recordStruct->S.construct(unknownRecord), Ok(record), ())
-    t->Assert.deepEqual(unknownRecord->S.constructWith(recordStruct), Ok(record), ())
+    t->Assert.deepEqual(struct->S.construct(unknownRecord), Ok(record), ())
+    t->Assert.deepEqual(unknownRecord->S.constructWith(struct), Ok(record), ())
   })
 
   test("Constructs unknown record with optional nested record", t => {
@@ -129,7 +250,7 @@ module RecordConstructingAndDestructingTests = {
       %raw(`{"singleFieldRecord":{"MUST_BE_MAPPED":"bar"}}`)->unsafeToUnknown
     let unknownRecordWithNoneField = %raw(`{}`)->unsafeToUnknown
 
-    let recordStruct = S.record1(
+    let struct = S.record1(
       ~fields=(
         "singleFieldRecord",
         S.option(
@@ -141,22 +262,22 @@ module RecordConstructingAndDestructingTests = {
     )
 
     t->Assert.deepEqual(
-      recordStruct->S.construct(unknownRecordWithSomeField),
+      struct->S.construct(unknownRecordWithSomeField),
       Ok(recordWithSomeField),
       (),
     )
     t->Assert.deepEqual(
-      unknownRecordWithSomeField->S.constructWith(recordStruct),
+      unknownRecordWithSomeField->S.constructWith(struct),
       Ok(recordWithSomeField),
       (),
     )
     t->Assert.deepEqual(
-      recordStruct->S.construct(unknownRecordWithNoneField),
+      struct->S.construct(unknownRecordWithNoneField),
       Ok(recordWithNoneField),
       (),
     )
     t->Assert.deepEqual(
-      unknownRecordWithNoneField->S.constructWith(recordStruct),
+      unknownRecordWithNoneField->S.constructWith(struct),
       Ok(recordWithNoneField),
       (),
     )
@@ -192,29 +313,29 @@ module RecordConstructingAndDestructingTests = {
     ), ())
   })
 
-  test("Record constructing fails when constructor isn't provided", t => {
+  test("Record construction fails when constructor isn't provided", t => {
     let record = {foo: "bar"}
 
     let unknownRecord = record->unsafeToUnknown
-    let recordStruct = S.record1(~fields=("foo", S.string()), ~destructor=({foo}) => foo->Ok, ())
+    let struct = S.record1(~fields=("foo", S.string()), ~destructor=({foo}) => foo->Ok, ())
 
     t->Assert.deepEqual(
-      recordStruct->S.construct(unknownRecord),
+      struct->S.construct(unknownRecord),
       Error("Struct missing constructor at root"),
       (),
     )
     t->Assert.deepEqual(
-      unknownRecord->S.constructWith(recordStruct),
+      unknownRecord->S.constructWith(struct),
       Error("Struct missing constructor at root"),
       (),
     )
   })
 
-  test("Nested record constructing fails when constructor isn't provided", t => {
+  test("Nested record construction fails when constructor isn't provided", t => {
     let record = {nested: {foo: "bar"}}
 
     let unknownRecord = record->unsafeToUnknown
-    let recordStruct = S.record1(
+    let struct = S.record1(
       ~fields=(
         "nested",
         S.record1(~fields=("foo", S.string()), ~destructor=({foo}) => foo->Ok, ()),
@@ -224,44 +345,40 @@ module RecordConstructingAndDestructingTests = {
     )
 
     t->Assert.deepEqual(
-      recordStruct->S.construct(unknownRecord),
+      struct->S.construct(unknownRecord),
       Error(`Struct missing constructor at ."nested"`),
       (),
     )
     t->Assert.deepEqual(
-      unknownRecord->S.constructWith(recordStruct),
+      unknownRecord->S.constructWith(struct),
       Error(`Struct missing constructor at ."nested"`),
       (),
     )
   })
 
-  test("Constructing fails when user returns error in a root record constructor", t => {
+  test("Construction fails when user returns error in a root record constructor", t => {
     let record = {foo: "bar"}
 
     let unknownRecord = record->unsafeToUnknown
-    let recordStruct = S.record1(
-      ~fields=("foo", S.string()),
-      ~constructor=_ => Error("User error"),
-      (),
-    )
+    let struct = S.record1(~fields=("foo", S.string()), ~constructor=_ => Error("User error"), ())
 
     t->Assert.deepEqual(
-      recordStruct->S.construct(unknownRecord),
-      Error("Struct constructing failed at root. Reason: User error"),
+      struct->S.construct(unknownRecord),
+      Error("Struct construction failed at root. Reason: User error"),
       (),
     )
     t->Assert.deepEqual(
-      unknownRecord->S.constructWith(recordStruct),
-      Error("Struct constructing failed at root. Reason: User error"),
+      unknownRecord->S.constructWith(struct),
+      Error("Struct construction failed at root. Reason: User error"),
       (),
     )
   })
 
-  test("Constructing fails when user returns error in a nested record constructor", t => {
+  test("Construction fails when user returns error in a nested record constructor", t => {
     let record = {nested: {foo: "bar"}}
 
     let unknownRecord = record->unsafeToUnknown
-    let recordStruct = S.record1(
+    let struct = S.record1(
       ~fields=(
         "nested",
         S.record1(~fields=("foo", S.string()), ~constructor=_ => Error("User error"), ()),
@@ -271,13 +388,13 @@ module RecordConstructingAndDestructingTests = {
     )
 
     t->Assert.deepEqual(
-      recordStruct->S.construct(unknownRecord),
-      Error(`Struct constructing failed at ."nested". Reason: User error`),
+      struct->S.construct(unknownRecord),
+      Error(`Struct construction failed at ."nested". Reason: User error`),
       (),
     )
     t->Assert.deepEqual(
-      unknownRecord->S.constructWith(recordStruct),
-      Error(`Struct constructing failed at ."nested". Reason: User error`),
+      unknownRecord->S.constructWith(struct),
+      Error(`Struct construction failed at ."nested". Reason: User error`),
       (),
     )
   })
@@ -286,24 +403,24 @@ module RecordConstructingAndDestructingTests = {
     let record = {foo: "bar"}
 
     let unknownRecord = record->unsafeToUnknown
-    let recordStruct = S.record1(~fields=("foo", S.string()), ~destructor=({foo}) => foo->Ok, ())
+    let struct = S.record1(~fields=("foo", S.string()), ~destructor=({foo}) => foo->Ok, ())
 
-    t->Assert.deepEqual(recordStruct->S.destruct(record), Ok(unknownRecord), ())
-    t->Assert.deepEqual(record->S.destructWith(recordStruct), Ok(unknownRecord), ())
+    t->Assert.deepEqual(struct->S.destruct(record), Ok(unknownRecord), ())
+    t->Assert.deepEqual(record->S.destructWith(struct), Ok(unknownRecord), ())
   })
 
   test("Destructs unknown record with multiple fields", t => {
     let record = {boo: "bar", zoo: "jee"}
 
     let unknownRecord = record->unsafeToUnknown
-    let recordStruct = S.record2(
+    let struct = S.record2(
       ~fields=(("boo", S.string()), ("zoo", S.string())),
       ~destructor=({boo, zoo}) => (boo, zoo)->Ok,
       (),
     )
 
-    t->Assert.deepEqual(recordStruct->S.destruct(record), Ok(unknownRecord), ())
-    t->Assert.deepEqual(record->S.destructWith(recordStruct), Ok(unknownRecord), ())
+    t->Assert.deepEqual(struct->S.destruct(record), Ok(unknownRecord), ())
+    t->Assert.deepEqual(record->S.destructWith(struct), Ok(unknownRecord), ())
   })
 
   test("Destructs unknown record with mapped field", t => {
@@ -311,14 +428,14 @@ module RecordConstructingAndDestructingTests = {
 
     let unknownRecord =
       %raw(`{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21}`)->unsafeToUnknown
-    let recordStruct = S.record3(
+    let struct = S.record3(
       ~fields=(("Name", S.string()), ("Email", S.string()), ("Age", S.int())),
       ~destructor=({name, email, age}) => (name, email, age)->Ok,
       (),
     )
 
-    t->Assert.deepEqual(recordStruct->S.destruct(record), Ok(unknownRecord), ())
-    t->Assert.deepEqual(record->S.destructWith(recordStruct), Ok(unknownRecord), ())
+    t->Assert.deepEqual(struct->S.destruct(record), Ok(unknownRecord), ())
+    t->Assert.deepEqual(record->S.destructWith(struct), Ok(unknownRecord), ())
   })
 
   test("Destructs unknown record with optional nested record", t => {
@@ -329,7 +446,7 @@ module RecordConstructingAndDestructingTests = {
       %raw(`{"singleFieldRecord":{"MUST_BE_MAPPED":"bar"}}`)->unsafeToUnknown
     let unknownRecordWithNoneField = %raw(`{"singleFieldRecord":undefined}`)->unsafeToUnknown
 
-    let recordStruct = S.record1(
+    let struct = S.record1(
       ~fields=(
         "singleFieldRecord",
         S.option(
@@ -340,23 +457,15 @@ module RecordConstructingAndDestructingTests = {
       (),
     )
 
+    t->Assert.deepEqual(struct->S.destruct(recordWithSomeField), Ok(unknownRecordWithSomeField), ())
     t->Assert.deepEqual(
-      recordStruct->S.destruct(recordWithSomeField),
+      recordWithSomeField->S.destructWith(struct),
       Ok(unknownRecordWithSomeField),
       (),
     )
+    t->Assert.deepEqual(struct->S.destruct(recordWithNoneField), Ok(unknownRecordWithNoneField), ())
     t->Assert.deepEqual(
-      recordWithSomeField->S.destructWith(recordStruct),
-      Ok(unknownRecordWithSomeField),
-      (),
-    )
-    t->Assert.deepEqual(
-      recordStruct->S.destruct(recordWithNoneField),
-      Ok(unknownRecordWithNoneField),
-      (),
-    )
-    t->Assert.deepEqual(
-      recordWithNoneField->S.destructWith(recordStruct),
+      recordWithNoneField->S.destructWith(struct),
       Ok(unknownRecordWithNoneField),
       (),
     )
@@ -383,31 +492,23 @@ module RecordConstructingAndDestructingTests = {
     )
   })
 
-  test("Record destructing fails when destructor isn't provided", t => {
+  test("Record destruction fails when destructor isn't provided", t => {
     let record = {foo: "bar"}
 
-    let recordStruct = S.record1(
-      ~fields=("foo", S.string()),
-      ~constructor=foo => {foo: foo}->Ok,
-      (),
-    )
+    let struct = S.record1(~fields=("foo", S.string()), ~constructor=foo => {foo: foo}->Ok, ())
 
+    t->Assert.deepEqual(struct->S.destruct(record), Error("Struct missing destructor at root"), ())
     t->Assert.deepEqual(
-      recordStruct->S.destruct(record),
-      Error("Struct missing destructor at root"),
-      (),
-    )
-    t->Assert.deepEqual(
-      record->S.destructWith(recordStruct),
+      record->S.destructWith(struct),
       Error("Struct missing destructor at root"),
       (),
     )
   })
 
-  test("Nested record destructing fails when destructor isn't provided", t => {
+  test("Nested record destruction fails when destructor isn't provided", t => {
     let record = {nested: {foo: "bar"}}
 
-    let recordStruct = S.record1(
+    let struct = S.record1(
       ~fields=(
         "nested",
         S.record1(~fields=("foo", S.string()), ~constructor=foo => {foo: foo}->Ok, ()),
@@ -417,42 +518,38 @@ module RecordConstructingAndDestructingTests = {
     )
 
     t->Assert.deepEqual(
-      recordStruct->S.destruct(record),
+      struct->S.destruct(record),
       Error(`Struct missing destructor at ."nested"`),
       (),
     )
     t->Assert.deepEqual(
-      record->S.destructWith(recordStruct),
+      record->S.destructWith(struct),
       Error(`Struct missing destructor at ."nested"`),
       (),
     )
   })
 
-  test("Destructing fails when user returns error in a root record destructor", t => {
+  test("Destruction fails when user returns error in a root record destructor", t => {
     let record = {foo: "bar"}
 
-    let recordStruct = S.record1(
-      ~fields=("foo", S.string()),
-      ~destructor=_ => Error("User error"),
-      (),
-    )
+    let struct = S.record1(~fields=("foo", S.string()), ~destructor=_ => Error("User error"), ())
 
     t->Assert.deepEqual(
-      recordStruct->S.destruct(record),
-      Error("Struct destructing failed at root. Reason: User error"),
+      struct->S.destruct(record),
+      Error("Struct destruction failed at root. Reason: User error"),
       (),
     )
     t->Assert.deepEqual(
-      record->S.destructWith(recordStruct),
-      Error("Struct destructing failed at root. Reason: User error"),
+      record->S.destructWith(struct),
+      Error("Struct destruction failed at root. Reason: User error"),
       (),
     )
   })
 
-  test("Destructing fails when user returns error in a nested record destructor", t => {
+  test("Destruction fails when user returns error in a nested record destructor", t => {
     let record = {nested: {foo: "bar"}}
 
-    let recordStruct = S.record1(
+    let struct = S.record1(
       ~fields=(
         "nested",
         S.record1(~fields=("foo", S.string()), ~destructor=_ => Error("User error"), ()),
@@ -462,13 +559,13 @@ module RecordConstructingAndDestructingTests = {
     )
 
     t->Assert.deepEqual(
-      recordStruct->S.destruct(record),
-      Error(`Struct destructing failed at ."nested". Reason: User error`),
+      struct->S.destruct(record),
+      Error(`Struct destruction failed at ."nested". Reason: User error`),
       (),
     )
     t->Assert.deepEqual(
-      record->S.destructWith(recordStruct),
-      Error(`Struct destructing failed at ."nested". Reason: User error`),
+      record->S.destructWith(struct),
+      Error(`Struct destruction failed at ."nested". Reason: User error`),
       (),
     )
   })
@@ -476,7 +573,7 @@ module RecordConstructingAndDestructingTests = {
   test("Constructs a record with fields mapping and destructs it back to the initial state", t => {
     let unknownRecord =
       %raw(`{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21}`)->unsafeToUnknown
-    let recordStruct = S.record3(
+    let struct = S.record3(
       ~fields=(("Name", S.string()), ("Email", S.string()), ("Age", S.int())),
       ~constructor=((name, email, age)) => {name: name, email: email, age: age}->Ok,
       ~destructor=({name, email, age}) => (name, email, age)->Ok,
@@ -484,9 +581,7 @@ module RecordConstructingAndDestructingTests = {
     )
 
     t->Assert.deepEqual(
-      recordStruct
-      ->S.construct(unknownRecord)
-      ->Belt.Result.map(record => recordStruct->S.destruct(record)),
+      struct->S.construct(unknownRecord)->Belt.Result.map(record => struct->S.destruct(record)),
       Ok(Ok(unknownRecord)),
       (),
     )

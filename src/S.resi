@@ -43,9 +43,32 @@ and kind =
 and field<'value> = (string, t<'value>)
 
 let string: unit => t<string>
+let coercedString: (
+  ~constructor: string => result<'value, string>=?,
+  ~destructor: 'value => result<string, string>=?,
+  unit,
+) => t<'value>
+
 let bool: unit => t<bool>
+let coercedBool: (
+  ~constructor: bool => result<'value, string>=?,
+  ~destructor: 'value => result<bool, string>=?,
+  unit,
+) => t<'value>
+
 let int: unit => t<int>
+let coercedInt: (
+  ~constructor: int => result<'value, string>=?,
+  ~destructor: 'value => result<int, string>=?,
+  unit,
+) => t<'value>
 let float: unit => t<float>
+let coercedFloat: (
+  ~constructor: float => result<'value, string>=?,
+  ~destructor: 'value => result<float, string>=?,
+  unit,
+) => t<'value>
+
 let array: t<'value> => t<array<'value>>
 let option: t<'value> => t<option<'value>>
 
