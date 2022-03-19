@@ -89,13 +89,21 @@ module Error = {
 }
 
 type unknown = Js.Json.t
+
 external unsafeToUnknown: 'unknown => unknown = "%identity"
+external unsafeFromUnknown: unknown => 'value = "%identity"
+external unsafeUnknownToArray: unknown => array<unknown> = "%identity"
+external unsafeArrayToUnknown: array<unknown> => unknown = "%identity"
+external unsafeUnknownToOption: unknown => option<unknown> = "%identity"
+external unsafeOptionToUnknown: option<unknown> => unknown = "%identity"
 
 // TODO: Add title and description (probably not here)
+type constructor<'value> = unknown => result<'value, Error.t>
+type destructor<'value> = 'value => result<unknown, Error.t>
 type rec t<'value> = {
   kind: kind,
-  constructor: option<unknown => result<'value, Error.t>>,
-  destructor: option<'value => result<unknown, Error.t>>,
+  constructor: option<constructor<'value>>,
+  destructor: option<destructor<'value>>,
   meta: Js.Dict.t<unknown>,
 }
 and kind =
@@ -195,21 +203,21 @@ let destructWith = (unknown, struct) => {
 }
 
 module Record = {
-  type t<'value, 'fields, 'fieldValues> = {
-    constructor: option<unknown => result<'value, Error.t>>,
-    destructor: option<'value => result<unknown, Error.t>>,
+  type t<'value> = {
+    constructor: option<constructor<'value>>,
+    destructor: option<destructor<'value>>,
   }
 
   exception HackyAbort(Error.t)
 
-  let _constructor = %raw(`function(fields, tupleConstructor, construct) {
+  let _constructor = %raw(`function(fields, customConstructor, construct) {
     var isSingleField = typeof fields[0] === "string";
     if (isSingleField) {
       return function(unknown) {
         var fieldName = fields[0],
           fieldStruct = fields[1],
           fieldValue = construct(fieldStruct, fieldName, unknown[fieldName]);
-        return tupleConstructor(fieldValue);
+        return customConstructor(fieldValue);
       }
     }
     return function(unknown) {
@@ -220,7 +228,7 @@ module Record = {
           fieldValue = construct(fieldStruct, fieldName, unknown[fieldName]);
         fieldValues.push(fieldValue);
       })
-      return tupleConstructor(fieldValues);
+      return customConstructor(fieldValues);
     }
   }`)
 
@@ -253,18 +261,18 @@ module Record = {
 
   let make = (
     ~fields: 'fields,
-    ~constructor: option<'fieldValues => result<'value, string>>,
-    ~destructor: option<'value => result<'fieldValues, string>>,
-  ): t<'value, 'fields, 'fieldValues> => {
-    if constructor->Belt.Option.isNone && destructor->Belt.Option.isNone {
+    ~customConstructor: option<'fieldValues => result<'value, string>>,
+    ~customDestructor: option<'value => result<'fieldValues, string>>,
+  ): t<'value> => {
+    if customConstructor->Belt.Option.isNone && customDestructor->Belt.Option.isNone {
       raiseRestructError("For a Record struct either a constructor, or a destructor is required")
     }
 
     {
-      constructor: constructor->Belt.Option.map(tupleConstructor => {
+      constructor: customConstructor->Belt.Option.map(customConstructor => {
         unknown => {
           try {
-            _constructor(~fields, ~tupleConstructor, ~construct=(
+            _constructor(~fields, ~customConstructor, ~construct=(
               struct,
               fieldName,
               unknownFieldValue,
@@ -280,13 +288,13 @@ module Record = {
           }
         }
       }),
-      destructor: destructor->Belt.Option.map(tupleDestructor => {
+      destructor: customDestructor->Belt.Option.map(customDestructor => {
         value => {
           try {
             _destructor(
               ~fields,
-              ~tupleDestructor=value => {
-                switch tupleDestructor(value) {
+              ~customDestructor=value => {
+                switch customDestructor(value) {
                 | Ok(fieldValuesTuple) => fieldValuesTuple
                 | Error(reason) => raise(HackyAbort(Error.DestructingFailed.make(reason)))
                 }
@@ -308,47 +316,82 @@ module Record = {
   }
 }
 
-external unsafeConstructor: unknown => 'value = "%identity"
-let defaultPrimitiveConstructor = unknown => {
-  unknown->unsafeConstructor->Ok
+module Primitive = {
+  module Constructor = {
+    let default: constructor<'value> = unknown => {
+      unknown->unsafeFromUnknown->Ok
+    }
+
+    // let make = (~customConstructor: option<'primitive => result<'value, string>>): constructor<
+    //   'value,
+    // > => {
+    //   switch customConstructor {
+    //   | Some(customConstructor) =>
+    //     unknown => {
+    //       customConstructor(unknown->unsafeFromUnknown)->ResultX.mapError(
+    //         Error.ConstructingFailed.make,
+    //       )
+    //     }
+    //   | None => default
+    //   }
+    // }
+  }
+
+  module Destructor = {
+    let default: destructor<'value> = value => {
+      value->unsafeToUnknown->Ok
+    }
+
+    // let make = (~customDestructor: option<'value => result<'primitive, string>>): destructor<
+    //   'value,
+    // > => {
+    //   switch customDestructor {
+    //   | Some(customDestructor) =>
+    //     value => {
+    //       switch customDestructor(value) {
+    //       | Ok(primitive) => primitive->unsafeToUnknown->Ok
+    //       | Error(reason) => Error.DestructingFailed.make(reason)->Error
+    //       }
+    //     }
+    //   | None => default
+    //   }
+    // }
+  }
 }
 
-external unsafeDestructor: 'value => unknown = "%identity"
-let defaultPrimitiveDestructor = value => {
-  value->unsafeDestructor->Ok
-}
-
-let string = () =>
+let string = () => {
   make(
     ~kind=String,
-    ~constructor=defaultPrimitiveConstructor,
-    ~destructor=defaultPrimitiveDestructor,
+    ~constructor=Primitive.Constructor.default,
+    ~destructor=Primitive.Destructor.default,
     (),
   )
-let bool = () =>
+}
+let bool = () => {
   make(
     ~kind=Bool,
-    ~constructor=defaultPrimitiveConstructor,
-    ~destructor=defaultPrimitiveDestructor,
+    ~constructor=Primitive.Constructor.default,
+    ~destructor=Primitive.Destructor.default,
     (),
   )
-let int = () =>
+}
+let int = () => {
   make(
     ~kind=Int,
-    ~constructor=defaultPrimitiveConstructor,
-    ~destructor=defaultPrimitiveDestructor,
+    ~constructor=Primitive.Constructor.default,
+    ~destructor=Primitive.Destructor.default,
     (),
   )
-let float = () =>
+}
+let float = () => {
   make(
     ~kind=Float,
-    ~constructor=defaultPrimitiveConstructor,
-    ~destructor=defaultPrimitiveDestructor,
+    ~constructor=Primitive.Constructor.default,
+    ~destructor=Primitive.Destructor.default,
     (),
   )
+}
 
-external unsafeUnknownToArray: unknown => array<unknown> = "%identity"
-external unsafeArrayToUnknown: array<unknown> => unknown = "%identity"
 let array = struct =>
   make(
     ~kind=Array(struct),
@@ -373,8 +416,6 @@ let array = struct =>
     (),
   )
 
-external unsafeUnknownToOption: unknown => option<unknown> = "%identity"
-external unsafeOptionToUnknown: option<unknown> => unknown = "%identity"
 let option = struct => {
   make(
     ~kind=Option(struct),
@@ -394,39 +435,84 @@ let option = struct => {
   )
 }
 
-let record1 = (~fields, ~constructor=?, ~destructor=?, ()) => {
-  let {constructor, destructor} = Record.make(~fields, ~constructor, ~destructor)
+let record1 = (
+  ~fields,
+  ~constructor as customConstructor=?,
+  ~destructor as customDestructor=?,
+  (),
+) => {
+  let {constructor, destructor} = Record.make(~fields, ~customConstructor, ~customDestructor)
   make(~kind=Record1(fields), ~constructor?, ~destructor?, ())
 }
-let record2 = (~fields, ~constructor=?, ~destructor=?, ()) => {
-  let {constructor, destructor} = Record.make(~fields, ~constructor, ~destructor)
+let record2 = (
+  ~fields,
+  ~constructor as customConstructor=?,
+  ~destructor as customDestructor=?,
+  (),
+) => {
+  let {constructor, destructor} = Record.make(~fields, ~customConstructor, ~customDestructor)
   make(~kind=Record2(fields), ~constructor?, ~destructor?, ())
 }
-let record3 = (~fields, ~constructor=?, ~destructor=?, ()) => {
-  let {constructor, destructor} = Record.make(~fields, ~constructor, ~destructor)
+let record3 = (
+  ~fields,
+  ~constructor as customConstructor=?,
+  ~destructor as customDestructor=?,
+  (),
+) => {
+  let {constructor, destructor} = Record.make(~fields, ~customConstructor, ~customDestructor)
   make(~kind=Record3(fields), ~constructor?, ~destructor?, ())
 }
-let record4 = (~fields, ~constructor=?, ~destructor=?, ()) => {
-  let {constructor, destructor} = Record.make(~fields, ~constructor, ~destructor)
+let record4 = (
+  ~fields,
+  ~constructor as customConstructor=?,
+  ~destructor as customDestructor=?,
+  (),
+) => {
+  let {constructor, destructor} = Record.make(~fields, ~customConstructor, ~customDestructor)
   make(~kind=Record4(fields), ~constructor?, ~destructor?, ())
 }
-let record5 = (~fields, ~constructor=?, ~destructor=?, ()) => {
-  let {constructor, destructor} = Record.make(~fields, ~constructor, ~destructor)
+let record5 = (
+  ~fields,
+  ~constructor as customConstructor=?,
+  ~destructor as customDestructor=?,
+  (),
+) => {
+  let {constructor, destructor} = Record.make(~fields, ~customConstructor, ~customDestructor)
   make(~kind=Record5(fields), ~constructor?, ~destructor?, ())
 }
-let record6 = (~fields, ~constructor=?, ~destructor=?, ()) => {
-  let {constructor, destructor} = Record.make(~fields, ~constructor, ~destructor)
+let record6 = (
+  ~fields,
+  ~constructor as customConstructor=?,
+  ~destructor as customDestructor=?,
+  (),
+) => {
+  let {constructor, destructor} = Record.make(~fields, ~customConstructor, ~customDestructor)
   make(~kind=Record6(fields), ~constructor?, ~destructor?, ())
 }
-let record7 = (~fields, ~constructor=?, ~destructor=?, ()) => {
-  let {constructor, destructor} = Record.make(~fields, ~constructor, ~destructor)
+let record7 = (
+  ~fields,
+  ~constructor as customConstructor=?,
+  ~destructor as customDestructor=?,
+  (),
+) => {
+  let {constructor, destructor} = Record.make(~fields, ~customConstructor, ~customDestructor)
   make(~kind=Record7(fields), ~constructor?, ~destructor?, ())
 }
-let record8 = (~fields, ~constructor=?, ~destructor=?, ()) => {
-  let {constructor, destructor} = Record.make(~fields, ~constructor, ~destructor)
+let record8 = (
+  ~fields,
+  ~constructor as customConstructor=?,
+  ~destructor as customDestructor=?,
+  (),
+) => {
+  let {constructor, destructor} = Record.make(~fields, ~customConstructor, ~customDestructor)
   make(~kind=Record8(fields), ~constructor?, ~destructor?, ())
 }
-let record9 = (~fields, ~constructor=?, ~destructor=?, ()) => {
-  let {constructor, destructor} = Record.make(~fields, ~constructor, ~destructor)
+let record9 = (
+  ~fields,
+  ~constructor as customConstructor=?,
+  ~destructor as customDestructor=?,
+  (),
+) => {
+  let {constructor, destructor} = Record.make(~fields, ~customConstructor, ~customDestructor)
   make(~kind=Record9(fields), ~constructor?, ~destructor?, ())
 }
