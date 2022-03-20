@@ -6,40 +6,7 @@ and kind =
   | Bool: kind
   | Option(t<'value>): kind
   | Array(t<'value>): kind
-  | Record1(field<'v1>): kind
-  | Record2((field<'v1>, field<'v2>)): kind
-  | Record3((field<'v1>, field<'v2>, field<'v3>)): kind
-  | Record4((field<'v1>, field<'v2>, field<'v3>, field<'v4>)): kind
-  | Record5((field<'v1>, field<'v2>, field<'v3>, field<'v4>, field<'v5>)): kind
-  | Record6((field<'v1>, field<'v2>, field<'v3>, field<'v4>, field<'v5>, field<'v6>)): kind
-  | Record7(
-      (field<'v1>, field<'v2>, field<'v3>, field<'v4>, field<'v5>, field<'v6>, field<'v7>),
-    ): kind
-  | Record8(
-      (
-        field<'v1>,
-        field<'v2>,
-        field<'v3>,
-        field<'v4>,
-        field<'v5>,
-        field<'v6>,
-        field<'v7>,
-        field<'v8>,
-      ),
-    ): kind
-  | Record9(
-      (
-        field<'v1>,
-        field<'v2>,
-        field<'v3>,
-        field<'v4>,
-        field<'v5>,
-        field<'v6>,
-        field<'v7>,
-        field<'v8>,
-        field<'v9>,
-      ),
-    ): kind
+  | Record('unsafeFieldsArray): kind
 and field<'value> = (string, t<'value>)
 
 let string: unit => t<string>
@@ -145,6 +112,23 @@ let record9: (
   ~destructor: 'value => result<('v1, 'v2, 'v3, 'v4, 'v5, 'v6, 'v7, 'v8, 'v9), string>=?,
   unit,
 ) => t<'value>
+let record10: (
+  ~fields: (
+    field<'v1>,
+    field<'v2>,
+    field<'v3>,
+    field<'v4>,
+    field<'v5>,
+    field<'v6>,
+    field<'v7>,
+    field<'v8>,
+    field<'v9>,
+    field<'v10>,
+  ),
+  ~constructor: (('v1, 'v2, 'v3, 'v4, 'v5, 'v6, 'v7, 'v8, 'v9, 'v10)) => result<'value, string>=?,
+  ~destructor: 'value => result<('v1, 'v2, 'v3, 'v4, 'v5, 'v6, 'v7, 'v8, 'v9, 'v10), string>=?,
+  unit,
+) => t<'value>
 
 let construct: (t<'value>, Js.Json.t) => result<'value, string>
 let constructWith: (Js.Json.t, t<'value>) => result<'value, string>
@@ -155,3 +139,11 @@ let destructWith: ('value, t<'value>) => result<Js.Json.t, string>
 let classify: t<'value> => kind
 let getMeta: (t<'value>, ~namespace: string) => option<'meta>
 let mixinMeta: (t<'value>, ~namespace: string, ~meta: 'meta) => t<'value>
+
+module Record: {
+  let make: (
+    ~fields: 'fields,
+    ~customConstructor: option<'fieldValues => result<'value, string>>,
+    ~customDestructor: option<'value => result<'fieldValues, string>>,
+  ) => t<'value>
+}

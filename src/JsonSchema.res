@@ -43,13 +43,13 @@ module Base = {
     schema: t,
     isRequired: bool,
   }
-  let _record = %raw(`function(fields, makeFieldDetails) {
+  let _record = %raw(`function(unsafeFieldsArray, makeFieldDetails) {
     var schema = {
         type: 'object',
         properties: {},
       },
       requiredFieldNames = [];
-    fields.forEach(function(field) {
+    unsafeFieldsArray.forEach(function(field) {
       var fieldName = field[0],
         fieldStruct = field[1],
         fieldDetails = makeFieldDetails(fieldStruct);
@@ -63,8 +63,8 @@ module Base = {
     })
     return schema;
   }`)
-  let record = (~fields, ~makeBranch: S.t<'value> => stateful): t => {
-    _record(~fields, ~makeFieldDetails=struct => {
+  let record = (~unsafeFieldsArray, ~makeBranch: S.t<'value> => stateful): t => {
+    _record(~unsafeFieldsArray, ~makeFieldDetails=struct => {
       switch makeBranch(struct) {
       | Optional(schema) => {schema: schema, isRequired: false}
       | Required(schema) => {
@@ -102,16 +102,8 @@ let rec makeBranch:
       | Optional(_) => raise(NestedOptionException)
       | Required(s'') => Optional(s'')
       }
-    | S.Record1(fields) =>
-      Required(Base.record(~fields=[fields], ~makeBranch)->mergeSchema(rawSchema))
-    | S.Record2(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchema(rawSchema))
-    | S.Record3(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchema(rawSchema))
-    | S.Record4(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchema(rawSchema))
-    | S.Record5(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchema(rawSchema))
-    | S.Record6(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchema(rawSchema))
-    | S.Record7(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchema(rawSchema))
-    | S.Record8(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchema(rawSchema))
-    | S.Record9(fields) => Required(Base.record(~fields, ~makeBranch)->mergeSchema(rawSchema))
+    | S.Record(unsafeFieldsArray) =>
+      Required(Base.record(~unsafeFieldsArray, ~makeBranch)->mergeSchema(rawSchema))
     }
   }
 

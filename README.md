@@ -142,6 +142,25 @@ let articleValidator = ajv->Ajv.Validator.make(articleStruct)
 let articleParseResult: result<article, string> = articleValidator->Ajv.Validator.parse(data)
 ```
 
+## Custom structs
+
+### Record
+
+The package has built-in records up to 10 fields. If you have a record with more than 10 fields, you can create a custom struct factory for any number of fields.
+
+```rescript
+let record2 = (
+  ~fields: (S.field<'v1>, S.field<'v2>),
+  ~constructor as customConstructor: option<(('v1, 'v2)) => result<'value, string>>=?,
+  ~destructor as customDestructor: option<'value => result<('v1, 'v2), string>>=?,
+  (),
+): S.t<'value> => {
+  S.Record.make(~fields, ~customConstructor, ~customDestructor)
+}
+```
+
+> The package guts are not typesafe, so you should properly annotate the struct factory interface.
+
 ## V1 Roadmap
 
 - [ ] Add Custom struct
@@ -152,6 +171,7 @@ let articleParseResult: result<article, string> = articleValidator->Ajv.Validato
 - [ ] Add nullable modifier
 - [ ] Add unknown struct
 - [ ] Add never struct
+- [ ] Add object struct
 - [x] Add ability to mixin raw schema
 - [x] Add destructing
 - [x] Remove Fluent JSON Schema from dependencies
