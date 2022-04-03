@@ -149,14 +149,12 @@ let articleParseResult: result<article, string> = articleValidator->Ajv.Validato
 The package has built-in records up to 10 fields. If you have a record with more than 10 fields, you can create a custom struct factory for any number of fields.
 
 ```rescript
-let record2 = (
+let record2: (
   ~fields: (S.field<'v1>, S.field<'v2>),
-  ~constructor as customConstructor: option<(('v1, 'v2)) => result<'value, string>>=?,
-  ~destructor as customDestructor: option<'value => result<('v1, 'v2), string>>=?,
-  (),
-): S.t<'value> => {
-  S.Record.make(~fields, ~customConstructor, ~customDestructor)
-}
+  ~constructor: (('v1, 'v2)) => result<'value, string>=?,
+  ~destructor: 'value => result<('v1, 'v2), string>=?,
+  unit,
+) => S.t<'value> = S.Record.make
 ```
 
 > The package guts are not typesafe, so you should properly annotate the struct factory interface.

@@ -156,14 +156,14 @@ let destructWith = (unknown, struct) => {
 module Record = {
   exception HackyAbort(Error.t)
 
-  let _constructor = %raw(`function(fields, customConstructor, construct) {
+  let _constructor = %raw(`function(fields, recordConstructor, construct) {
     var isSingleField = typeof fields[0] === "string";
     if (isSingleField) {
       return function(unknown) {
         var fieldName = fields[0],
           fieldStruct = fields[1],
           fieldValue = construct(fieldStruct, fieldName, unknown[fieldName]);
-        return customConstructor(fieldValue);
+        return recordConstructor(fieldValue);
       }
     }
     return function(unknown) {
@@ -174,17 +174,17 @@ module Record = {
           fieldValue = construct(fieldStruct, fieldName, unknown[fieldName]);
         fieldValues.push(fieldValue);
       })
-      return customConstructor(fieldValues);
+      return recordConstructor(fieldValues);
     }
   }`)
 
-  let _destructor = %raw(`function(fields, tupleDestructor, destruct) {
+  let _destructor = %raw(`function(fields, recordDestructor, destruct) {
     var isSingleField = typeof fields[0] === "string";
     if (isSingleField) {
       return function(value) {
         var fieldName = fields[0],
           fieldStruct = fields[1],
-          fieldValue = tupleDestructor(value),
+          fieldValue = recordDestructor(value),
           unknownFieldValue = destruct(fieldStruct, fieldName, fieldValue);
         return {
           [fieldName]: unknownFieldValue,
@@ -193,7 +193,7 @@ module Record = {
     }
     return function(value) {
       var unknown = {},
-        fieldValuesTuple = tupleDestructor(value);
+        fieldValuesTuple = recordDestructor(value);
       fields.forEach(function (field, idx) {
         var fieldName = field[0],
           fieldStruct = field[1],
@@ -207,19 +207,20 @@ module Record = {
 
   let make = (
     ~fields: 'fields,
-    ~customConstructor: option<'fieldValues => result<'value, string>>,
-    ~customDestructor: option<'value => result<'fieldValues, string>>,
+    ~constructor as maybeRecordConstructor: option<'fieldValues => result<'value, string>>=?,
+    ~destructor as maybeRecordDestructor: option<'value => result<'fieldValues, string>>=?,
+    (),
   ): t<'value> => {
-    if customConstructor->Belt.Option.isNone && customDestructor->Belt.Option.isNone {
+    if maybeRecordConstructor->Belt.Option.isNone && maybeRecordDestructor->Belt.Option.isNone {
       raiseRestructError("For a Record struct either a constructor, or a destructor is required")
     }
 
     make(
       ~kind=Record(_mapTupleToUnsafeArray(fields)),
-      ~constructor=?customConstructor->Belt.Option.map(customConstructor => {
+      ~constructor=?maybeRecordConstructor->Belt.Option.map(recordConstructor => {
         unknown => {
           try {
-            _constructor(~fields, ~customConstructor, ~construct=(
+            _constructor(~fields, ~recordConstructor, ~construct=(
               struct,
               fieldName,
               unknownFieldValue,
@@ -235,13 +236,13 @@ module Record = {
           }
         }
       }),
-      ~destructor=?customDestructor->Belt.Option.map(customDestructor => {
+      ~destructor=?maybeRecordDestructor->Belt.Option.map(recordDestructor => {
         value => {
           try {
             _destructor(
               ~fields,
-              ~customDestructor=value => {
-                switch customDestructor(value) {
+              ~recordDestructor=value => {
+                switch recordDestructor(value) {
                 | Ok(fieldValuesTuple) => fieldValuesTuple
                 | Error(reason) => raise(HackyAbort(Error.DestructingFailed.make(reason)))
                 }
@@ -372,66 +373,16 @@ let option = struct => {
   )
 }
 
-let record1 = (
-  ~fields,
-  ~constructor as customConstructor=?,
-  ~destructor as customDestructor=?,
-  (),
-) => Record.make(~fields, ~customConstructor, ~customDestructor)
-let record2 = (
-  ~fields,
-  ~constructor as customConstructor=?,
-  ~destructor as customDestructor=?,
-  (),
-) => Record.make(~fields, ~customConstructor, ~customDestructor)
-let record3 = (
-  ~fields,
-  ~constructor as customConstructor=?,
-  ~destructor as customDestructor=?,
-  (),
-) => Record.make(~fields, ~customConstructor, ~customDestructor)
-let record4 = (
-  ~fields,
-  ~constructor as customConstructor=?,
-  ~destructor as customDestructor=?,
-  (),
-) => Record.make(~fields, ~customConstructor, ~customDestructor)
-let record5 = (
-  ~fields,
-  ~constructor as customConstructor=?,
-  ~destructor as customDestructor=?,
-  (),
-) => Record.make(~fields, ~customConstructor, ~customDestructor)
-let record6 = (
-  ~fields,
-  ~constructor as customConstructor=?,
-  ~destructor as customDestructor=?,
-  (),
-) => Record.make(~fields, ~customConstructor, ~customDestructor)
-let record7 = (
-  ~fields,
-  ~constructor as customConstructor=?,
-  ~destructor as customDestructor=?,
-  (),
-) => Record.make(~fields, ~customConstructor, ~customDestructor)
-let record8 = (
-  ~fields,
-  ~constructor as customConstructor=?,
-  ~destructor as customDestructor=?,
-  (),
-) => Record.make(~fields, ~customConstructor, ~customDestructor)
-let record9 = (
-  ~fields,
-  ~constructor as customConstructor=?,
-  ~destructor as customDestructor=?,
-  (),
-) => Record.make(~fields, ~customConstructor, ~customDestructor)
-let record10 = (
-  ~fields,
-  ~constructor as customConstructor=?,
-  ~destructor as customDestructor=?,
-  (),
-) => Record.make(~fields, ~customConstructor, ~customDestructor)
+let record1 = Record.make
+let record2 = Record.make
+let record3 = Record.make
+let record4 = Record.make
+let record5 = Record.make
+let record6 = Record.make
+let record7 = Record.make
+let record8 = Record.make
+let record9 = Record.make
+let record10 = Record.make
 
 module Lib = {
   let classify = struct => struct.kind

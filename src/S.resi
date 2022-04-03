@@ -139,8 +139,9 @@ let destructWith: ('value, t<'value>) => result<Js.Json.t, string>
 module Record: {
   let make: (
     ~fields: 'fields,
-    ~customConstructor: option<'fieldValues => result<'value, string>>,
-    ~customDestructor: option<'value => result<'fieldValues, string>>,
+    ~constructor: 'fieldValues => result<'value, string>=?,
+    ~destructor: 'value => result<'fieldValues, string>=?,
+    unit,
   ) => t<'value>
 }
 
