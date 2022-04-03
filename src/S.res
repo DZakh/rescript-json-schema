@@ -109,7 +109,7 @@ type rec t<'value> = {
   kind: kind,
   constructor: option<constructor<'value>>,
   destructor: option<destructor<'value>>,
-  meta: Js.Dict.t<unknown>,
+  metadata: Js.Dict.t<unknown>,
 }
 and kind =
   | String: kind
@@ -124,16 +124,7 @@ and kind =
 and field<'value> = (string, t<'value>)
 
 let make = (~kind, ~constructor=?, ~destructor=?, ()): t<'value> => {
-  {kind: kind, constructor: constructor, destructor: destructor, meta: Js.Dict.empty()}
-}
-
-let classify = struct => struct.kind
-let getMeta = (struct, ~namespace) => {
-  struct.meta->Js.Dict.get(namespace)->Belt.Option.map(unsafeFromUnknown)
-}
-let mixinMeta = (struct, ~namespace, ~meta) => {
-  struct.meta->Js.Dict.set(namespace, meta->unsafeToUnknown)
-  struct
+  {kind: kind, constructor: constructor, destructor: destructor, metadata: Js.Dict.empty()}
 }
 
 let _construct = (struct, unknown) => {
@@ -441,3 +432,16 @@ let record10 = (
   ~destructor as customDestructor=?,
   (),
 ) => Record.make(~fields, ~customConstructor, ~customDestructor)
+
+module Lib = {
+  let classify = struct => struct.kind
+
+  let getMetadata = (struct, namespace) => {
+    struct.metadata->Js.Dict.get(namespace)->Belt.Option.map(unsafeFromUnknown)
+  }
+
+  let setMetadata = (struct, namespace, metadata) => {
+    struct.metadata->Js.Dict.set(namespace, metadata->unsafeToUnknown)
+    struct
+  }
+}

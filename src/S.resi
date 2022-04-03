@@ -136,14 +136,18 @@ let constructWith: (Js.Json.t, t<'value>) => result<'value, string>
 let destruct: (t<'value>, 'value) => result<Js.Json.t, string>
 let destructWith: ('value, t<'value>) => result<Js.Json.t, string>
 
-let classify: t<'value> => kind
-let getMeta: (t<'value>, ~namespace: string) => option<'meta>
-let mixinMeta: (t<'value>, ~namespace: string, ~meta: 'meta) => t<'value>
-
 module Record: {
   let make: (
     ~fields: 'fields,
     ~customConstructor: option<'fieldValues => result<'value, string>>,
     ~customDestructor: option<'value => result<'fieldValues, string>>,
   ) => t<'value>
+}
+
+module Lib: {
+  let classify: t<'value> => kind
+
+  let getMetadata: (t<'value>, string) => option<'metadata>
+
+  let setMetadata: (t<'value>, string, 'metadata) => t<'value>
 }
