@@ -2,8 +2,6 @@ exception NestedOptionException
 exception RootOptionException
 exception ArrayItemOptionException
 
-let rawSchemaNamespace = "rescript-json-schema:rawSchema"
-
 type rec t
 and stateful =
   | Optional(t)
@@ -13,6 +11,11 @@ external unsafeToJsonSchema: 'a => t = "%identity"
 
 @module
 external mergeSchema: (t, t) => t = "deepmerge"
+
+module RawSchemaMetadata = S.MakeMetadata({
+  type content = t
+  let namespace = "rescript-json-schema:rawSchema"
+})
 
 module Raw = {
   module Description = {
@@ -80,30 +83,30 @@ let rec makeBranch:
   type value. S.t<value> => stateful =
   struct => {
     let rawSchema = {
-      switch struct->S.getMetadata(rawSchemaNamespace) {
-      | Some(unknownRawSchema) => unknownRawSchema
-      | None => Js.Dict.empty()
+      switch struct->RawSchemaMetadata.extract {
+      | Some(rawS) => rawS
+      | None => Js.Dict.empty()->unsafeToJsonSchema
       }
-    }->unsafeToJsonSchema
+    }
     switch struct->S.classify {
-    | S.String => Required(Base.string->mergeSchema(rawSchema))
-    | S.Int => Required(Base.integer->mergeSchema(rawSchema))
-    | S.Bool => Required(Base.boolean->mergeSchema(rawSchema))
-    | S.Float => Required(Base.number->mergeSchema(rawSchema))
+    | S.String => Required(mergeSchema(Base.string, rawSchema))
+    | S.Int => Required(mergeSchema(Base.integer, rawSchema))
+    | S.Bool => Required(mergeSchema(Base.boolean, rawSchema))
+    | S.Float => Required(mergeSchema(Base.number, rawSchema))
     | S.Array(s') =>
       Required(
         switch makeBranch(s') {
         | Optional(_) => raise(ArrayItemOptionException)
-        | Required(schema) => Base.array(schema)->mergeSchema(rawSchema)
+        | Required(schema) => mergeSchema(Base.array(schema), rawSchema)
         },
       )
     | S.Option(s') =>
-      switch makeBranch(s'->S.setMetadata(rawSchemaNamespace, rawSchema)) {
+      switch makeBranch(s'->RawSchemaMetadata.mixin(rawSchema)) {
       | Optional(_) => raise(NestedOptionException)
       | Required(s'') => Optional(s'')
       }
     | S.Record(unsafeFieldsArray) =>
-      Required(Base.record(~unsafeFieldsArray, ~makeBranch)->mergeSchema(rawSchema))
+      Required(mergeSchema(Base.record(~unsafeFieldsArray, ~makeBranch), rawSchema))
     }
   }
 
@@ -125,12 +128,12 @@ let make = struct => {
 }
 
 let raw = (struct, schema) => {
-  let rawSchema = switch struct->S.getMetadata(rawSchemaNamespace) {
-  | Some(existingRawSchema) =>
-    existingRawSchema->unsafeToJsonSchema->mergeSchema(schema->unsafeToJsonSchema)
-  | None => schema->unsafeToJsonSchema
+  let providedSchema = schema->unsafeToJsonSchema
+  let rawSchema = switch struct->RawSchemaMetadata.extract {
+  | Some(existingRawSchema) => mergeSchema(existingRawSchema, providedSchema)
+  | None => providedSchema
   }
-  struct->S.setMetadata(rawSchemaNamespace, rawSchema)
+  struct->RawSchemaMetadata.mixin(rawSchema)
 }
 
 let description = (struct, value) => {

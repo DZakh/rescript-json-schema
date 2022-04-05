@@ -148,6 +148,14 @@ module Record: {
 
 let classify: t<'value> => kind
 
-let getMetadata: (t<'value>, string) => option<'metadata>
+module MakeMetadata: (
+  Details: {
+    type content
+    let namespace: string
+  },
+) =>
+{
+  let extract: t<'value> => option<Details.content>
 
-let setMetadata: (t<'value>, string, 'metadata) => t<'value>
+  let mixin: (t<'value>, Details.content) => t<'value>
+}

@@ -393,11 +393,18 @@ let record10 = Record.factory
 
 let classify = struct => struct.kind
 
-let getMetadata = (struct, namespace) => {
-  struct.metadata->Js.Dict.get(namespace)->Belt.Option.map(unsafeFromUnknown)
-}
+module MakeMetadata = (
+  Details: {
+    type content
+    let namespace: string
+  },
+) => {
+  let extract = (struct): option<Details.content> => {
+    struct.metadata->Js.Dict.get(Details.namespace)->Belt.Option.map(unsafeFromUnknown)
+  }
 
-let setMetadata = (struct, namespace, metadata) => {
-  struct.metadata->Js.Dict.set(namespace, metadata->unsafeToUnknown)
-  struct
+  let mixin = (struct, metadata: Details.content) => {
+    struct.metadata->Js.Dict.set(Details.namespace, metadata->unsafeToUnknown)
+    struct
+  }
 }
