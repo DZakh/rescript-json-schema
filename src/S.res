@@ -54,7 +54,6 @@ module Error = {
 
   module DestructingFailed = {
     let make = reason => {
-      Js.log(reason)
       {kind: DestructingFailed(reason), location: []}
     }
   }
