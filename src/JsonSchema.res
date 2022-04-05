@@ -80,12 +80,12 @@ let rec makeBranch:
   type value. S.t<value> => stateful =
   struct => {
     let rawSchema = {
-      switch struct->S.Lib.getMetadata(rawSchemaNamespace) {
+      switch struct->S.getMetadata(rawSchemaNamespace) {
       | Some(unknownRawSchema) => unknownRawSchema
       | None => Js.Dict.empty()
       }
     }->unsafeToJsonSchema
-    switch struct->S.Lib.classify {
+    switch struct->S.classify {
     | S.String => Required(Base.string->mergeSchema(rawSchema))
     | S.Int => Required(Base.integer->mergeSchema(rawSchema))
     | S.Bool => Required(Base.boolean->mergeSchema(rawSchema))
@@ -98,7 +98,7 @@ let rec makeBranch:
         },
       )
     | S.Option(s') =>
-      switch makeBranch(s'->S.Lib.setMetadata(rawSchemaNamespace, rawSchema)) {
+      switch makeBranch(s'->S.setMetadata(rawSchemaNamespace, rawSchema)) {
       | Optional(_) => raise(NestedOptionException)
       | Required(s'') => Optional(s'')
       }
@@ -125,12 +125,12 @@ let make = struct => {
 }
 
 let raw = (struct, schema) => {
-  let rawSchema = switch struct->S.Lib.getMetadata(rawSchemaNamespace) {
+  let rawSchema = switch struct->S.getMetadata(rawSchemaNamespace) {
   | Some(existingRawSchema) =>
     existingRawSchema->unsafeToJsonSchema->mergeSchema(schema->unsafeToJsonSchema)
   | None => schema->unsafeToJsonSchema
   }
-  struct->S.Lib.setMetadata(rawSchemaNamespace, rawSchema)
+  struct->S.setMetadata(rawSchemaNamespace, rawSchema)
 }
 
 let description = (struct, value) => {

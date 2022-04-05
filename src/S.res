@@ -392,15 +392,13 @@ let record8 = Record.factory
 let record9 = Record.factory
 let record10 = Record.factory
 
-module Lib = {
-  let classify = struct => struct.kind
+let classify = struct => struct.kind
 
-  let getMetadata = (struct, namespace) => {
-    struct.metadata->Js.Dict.get(namespace)->Belt.Option.map(unsafeFromUnknown)
-  }
+let getMetadata = (struct, namespace) => {
+  struct.metadata->Js.Dict.get(namespace)->Belt.Option.map(unsafeFromUnknown)
+}
 
-  let setMetadata = (struct, namespace, metadata) => {
-    struct.metadata->Js.Dict.set(namespace, metadata->unsafeToUnknown)
-    struct
-  }
+let setMetadata = (struct, namespace, metadata) => {
+  struct.metadata->Js.Dict.set(namespace, metadata->unsafeToUnknown)
+  struct
 }

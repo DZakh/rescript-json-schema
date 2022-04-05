@@ -146,10 +146,8 @@ module Record: {
   ) => t<'value>
 }
 
-module Lib: {
-  let classify: t<'value> => kind
+let classify: t<'value> => kind
 
-  let getMetadata: (t<'value>, string) => option<'metadata>
+let getMetadata: (t<'value>, string) => option<'metadata>
 
-  let setMetadata: (t<'value>, string, 'metadata) => t<'value>
-}
+let setMetadata: (t<'value>, string, 'metadata) => t<'value>
