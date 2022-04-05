@@ -154,7 +154,7 @@ let record2: (
   ~constructor: (('v1, 'v2)) => result<'value, string>=?,
   ~destructor: 'value => result<('v1, 'v2), string>=?,
   unit,
-) => S.t<'value> = S.Record.make
+) => S.t<'value> = S.Record.factory
 ```
 
 > The package guts are not typesafe, so you should properly annotate the struct factory interface.

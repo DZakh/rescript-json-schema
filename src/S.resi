@@ -29,6 +29,7 @@ let coercedInt: (
   ~destructor: 'value => result<int, string>=?,
   unit,
 ) => t<'value>
+
 let float: unit => t<float>
 let coercedFloat: (
   ~constructor: float => result<'value, string>=?,
@@ -137,7 +138,7 @@ let destruct: (t<'value>, 'value) => result<Js.Json.t, string>
 let destructWith: ('value, t<'value>) => result<Js.Json.t, string>
 
 module Record: {
-  let make: (
+  let factory: (
     ~fields: 'fields,
     ~constructor: 'fieldValues => result<'value, string>=?,
     ~destructor: 'value => result<'fieldValues, string>=?,

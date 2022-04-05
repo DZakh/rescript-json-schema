@@ -597,7 +597,7 @@ module Record = {
       ~constructor: (('v1, 'v2)) => result<'value, string>=?,
       ~destructor: 'value => result<('v1, 'v2), string>=?,
       unit,
-    ) => S.t<'value> = S.Record.make
+    ) => S.t<'value> = S.Record.factory
 
     let record = {foo: "foofoo", bar: "barbar"}
     let unknownRecord = record->unsafeToUnknown

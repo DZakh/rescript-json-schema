@@ -102,6 +102,9 @@ external unsafeArrayToUnknown: array<unknown> => unknown = "%identity"
 external unsafeUnknownToOption: unknown => option<unknown> = "%identity"
 external unsafeOptionToUnknown: option<unknown> => unknown = "%identity"
 
+// TODO: Fix this hack when I become better at ReScript. Some info about the problem https://caml.inria.fr/pub/old_caml_site/FAQ/FAQ_EXPERT-eng.html
+external unsafeToAny: 'smth => 'any = "%identity"
+
 // TODO: Add title and description (probably not here)
 type constructor<'value> = unknown => result<'value, Error.t>
 type destructor<'value> = 'value => result<unknown, Error.t>
@@ -205,7 +208,7 @@ module Record = {
     }
   }`)
 
-  let make = (
+  let factory = (
     ~fields: 'fields,
     ~constructor as maybeRecordConstructor: option<'fieldValues => result<'value, string>>=?,
     ~destructor as maybeRecordDestructor: option<'value => result<'fieldValues, string>>=?,
@@ -266,68 +269,72 @@ module Record = {
 }
 
 module CoercedPrimitive = {
-  let make = (~customConstructor, ~customDestructor, kind) => {
-    if customConstructor->Belt.Option.isNone && customDestructor->Belt.Option.isNone {
-      raiseRestructError("For a Coerced struct either a constructor, or a destructor is required")
-    }
-
-    make(
-      ~kind,
-      ~constructor=?customConstructor->Belt.Option.map(customConstructor => {
-        unknown => {
-          customConstructor(unknown->unsafeFromUnknown)->ResultX.mapError(
-            Error.ConstructingFailed.make,
-          )
-        }
-      }),
-      ~destructor=?customDestructor->Belt.Option.map(customDestructor => {
-        value => {
-          switch customDestructor(value) {
-          | Ok(primitive) => primitive->unsafeToUnknown->Ok
-          | Error(reason) => Error.DestructingFailed.make(reason)->Error
-          }
-        }
-      }),
+  module Factory = {
+    let make = (
+      kind: kind,
+      ~constructor as maybePrimitiveConstructor: option<'primitive => result<'value, string>>=?,
+      ~destructor as maybePrimitiveDestructor: option<'value => result<'primitive, string>>=?,
       (),
-    )
+    ) => {
+      if (
+        maybePrimitiveConstructor->Belt.Option.isNone &&
+          maybePrimitiveDestructor->Belt.Option.isNone
+      ) {
+        raiseRestructError("For a Coerced struct either a constructor, or a destructor is required")
+      }
+
+      make(
+        ~kind,
+        ~constructor=?maybePrimitiveConstructor->Belt.Option.map(primitiveConstructor => {
+          unknown => {
+            primitiveConstructor(unknown->unsafeFromUnknown)->ResultX.mapError(
+              Error.ConstructingFailed.make,
+            )
+          }
+        }),
+        ~destructor=?maybePrimitiveDestructor->Belt.Option.map(primitiveDestructor => {
+          value => {
+            switch primitiveDestructor(value) {
+            | Ok(primitive) => primitive->unsafeToUnknown->Ok
+            | Error(reason) => Error.DestructingFailed.make(reason)->Error
+            }
+          }
+        }),
+        (),
+      )
+    }
   }
 }
 
 module Primitive = {
-  let make = kind => {
-    make(
-      ~kind,
-      ~constructor=unknown => {
-        unknown->unsafeFromUnknown->Ok
-      },
-      ~destructor=value => {
-        value->unsafeToUnknown->Ok
-      },
-      (),
-    )
+  module Factory = {
+    let make = kind => {
+      () =>
+        make(
+          ~kind,
+          ~constructor=unknown => {
+            unknown->unsafeFromUnknown->Ok
+          },
+          ~destructor=value => {
+            value->unsafeToUnknown->Ok
+          },
+          (),
+        )
+    }
   }
 }
 
-let string = () => Primitive.make(String)
-let coercedString = (
-  ~constructor as customConstructor=?,
-  ~destructor as customDestructor=?,
-  (),
-) => {
-  CoercedPrimitive.make(~customConstructor, ~customDestructor, String)
-}
-let bool = () => Primitive.make(Bool)
-let coercedBool = (~constructor as customConstructor=?, ~destructor as customDestructor=?, ()) => {
-  CoercedPrimitive.make(~customConstructor, ~customDestructor, Bool)
-}
-let int = () => Primitive.make(Int)
-let coercedInt = (~constructor as customConstructor=?, ~destructor as customDestructor=?, ()) => {
-  CoercedPrimitive.make(~customConstructor, ~customDestructor, Int)
-}
-let float = () => Primitive.make(Float)
-let coercedFloat = (~constructor as customConstructor=?, ~destructor as customDestructor=?, ()) => {
-  CoercedPrimitive.make(~customConstructor, ~customDestructor, Float)
-}
+let string = Primitive.Factory.make(String)
+let coercedString = CoercedPrimitive.Factory.make(String)->unsafeToAny
+
+let bool = Primitive.Factory.make(Bool)
+let coercedBool = CoercedPrimitive.Factory.make(Bool)->unsafeToAny
+
+let int = Primitive.Factory.make(Int)
+let coercedInt = CoercedPrimitive.Factory.make(Int)->unsafeToAny
+
+let float = Primitive.Factory.make(Float)
+let coercedFloat = CoercedPrimitive.Factory.make(Float)->unsafeToAny
 
 // TODO: Reduce the number of interation for construction and destruction operations
 let array = struct =>
@@ -373,16 +380,16 @@ let option = struct => {
   )
 }
 
-let record1 = Record.make
-let record2 = Record.make
-let record3 = Record.make
-let record4 = Record.make
-let record5 = Record.make
-let record6 = Record.make
-let record7 = Record.make
-let record8 = Record.make
-let record9 = Record.make
-let record10 = Record.make
+let record1 = Record.factory
+let record2 = Record.factory
+let record3 = Record.factory
+let record4 = Record.factory
+let record5 = Record.factory
+let record6 = Record.factory
+let record7 = Record.factory
+let record8 = Record.factory
+let record9 = Record.factory
+let record10 = Record.factory
 
 module Lib = {
   let classify = struct => struct.kind
