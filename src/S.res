@@ -102,9 +102,6 @@ external unsafeArrayToUnknown: array<unknown> => unknown = "%identity"
 external unsafeUnknownToOption: unknown => option<unknown> = "%identity"
 external unsafeOptionToUnknown: option<unknown> => unknown = "%identity"
 
-// TODO: Fix this hack when I become better at ReScript. Some info about the problem https://caml.inria.fr/pub/old_caml_site/FAQ/FAQ_EXPERT-eng.html
-external unsafeToAny: 'smth => 'any = "%identity"
-
 // TODO: Add title and description (probably not here)
 type constructor<'value> = unknown => result<'value, Error.t>
 type destructor<'value> = 'value => result<unknown, Error.t>
@@ -271,7 +268,7 @@ module Record = {
 module CoercedPrimitive = {
   module Factory = {
     let make = (
-      kind: kind,
+      ~kind: kind,
       ~constructor as maybePrimitiveConstructor: option<'primitive => result<'value, string>>=?,
       ~destructor as maybePrimitiveDestructor: option<'value => result<'primitive, string>>=?,
       (),
@@ -308,7 +305,7 @@ module CoercedPrimitive = {
 
 module Primitive = {
   module Factory = {
-    let make = kind => {
+    let make = (~kind) => {
       () =>
         make(
           ~kind,
@@ -324,17 +321,21 @@ module Primitive = {
   }
 }
 
-let string = Primitive.Factory.make(String)
-let coercedString = CoercedPrimitive.Factory.make(String)->unsafeToAny
+let string = Primitive.Factory.make(~kind=String)
+let coercedString = (~constructor=?, ~destructor=?, ()) =>
+  CoercedPrimitive.Factory.make(~kind=String, ~constructor?, ~destructor?, ())
 
-let bool = Primitive.Factory.make(Bool)
-let coercedBool = CoercedPrimitive.Factory.make(Bool)->unsafeToAny
+let bool = Primitive.Factory.make(~kind=Bool)
+let coercedBool = (~constructor=?, ~destructor=?, ()) =>
+  CoercedPrimitive.Factory.make(~kind=Bool, ~constructor?, ~destructor?, ())
 
-let int = Primitive.Factory.make(Int)
-let coercedInt = CoercedPrimitive.Factory.make(Int)->unsafeToAny
+let int = Primitive.Factory.make(~kind=Int)
+let coercedInt = (~constructor=?, ~destructor=?, ()) =>
+  CoercedPrimitive.Factory.make(~kind=Int, ~constructor?, ~destructor?, ())
 
-let float = Primitive.Factory.make(Float)
-let coercedFloat = CoercedPrimitive.Factory.make(Float)->unsafeToAny
+let float = Primitive.Factory.make(~kind=Float)
+let coercedFloat = (~constructor=?, ~destructor=?, ()) =>
+  CoercedPrimitive.Factory.make(~kind=Float, ~constructor?, ~destructor?, ())
 
 // TODO: Reduce the number of interation for construction and destruction operations
 let array = struct =>
