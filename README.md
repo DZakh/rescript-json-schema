@@ -161,7 +161,7 @@ let record2: (
 
 ## V1 Roadmap
 
-- [ ] Add Custom struct
+- [x] Add Custom struct
 - [ ] Return more useful errors
 - [ ] Add Literal struct
 - [ ] Add Union struct

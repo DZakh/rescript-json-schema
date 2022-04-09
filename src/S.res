@@ -118,8 +118,8 @@ and kind =
   | Option(t<'value>): kind
   | Array(t<'value>): kind
   // TODO: Add nullable
-  // TODO: Add custom
   | Record('unsafeFieldsArray): kind
+  | Custom: kind
 and field<'value> = (string, t<'value>)
 
 let make = (~kind, ~constructor=?, ~destructor=?, ()): t<'value> => {
@@ -390,6 +390,31 @@ let record7 = Record.factory
 let record8 = Record.factory
 let record9 = Record.factory
 let record10 = Record.factory
+
+let custom = (
+  ~constructor as maybeCustomConstructor=?,
+  ~destructor as maybeCustomDestructor=?,
+  (),
+) => {
+  if maybeCustomConstructor->Belt.Option.isNone && maybeCustomDestructor->Belt.Option.isNone {
+    raiseRestructError("For a Custom struct either a constructor, or a destructor is required")
+  }
+
+  make(
+    ~kind=Custom,
+    ~constructor=?maybeCustomConstructor->Belt.Option.map(customConstructor => {
+      unknown => {
+        customConstructor(unknown)->ResultX.mapError(Error.ConstructingFailed.make)
+      }
+    }),
+    ~destructor=?maybeCustomDestructor->Belt.Option.map(customDestructor => {
+      value => {
+        customDestructor(value)->ResultX.mapError(Error.DestructingFailed.make)
+      }
+    }),
+    (),
+  )
+}
 
 let classify = struct => struct.kind
 

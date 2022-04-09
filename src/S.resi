@@ -7,6 +7,7 @@ and kind =
   | Option(t<'value>): kind
   | Array(t<'value>): kind
   | Record('unsafeFieldsArray): kind
+  | Custom: kind
 and field<'value> = (string, t<'value>)
 
 let string: unit => t<string>
@@ -128,6 +129,12 @@ let record10: (
   ),
   ~constructor: (('v1, 'v2, 'v3, 'v4, 'v5, 'v6, 'v7, 'v8, 'v9, 'v10)) => result<'value, string>=?,
   ~destructor: 'value => result<('v1, 'v2, 'v3, 'v4, 'v5, 'v6, 'v7, 'v8, 'v9, 'v10), string>=?,
+  unit,
+) => t<'value>
+
+let custom: (
+  ~constructor: Js.Json.t => result<'value, string>=?,
+  ~destructor: 'value => result<Js.Json.t, string>=?,
   unit,
 ) => t<'value>
 
