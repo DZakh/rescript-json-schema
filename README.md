@@ -93,7 +93,7 @@ Js.log(JsonSchema.make(articleStruct))
 //     Author: {
 //       type: 'object',
 //       properties: {
-//         Id: { type: 'number', '$id': undefined }
+//         Id: { type: 'number' }
 //       }
 //     }
 //   },

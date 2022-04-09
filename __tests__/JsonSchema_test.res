@@ -131,7 +131,7 @@ test("Primitive struct schema with description", t => {
 })
 
 test("Primitive struct schema with additional raw schema", t => {
-  let struct = S.bool()->JsonSchema.raw(%raw(`{nullable: true}`))
+  let struct = S.bool()->JsonSchema.raw(JsonSchema.Raw.make({"nullable": true}))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -146,7 +146,9 @@ test("Primitive struct schema with additional raw schema", t => {
 
 test("Multiple additional raw schemas are merged together", t => {
   let struct =
-    S.bool()->JsonSchema.raw(%raw(`{nullable:true}`))->JsonSchema.raw(%raw(`{deprecated:true}`))
+    S.bool()
+    ->JsonSchema.raw(JsonSchema.Raw.make({"nullable": true}))
+    ->JsonSchema.raw(JsonSchema.Raw.make({"deprecated": true}))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -162,7 +164,10 @@ test("Multiple additional raw schemas are merged together", t => {
 
 test("Additional raw schema works with optional fields", t => {
   let struct = S.record1(
-    ~fields=("optionalField", S.option(S.string())->JsonSchema.raw(%raw(`{nullable: true}`))),
+    ~fields=(
+      "optionalField",
+      S.option(S.string())->JsonSchema.raw(JsonSchema.Raw.make({"nullable": true})),
+    ),
     ~constructor=optionalField =>
       {
         optionalField: optionalField,
