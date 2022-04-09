@@ -162,14 +162,14 @@ let record2: (
 ## V1 Roadmap
 
 - [x] Add Custom struct
-- [ ] Return more useful errors
+- [ ] Return better errors
+- [ ] Add Dict struct
 - [ ] Add Literal struct
 - [ ] Add Union struct
-- [ ] Add default modifier
-- [ ] Add nullable modifier
-- [ ] Add unknown struct
-- [ ] Add never struct
-- [ ] Add object struct
+- [ ] Add Default modifier
+- [ ] Add Unknown struct
+- [ ] Add Never struct
+- [ ] Add Object struct
 - [x] Add ability to mixin raw schema
 - [x] Add destructing
 - [x] Remove Fluent JSON Schema from dependencies
