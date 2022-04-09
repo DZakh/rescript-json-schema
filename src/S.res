@@ -15,10 +15,59 @@ module ResultX = {
     | Error(error) => Error(fn(error))
     }
 
-  let sequence = (results: array<result<'ok, 'error>>): result<array<'ok>, 'error> => {
-    results->Js.Array2.reduce((maybeAcc, res) => {
-      maybeAcc->Belt.Result.flatMap(acc => res->Belt.Result.map(x => acc->Js.Array2.concat([x])))
-    }, Ok([]))
+  module Array = {
+    let mapi = (array: array<'a>, cb: ('a, int) => result<'b, 'e>): result<array<'b>, 'e> => {
+      let newArray = []
+      let maybeErrorRef = ref(None)
+      array
+      ->Js.Array2.findi((item, idx) => {
+        switch cb(item, idx) {
+        | Ok(value) => {
+            newArray->Js.Array2.push(value)->ignore
+            false
+          }
+        | Error(error) => {
+            maybeErrorRef.contents = Some(error)
+            true
+          }
+        }
+      })
+      ->ignore
+      switch maybeErrorRef.contents {
+      | Some(error) => Error(error)
+      | None => Ok(newArray)
+      }
+    }
+  }
+
+  module Dict = {
+    let map = (dict: Js.Dict.t<'a>, cb: ('a, string) => result<'b, 'e>): result<
+      Js.Dict.t<'b>,
+      'e,
+    > => {
+      let newDict = Js.Dict.empty()
+      let maybeErrorRef = ref(None)
+      dict
+      ->Js.Dict.keys
+      ->Js.Array2.find(key => {
+        let item = dict->Js.Dict.unsafeGet(key)
+        switch cb(item, key) {
+        | Ok(value) => {
+            newDict->Js.Dict.set(key, value)->ignore
+            false
+          }
+        | Error(error) => {
+            maybeErrorRef.contents = Some(error)
+            true
+          }
+        }
+      })
+      ->ignore
+      switch maybeErrorRef.contents {
+      | Some(error) => Error(error)
+      | None => Ok(newDict)
+      }
+    }
   }
 }
 
@@ -98,16 +147,15 @@ external unsafeToUnknown: 'unknown => unknown = "%identity"
 external unsafeFromUnknown: unknown => 'value = "%identity"
 external unsafeUnknownToArray: unknown => array<unknown> = "%identity"
 external unsafeArrayToUnknown: array<unknown> => unknown = "%identity"
+external unsafeUnknownToDict: unknown => Js.Dict.t<unknown> = "%identity"
+external unsafeDictToUnknown: Js.Dict.t<unknown> => unknown = "%identity"
 external unsafeUnknownToOption: unknown => option<unknown> = "%identity"
 external unsafeOptionToUnknown: option<unknown> => unknown = "%identity"
 
-// TODO: Add title and description (probably not here)
-type constructor<'value> = unknown => result<'value, Error.t>
-type destructor<'value> = 'value => result<unknown, Error.t>
 type rec t<'value> = {
   kind: kind,
-  constructor: option<constructor<'value>>,
-  destructor: option<destructor<'value>>,
+  constructor: option<unknown => result<'value, Error.t>>,
+  destructor: option<'value => result<unknown, Error.t>>,
   metadata: Js.Dict.t<unknown>,
 }
 and kind =
@@ -117,9 +165,9 @@ and kind =
   | Bool: kind
   | Option(t<'value>): kind
   | Array(t<'value>): kind
-  // TODO: Add nullable
   | Record('unsafeFieldsArray): kind
   | Custom: kind
+  | Dict(t<'value>): kind
 and field<'value> = (string, t<'value>)
 
 let make = (~kind, ~constructor=?, ~destructor=?, ()): t<'value> => {
@@ -336,27 +384,46 @@ let float = Primitive.Factory.make(~kind=Float)
 let coercedFloat = (~constructor=?, ~destructor=?, ()) =>
   CoercedPrimitive.Factory.make(~kind=Float, ~constructor?, ~destructor?, ())
 
-// TODO: Reduce the number of interation for construction and destruction operations
 let array = struct =>
   make(
     ~kind=Array(struct),
     ~constructor=unknown => {
       unknown
       ->unsafeUnknownToArray
-      ->Js.Array2.mapi((unknownItem, idx) => {
+      ->ResultX.Array.mapi((unknownItem, idx) => {
         struct
         ->_construct(unknownItem)
         ->ResultX.mapError(Error.prependLocation(_, Error.Index(idx)))
       })
-      ->ResultX.sequence
     },
     ~destructor=array => {
       array
-      ->Js.Array2.mapi((item, idx) => {
+      ->ResultX.Array.mapi((item, idx) => {
         struct->_destruct(item)->ResultX.mapError(Error.prependLocation(_, Error.Index(idx)))
       })
-      ->ResultX.sequence
       ->Belt.Result.map(unsafeArrayToUnknown)
+    },
+    (),
+  )
+
+let dict = struct =>
+  make(
+    ~kind=Dict(struct),
+    ~constructor=unknown => {
+      // TODO: Think about validating that keys are actually strings
+      let unknownDict = unknown->unsafeUnknownToDict
+      unknownDict->ResultX.Dict.map((unknownItem, key) => {
+        struct
+        ->_construct(unknownItem)
+        ->ResultX.mapError(Error.prependLocation(_, Error.Field(key)))
+      })
+    },
+    ~destructor=dict => {
+      dict
+      ->ResultX.Dict.map((item, key) => {
+        struct->_destruct(item)->ResultX.mapError(Error.prependLocation(_, Error.Field(key)))
+      })
+      ->Belt.Result.map(unsafeDictToUnknown)
     },
     (),
   )

@@ -35,6 +35,16 @@ test("Constructs unknown array of primitives", t => {
   t->Assert.deepEqual(unknownArrayOfPrimitives->S.constructWith(struct), Ok(arrayOfPrimitives), ())
 })
 
+test("Constructs unknown dict of primitives", t => {
+  let dictOfPrimitives = Js.Dict.fromArray([("foo", "bar"), ("baz", "qux")])
+  let unknownDictOfPrimitives = dictOfPrimitives->unsafeToUnknown
+
+  let struct = S.dict(S.string())
+
+  t->Assert.deepEqual(struct->S.construct(unknownDictOfPrimitives), Ok(dictOfPrimitives), ())
+  t->Assert.deepEqual(unknownDictOfPrimitives->S.constructWith(struct), Ok(dictOfPrimitives), ())
+})
+
 test("Destructs unknown primitive", t => {
   let primitive = "ReScript is Great!"
 

@@ -1,6 +1,7 @@
 exception NestedOptionException
 exception RootOptionException
 exception ArrayItemOptionException
+exception DictItemOptionException
 
 type t
 
@@ -29,6 +30,13 @@ module Raw = {
     make({
       "items": itemSchema,
       "type": "array",
+    })
+  }
+
+  let dict = (itemSchema: t) => {
+    make({
+      "type": "object",
+      "additionalProperties": itemSchema,
     })
   }
 
@@ -109,6 +117,13 @@ let rec makeBranch:
         state: Required,
       }
     | S.Custom => {rawSchema: Raw.empty, state: Required}
+    | S.Dict(itemStruct) => {
+        let itemBranch = makeBranch(itemStruct)
+        if itemBranch.state === Optional {
+          raise(DictItemOptionException)
+        }
+        {rawSchema: Raw.dict(itemBranch.rawSchema), state: Required}
+      }
     }
 
     switch maybeMetadataRawSchema {
@@ -132,6 +147,7 @@ let make = struct => {
     Js.Exn.raiseError("The option struct can't be nested in another option struct")
   | RootOptionException => Js.Exn.raiseError("The root struct can't be optional")
   | ArrayItemOptionException => Js.Exn.raiseError("Optional array item struct isn't supported")
+  | DictItemOptionException => Js.Exn.raiseError("Optional dict item struct isn't supported")
   // TODO: Raise custom instance of error
   | _ => Js.Exn.raiseError("Unknown RescriptJsonSchema error.")
   }

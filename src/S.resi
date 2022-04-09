@@ -8,6 +8,7 @@ and kind =
   | Array(t<'value>): kind
   | Record('unsafeFieldsArray): kind
   | Custom: kind
+  | Dict(t<'value>): kind
 and field<'value> = (string, t<'value>)
 
 let string: unit => t<string>
@@ -39,6 +40,7 @@ let coercedFloat: (
 ) => t<'value>
 
 let array: t<'value> => t<array<'value>>
+let dict: t<'value> => t<Js.Dict.t<'value>>
 let option: t<'value> => t<option<'value>>
 
 let record1: (

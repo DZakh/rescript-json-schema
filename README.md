@@ -163,7 +163,7 @@ let record2: (
 
 - [x] Add Custom struct
 - [ ] Return better errors
-- [ ] Add Dict struct
+- [x] Add Dict struct
 - [ ] Add Literal struct
 - [ ] Add Union struct
 - [ ] Add Default modifier

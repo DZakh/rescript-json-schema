@@ -62,6 +62,20 @@ test("Schema of strings array struct", t => {
   )
 })
 
+test("Schema of strings dict struct", t => {
+  let struct = S.dict(S.string())
+
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "additionalProperties": {"type": "string"},
+    }->unsafeToJsonSchema,
+    (),
+  )
+})
+
 test("Schema of record struct with one string field", t => {
   let struct = S.record1(
     ~fields=("field", S.string()),
