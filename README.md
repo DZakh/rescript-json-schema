@@ -166,14 +166,13 @@ let record2: (
 - [x] Add Dict struct
 - [ ] Add Literal struct
 - [ ] Add Union struct
-- [ ] Add Default modifier
+- [x] Add Default modifier
 - [ ] Add Unknown struct
 - [ ] Add Never struct
-- [ ] Add Object struct
+- [x] Add Deprecated modifier
 - [x] Add ability to mixin raw schema
 - [x] Add destructing
 - [x] Remove Fluent JSON Schema from dependencies
 - [ ] Add better support for OpenAPI
   - [x] Add description field 
   - [ ] Add example/examples field 
-  - [ ] Add deprecated field

@@ -9,6 +9,8 @@ and kind =
   | Record('unsafeFieldsArray): kind
   | Custom: kind
   | Dict(t<'value>): kind
+  | Deprecated({struct: t<'value>, maybeMessage: option<string>}): kind
+  | Default({struct: t<option<'value>>, value: 'value}): kind
 and field<'value> = (string, t<'value>)
 
 let string: unit => t<string>
@@ -42,6 +44,8 @@ let coercedFloat: (
 let array: t<'value> => t<array<'value>>
 let dict: t<'value> => t<Js.Dict.t<'value>>
 let option: t<'value> => t<option<'value>>
+let deprecated: (~message: string=?, t<'value>) => t<option<'value>>
+let default: (t<option<'value>>, 'value) => t<'value>
 
 let record1: (
   ~fields: field<'v1>,

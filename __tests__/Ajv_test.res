@@ -49,11 +49,11 @@ module TestRecordSchemaGuard = {
   })
 
   test(
-    "[Record schema guard] Record with additional field that not described in schema is valid",
+    "[Record schema guard] Record with additional field that not described in schema is not valid",
     t => {
       t->Assert.is(
         validateUser(%raw(`{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21,"Height":186}`)),
-        true,
+        false,
         (),
       )
     },
@@ -105,7 +105,7 @@ module TestRecordSchemaParse = {
   test("[Record schema parse] Record with additional field that not described in schema", t => {
     t->Assert.deepEqual(
       parseUser(%raw(`{"Name":"Dmitry","Email":"dzakh.dev@gmail.com","Age":21,"Height":186}`)),
-      Ok({name: "Dmitry", email: Some("dzakh.dev@gmail.com"), age: 21}),
+      Error("Validation failed"),
       (),
     )
   })

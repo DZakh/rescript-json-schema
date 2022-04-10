@@ -80,6 +80,39 @@ test("Constructs unknown record with optional nested record", t => {
   )
 })
 
+test("Constructs unknown record with deprecated nested record", t => {
+  let recordWithSomeField = {singleFieldRecord: Some({foo: "bar"})}
+  let recordWithNoneField = {singleFieldRecord: None}
+
+  let unknownRecordWithSomeField =
+    %raw(`{"singleFieldRecord":{"MUST_BE_MAPPED":"bar"}}`)->unsafeToUnknown
+  let unknownRecordWithNoneField = %raw(`{}`)->unsafeToUnknown
+
+  let struct = S.record1(
+    ~fields=(
+      "singleFieldRecord",
+      S.deprecated(
+        S.record1(~fields=("MUST_BE_MAPPED", S.string()), ~constructor=foo => {foo: foo}->Ok, ()),
+      ),
+    ),
+    ~constructor=singleFieldRecord => {singleFieldRecord: singleFieldRecord}->Ok,
+    (),
+  )
+
+  t->Assert.deepEqual(struct->S.construct(unknownRecordWithSomeField), Ok(recordWithSomeField), ())
+  t->Assert.deepEqual(
+    unknownRecordWithSomeField->S.constructWith(struct),
+    Ok(recordWithSomeField),
+    (),
+  )
+  t->Assert.deepEqual(struct->S.construct(unknownRecordWithNoneField), Ok(recordWithNoneField), ())
+  t->Assert.deepEqual(
+    unknownRecordWithNoneField->S.constructWith(struct),
+    Ok(recordWithNoneField),
+    (),
+  )
+})
+
 test("Constructs unknown array of records", t => {
   let arrayOfRecords = [{foo: "bar"}, {foo: "baz"}]
 

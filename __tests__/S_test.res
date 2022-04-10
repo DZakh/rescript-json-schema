@@ -64,3 +64,16 @@ test("Destructs unknown array of primitives", t => {
   t->Assert.deepEqual(struct->S.destruct(arrayOfPrimitives), Ok(unknownArrayOfPrimitives), ())
   t->Assert.deepEqual(arrayOfPrimitives->S.destructWith(struct), Ok(unknownArrayOfPrimitives), ())
 })
+
+test("Using default value when constructing optional unknown primitive", t => {
+  let defaultValue = 123.
+  let unknownPrimitive = None->unsafeToUnknown
+
+  let struct =
+    S.option(S.coercedInt(~constructor=value => value->Js.Int.toFloat->Ok, ()))->S.default(
+      defaultValue,
+    )
+
+  t->Assert.deepEqual(struct->S.construct(unknownPrimitive), Ok(defaultValue), ())
+  t->Assert.deepEqual(unknownPrimitive->S.constructWith(struct), Ok(defaultValue), ())
+})

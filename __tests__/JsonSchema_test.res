@@ -90,6 +90,7 @@ test("Schema of record struct with one string field", t => {
       "type": "object",
       "properties": {"field": {"type": "string"}},
       "required": ["field"],
+      "additionalProperties": false,
     }->unsafeToJsonSchema,
     (),
   )
@@ -111,6 +112,83 @@ test("Schema of record struct with one optional string field", t => {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
       "properties": {"optionalField": {"type": "string"}},
+      "additionalProperties": false,
+    }->unsafeToJsonSchema,
+    (),
+  )
+})
+
+test("Schema of record struct with one deprecated string field", t => {
+  let struct = S.record1(
+    ~fields=("optionalField", S.deprecated(S.string())),
+    ~constructor=optionalField =>
+      {
+        optionalField: optionalField,
+      }->Ok,
+    (),
+  )
+
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {"optionalField": {"type": "string", "deprecated": true}},
+      "additionalProperties": false,
+    }->unsafeToJsonSchema,
+    (),
+  )
+})
+
+test("Schema of record struct with one deprecated string field and message", t => {
+  let struct = S.record1(
+    ~fields=("optionalField", S.deprecated(~message="Use another field", S.string())),
+    ~constructor=optionalField =>
+      {
+        optionalField: optionalField,
+      }->Ok,
+    (),
+  )
+
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "optionalField": {"type": "string", "deprecated": true, "description": "Use another field"},
+      },
+      "additionalProperties": false,
+    }->unsafeToJsonSchema,
+    (),
+  )
+})
+
+test("Deprecated message overrides previous description", t => {
+  let struct = S.record1(
+    ~fields=(
+      "optionalField",
+      S.deprecated(
+        ~message="Use another field",
+        S.string()->JsonSchema.description("Previous description"),
+      ),
+    ),
+    ~constructor=optionalField =>
+      {
+        optionalField: optionalField,
+      }->Ok,
+    (),
+  )
+
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "type": "object",
+      "properties": {
+        "optionalField": {"type": "string", "deprecated": true, "description": "Use another field"},
+      },
+      "additionalProperties": false,
     }->unsafeToJsonSchema,
     (),
   )
@@ -139,9 +217,11 @@ test("Schema of record struct with nested record", t => {
           "type": "object",
           "properties": {"Field": {"type": "string"}},
           "required": ["Field"],
+          "additionalProperties": false,
         },
       },
       "required": ["recordWithOneStringField"],
+      "additionalProperties": false,
     }->unsafeToJsonSchema,
     (),
   )
@@ -170,6 +250,7 @@ test("Schema of record struct with one optional and one required string field", 
         "optionalField": {"type": "string"},
       },
       "required": ["field"],
+      "additionalProperties": false,
     }->unsafeToJsonSchema,
     (),
   )
@@ -210,6 +291,57 @@ test("Primitive struct schema with description", t => {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "boolean",
       "description": "A primitive struct",
+    }->unsafeToJsonSchema,
+    (),
+  )
+})
+
+test("Coerced struct schema with default fails when destruction failed", t => {
+  let struct = S.record1(~fields=("field", S.option(S.coercedBool(~constructor=bool => {
+          switch bool {
+          | true => "true"
+          | false => ""
+          }->Ok
+        }, ()))->S.default("true")), ~constructor=field => {field: field}->Ok, ())
+
+  t->Assert.throws(() => {
+    JsonSchema.make(struct)->ignore
+  }, ~expectations=ThrowsException.make(~message="Couldn't destruct value for default", ()), ())
+})
+
+test("Coerced struct schema uses default with correct type", t => {
+  let struct = S.record1(
+    ~fields=(
+      "field",
+      S.option(
+        S.coercedBool(
+          ~constructor=bool => {
+            switch bool {
+            | true => "true"
+            | false => ""
+            }->Ok
+          },
+          ~destructor=string => {
+            switch string {
+            | "true" => true
+            | _ => false
+            }->Ok
+          },
+          (),
+        ),
+      )->S.default("true"),
+    ),
+    ~constructor=field => {field: field}->Ok,
+    (),
+  )
+
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {"field": {"default": true, "type": "boolean"}},
+      "type": "object",
     }->unsafeToJsonSchema,
     (),
   )
@@ -268,6 +400,7 @@ test("Additional raw schema works with optional fields", t => {
       "properties": {
         "optionalField": {"nullable": true, "type": "string"},
       },
+      "additionalProperties": false,
     }->unsafeToJsonSchema,
     (),
   )

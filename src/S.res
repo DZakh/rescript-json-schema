@@ -168,6 +168,8 @@ and kind =
   | Record('unsafeFieldsArray): kind
   | Custom: kind
   | Dict(t<'value>): kind
+  | Deprecated({struct: t<'value>, maybeMessage: option<string>}): kind
+  | Default({struct: t<option<'value>>, value: 'value}): kind
 and field<'value> = (string, t<'value>)
 
 let make = (~kind, ~constructor=?, ~destructor=?, ()): t<'value> => {
@@ -368,6 +370,29 @@ module Primitive = {
   }
 }
 
+module Optional = {
+  module Factory = {
+    let make = (~kind, ~struct) => {
+      make(
+        ~kind,
+        ~constructor=unknown => {
+          switch unknown->unsafeUnknownToOption {
+          | Some(unknown') => _construct(struct, unknown')->Belt.Result.map(known => Some(known))
+          | None => Ok(None)
+          }
+        },
+        ~destructor=optionalValue => {
+          switch optionalValue {
+          | Some(value) => _destruct(struct, value)
+          | None => Ok(None->unsafeOptionToUnknown)
+          }
+        },
+        (),
+      )
+    }
+  }
+}
+
 let string = Primitive.Factory.make(~kind=String)
 let coercedString = (~constructor=?, ~destructor=?, ()) =>
   CoercedPrimitive.Factory.make(~kind=String, ~constructor?, ~destructor?, ())
@@ -429,19 +454,20 @@ let dict = struct =>
   )
 
 let option = struct => {
+  Optional.Factory.make(~kind=Option(struct), ~struct)
+}
+let deprecated = (~message as maybeMessage=?, struct) => {
+  Optional.Factory.make(~kind=Deprecated({struct: struct, maybeMessage: maybeMessage}), ~struct)
+}
+
+let default = (struct, value) => {
   make(
-    ~kind=Option(struct),
+    ~kind=Default({struct: struct, value: value}),
     ~constructor=unknown => {
-      switch unknown->unsafeUnknownToOption {
-      | Some(unknown) => _construct(struct, unknown)->Belt.Result.map(known => Some(known))
-      | None => Ok(None)
-      }
+      _construct(struct, unknown)->Belt.Result.map(Belt.Option.getWithDefault(_, value))
     },
-    ~destructor=optionalValue => {
-      switch optionalValue {
-      | Some(value) => _destruct(struct, value)
-      | None => Ok(None->unsafeOptionToUnknown)
-      }
+    ~destructor=value => {
+      _destruct(struct, Some(value))
     },
     (),
   )

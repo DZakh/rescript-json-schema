@@ -2,6 +2,7 @@ exception NestedOptionException
 exception RootOptionException
 exception ArrayItemOptionException
 exception DictItemOptionException
+exception DefaultValueException
 
 type t
 
@@ -17,6 +18,8 @@ module Raw = {
 
   let description = value => make({"description": value})
 
+  let default = value => make({"default": value})
+
   let schemaDialect = make({"$schema": "http://json-schema.org/draft-07/schema#"})
 
   let empty = make(Js.Dict.empty())
@@ -26,19 +29,21 @@ module Raw = {
   let number = make({"type": "number"})
   let boolean = make({"type": "boolean"})
 
-  let array = (itemSchema: t) => {
+  let array = (childSchema: t) => {
     make({
-      "items": itemSchema,
+      "items": childSchema,
       "type": "array",
     })
   }
 
-  let dict = (itemSchema: t) => {
+  let dict = (childSchema: t) => {
     make({
       "type": "object",
-      "additionalProperties": itemSchema,
+      "additionalProperties": childSchema,
     })
   }
+
+  let deprecated: t = make({"deprecated": true})
 
   module Metadata = S.MakeMetadata({
     type content = t
@@ -46,108 +51,118 @@ module Raw = {
   })
 }
 
-type rec branch = {rawSchema: Raw.t, state: branchState}
-and branchState = Optional | Required
+type node = {rawSchema: Raw.t, isRequired: bool}
 
 module Record = {
-  type recordFieldDetails<'value> = {
-    schema: Raw.t,
-    isRequired: bool,
-  }
-  let _make = %raw(`function(unsafeFieldsArray, makeFieldDetails) {
+  let _make = %raw(`function(unsafeFieldsArray, makeChildNode) {
     var schema = {
         type: 'object',
         properties: {},
+        additionalProperties: false,
       },
       requiredFieldNames = [];
     unsafeFieldsArray.forEach(function(field) {
       var fieldName = field[0],
         fieldStruct = field[1],
-        fieldDetails = makeFieldDetails(fieldStruct);
+        fieldDetails = makeChildNode(fieldStruct);
       if (fieldDetails.isRequired) {
         if (!schema.required) {
           schema.required = [];
         }
         schema.required.push(fieldName);
       }
-      schema.properties[fieldName] = fieldDetails.schema;
+      schema.properties[fieldName] = fieldDetails.rawSchema;
     })
     return schema;
   }`)
-  let make = (~unsafeFieldsArray, ~makeBranch: S.t<'value> => branch): Raw.t => {
-    _make(~unsafeFieldsArray, ~makeFieldDetails=struct => {
-      let branch = makeBranch(struct)
-      {
-        schema: branch.rawSchema,
-        isRequired: switch branch.state {
-        | Required => true
-        | Optional => false
-        },
-      }
-    })
+  let make = (~unsafeFieldsArray, ~makeNode: S.t<'value> => node): Raw.t => {
+    _make(~unsafeFieldsArray, ~makeChildNode=makeNode)
   }
 }
 
-let rec makeBranch:
-  type value. S.t<value> => branch =
+let rec makeNode:
+  type value. S.t<value> => node =
   struct => {
     let maybeMetadataRawSchema = struct->Raw.Metadata.extract
 
-    let kindBranch = switch struct->S.classify {
-    | S.String => {rawSchema: Raw.string, state: Required}
-    | S.Int => {rawSchema: Raw.integer, state: Required}
-    | S.Bool => {rawSchema: Raw.boolean, state: Required}
-    | S.Float => {rawSchema: Raw.number, state: Required}
-    | S.Array(itemStruct) => {
-        let itemBranch = makeBranch(itemStruct)
-        if itemBranch.state === Optional {
+    let node = switch struct->S.classify {
+    | S.String => {rawSchema: Raw.string, isRequired: true}
+    | S.Int => {rawSchema: Raw.integer, isRequired: true}
+    | S.Bool => {rawSchema: Raw.boolean, isRequired: true}
+    | S.Float => {rawSchema: Raw.number, isRequired: true}
+    | S.Array(childStruct) => {
+        let childNode = makeNode(childStruct)
+        if !childNode.isRequired {
           raise(ArrayItemOptionException)
         }
-        {rawSchema: Raw.array(itemBranch.rawSchema), state: Required}
+        {rawSchema: Raw.array(childNode.rawSchema), isRequired: true}
       }
-    | S.Option(itemStruct) => {
-        let itemBranch = makeBranch(itemStruct)
-        if itemBranch.state === Optional {
+    | S.Option(childStruct) => {
+        let childNode = makeNode(childStruct)
+        if !childNode.isRequired {
           raise(NestedOptionException)
         }
-        {rawSchema: itemBranch.rawSchema, state: Optional}
+        {rawSchema: childNode.rawSchema, isRequired: false}
       }
     | S.Record(unsafeFieldsArray) => {
-        rawSchema: Record.make(~unsafeFieldsArray, ~makeBranch),
-        state: Required,
+        rawSchema: Record.make(~unsafeFieldsArray, ~makeNode),
+        isRequired: true,
       }
-    | S.Custom => {rawSchema: Raw.empty, state: Required}
-    | S.Dict(itemStruct) => {
-        let itemBranch = makeBranch(itemStruct)
-        if itemBranch.state === Optional {
+    | S.Custom => {rawSchema: Raw.empty, isRequired: true}
+    | S.Dict(childStruct) => {
+        let childNode = makeNode(childStruct)
+        if !childNode.isRequired {
           raise(DictItemOptionException)
         }
-        {rawSchema: Raw.dict(itemBranch.rawSchema), state: Required}
+        {rawSchema: Raw.dict(childNode.rawSchema), isRequired: true}
+      }
+    | S.Deprecated({struct: childStruct, maybeMessage}) => {
+        let childNode = makeNode(childStruct)
+        let rawSchema = {
+          let rawSchema' = Raw.merge(childNode.rawSchema, Raw.deprecated)
+          switch maybeMessage {
+          | Some(message) => Raw.merge(rawSchema', Raw.description(message))
+          | None => rawSchema'
+          }
+        }
+        {rawSchema: rawSchema, isRequired: false}
+      }
+    | S.Default({struct: childStruct, value}) =>
+      switch childStruct->S.destruct(Some(value)) {
+      | Error(_) => raise(DefaultValueException)
+      | Ok(destructedValue) => {
+          let childNode = makeNode(childStruct)
+          {
+            rawSchema: Raw.merge(childNode.rawSchema, Raw.default(destructedValue)),
+            isRequired: false,
+          }
+        }
       }
     }
 
     switch maybeMetadataRawSchema {
     | Some(metadataRawSchema) => {
-        rawSchema: Raw.merge(kindBranch.rawSchema, metadataRawSchema),
-        state: kindBranch.state,
+        rawSchema: Raw.merge(node.rawSchema, metadataRawSchema),
+        isRequired: node.isRequired,
       }
-    | None => kindBranch
+    | None => node
     }
   }
 
 let make = struct => {
   try {
-    let branch = makeBranch(struct)
-    if branch.state === Optional {
+    let node = makeNode(struct)
+    if !node.isRequired {
       raise(RootOptionException)
     }
-    Raw.merge(branch.rawSchema, Raw.schemaDialect)->unsafeToJsonSchema
+    Raw.merge(node.rawSchema, Raw.schemaDialect)->unsafeToJsonSchema
   } catch {
   | NestedOptionException =>
     Js.Exn.raiseError("The option struct can't be nested in another option struct")
   | RootOptionException => Js.Exn.raiseError("The root struct can't be optional")
   | ArrayItemOptionException => Js.Exn.raiseError("Optional array item struct isn't supported")
   | DictItemOptionException => Js.Exn.raiseError("Optional dict item struct isn't supported")
+  | DefaultValueException => Js.Exn.raiseError("Couldn't destruct value for default")
   // TODO: Raise custom instance of error
   | _ => Js.Exn.raiseError("Unknown RescriptJsonSchema error.")
   }
