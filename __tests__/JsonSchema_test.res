@@ -420,3 +420,51 @@ test("Custom struct doesn't affect final schema", t => {
     (),
   )
 })
+
+module Example = {
+  type author = {id: float, tags: array<string>, isAproved: bool, deprecatedAge: option<int>}
+
+  test("Example", t => {
+    let authorStruct: S.t<author> = S.record4(
+      ~fields=(
+        ("Id", S.float()),
+        ("Tags", S.option(S.array(S.string()))->S.default([])),
+        ("IsApproved", S.coercedInt(~constructor=int =>
+            switch int {
+            | 1 => true
+            | _ => false
+            }->Ok
+          , ())),
+        ("Age", S.deprecated(~message="A useful explanation", S.int())),
+      ),
+      ~constructor=((id, tags, isAproved, deprecatedAge)) =>
+        {id: id, tags: tags, isAproved: isAproved, deprecatedAge: deprecatedAge}->Ok,
+      (),
+    )
+
+    t->Assert.deepEqual(
+      JsonSchema.make(authorStruct),
+      %raw(`{
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        additionalProperties: false,
+        properties: {
+          Age: {
+            deprecated: true,
+            description: 'A useful explanation',
+            type: 'integer'
+          },
+          Id: { type: 'number' },
+          IsApproved: { type: 'integer' },
+          Tags: { 
+            default: [],
+            items: { type: 'string' },
+            type: 'array'
+          }
+        },
+        required: [ 'Id', 'IsApproved' ],
+        type: 'object'
+      }`),
+      (),
+    )
+  })
+}
