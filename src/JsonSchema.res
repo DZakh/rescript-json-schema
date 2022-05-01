@@ -128,7 +128,7 @@ let rec makeNode:
         {rawSchema: rawSchema, isRequired: false}
       }
     | S.Default({struct: childStruct, value}) =>
-      switch childStruct->S.destruct(Some(value)) {
+      switch Some(value)->S.destructWith(childStruct) {
       | Error(_) => raise(DefaultValueException)
       | Ok(destructedValue) => {
           let childNode = makeNode(childStruct)

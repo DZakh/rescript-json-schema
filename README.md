@@ -14,18 +14,12 @@ JSON Schema is a frequent visitor in the backend. One schema might be used for O
 
 ## Installation
 
-Install **rescript-struct** following it's [installation instruction](https://github.com/DZakh/rescript-struct#installation)
+Install **rescript-struct** following its [installation instruction](https://github.com/DZakh/rescript-struct#installation)
 
 Install **rescript-json-schema**
 
 ```sh
 npm install rescript-json-schema
-```
-
-To use the parsing feature install [Ajv](https://ajv.js.org/) as well
-
-```sh
-npm install ajv
 ```
 
 Then add `rescript-json-schema` to `bs-dependencies` in your `bsconfig.json`:
@@ -54,7 +48,7 @@ let authorStruct: S.t<author> = S.record4(
   ~fields=(
     ("Id", S.float()),
     ("Tags", S.array(S.string())),
-    ("IsApproved", S.option(S.coercedInt(~constructor=int =>
+    ("IsApproved", S.option(S.int()->S.coerce(~constructor=int =>
           switch int {
           | 1 => true
           | _ => false
@@ -75,29 +69,29 @@ When the struct is defined it can be used to generate JSON Schema.
 > I recommend hiding the conversion to JSON Schema behind abstraction and working only with structs in application code.
 
 ```rescript
-Js.log(JsonSchema.make(authorStruct))
-
-// Output:
-// {
-//   '$schema': 'http://json-schema.org/draft-07/schema#',
-//   additionalProperties: false,
-//   properties: {
-//     Age: {
-//       deprecated: true,
-//       description: 'A useful explanation',
-//       type: 'integer'
-//     },
-//     Id: { type: 'number' },
-//     IsApproved: { type: 'integer' },
-//     Tags: { 
-//       default: [],
-//       items: { type: 'string' },
-//       type: 'array'
-//     }
-//   },
-//   required: [ 'Id', 'IsApproved' ],
-//   type: 'object'
-// }
+JsonSchema.make(authorStruct)
+```
+```js
+{
+  '$schema': 'http://json-schema.org/draft-07/schema#',
+  additionalProperties: false,
+  properties: {
+    Age: {
+      deprecated: true,
+      description: 'A useful explanation',
+      type: 'integer'
+    },
+    Id: { type: 'number' },
+    IsApproved: { type: 'integer' },
+    Tags: { 
+      default: [],
+      items: { type: 'string' },
+      type: 'array'
+    }
+  },
+  required: [ 'Id', 'IsApproved' ],
+  type: 'object'
+}
 ```
 
 ### Decoding validated data
@@ -124,23 +118,6 @@ let constructResult: result<author, string> = data->S.constructWith(authorStruct
 ```
 
 The JSON has capitalized field names, after decoding they are mapped to a valid ReScript structure.
-
-### Parsing data
-
-The `constructor` is suitable for cases when the data is already valid, or else you'll get a runtime error or invalid state.  
-To work with unknown data use built-in [Ajv](https://ajv.js.org/) bindings.
-
-```rescript
-let data = %raw(`{
-  "Id": 1,
-  "IsApproved": 1,
-  "Age": 12,
-}`)
-
-let ajv = Ajv.make()
-let authorValidator = ajv->Ajv.Validator.make(authorStruct)
-let authorParseResult: result<author, string> = authorValidator->Ajv.Validator.parse(data)
-```
 
 ## V1 Roadmap
 

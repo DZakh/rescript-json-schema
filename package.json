@@ -1,18 +1,15 @@
 {
   "name": "rescript-json-schema",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "Typesafe JSON Schema for ReScript",
   "keywords": [
     "ReScript",
+    "ReStruct",
     "JSON Schema",
     "Typesafe",
     "JSON",
-    "Ajv",
     "openapi",
-    "swagger",
-    "parse",
-    "serialize",
-    "validation"
+    "swagger"
   ],
   "homepage": "https://github.com/DZakh/rescript-json-schema#readme",
   "bugs": {
@@ -43,12 +40,11 @@
     "deepmerge": "4.2.2"
   },
   "devDependencies": {
-    "ajv": "8.10.0",
     "rescript": "9.1.4",
     "rescript-ava": "github:DZakh/rescript-ava#007d9f63e17310f73fabab1223eb75a0c9c36035",
-    "rescript-struct": "^0.2.2"
+    "rescript-struct": "^0.5.0"
   },
   "peerDependencies": {
-    "rescript-struct": "^0.2.x"
+    "rescript-struct": "^0.5.x"
   }
 }

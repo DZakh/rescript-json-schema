@@ -297,7 +297,7 @@ test("Primitive struct schema with description", t => {
 })
 
 test("Coerced struct schema with default fails when destruction failed", t => {
-  let struct = S.record1(~fields=("field", S.option(S.coercedBool(~constructor=bool => {
+  let struct = S.record1(~fields=("field", S.option(S.bool()->S.coerce(~constructor=bool => {
           switch bool {
           | true => "true"
           | false => ""
@@ -314,7 +314,7 @@ test("Coerced struct schema uses default with correct type", t => {
     ~fields=(
       "field",
       S.option(
-        S.coercedBool(
+        S.bool()->S.coerce(
           ~constructor=bool => {
             switch bool {
             | true => "true"
@@ -429,7 +429,7 @@ module Example = {
       ~fields=(
         ("Id", S.float()),
         ("Tags", S.option(S.array(S.string()))->S.default([])),
-        ("IsApproved", S.coercedInt(~constructor=int =>
+        ("IsApproved", S.int()->S.coerce(~constructor=int =>
             switch int {
             | 1 => true
             | _ => false
