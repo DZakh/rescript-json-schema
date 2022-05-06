@@ -407,10 +407,12 @@ test("Additional raw schema works with optional fields", t => {
 })
 
 test("Custom struct doesn't affect final schema", t => {
-  let struct = S.custom(
-    ~constructor=unknown => unknown->Js.Json.decodeString->Belt.Option.getWithDefault("")->Ok,
-    (),
-  )
+  let struct = S.custom(~constructor=unknown => {
+    switch unknown->Js.Types.classify {
+    | JSString(string) => Ok(string)
+    | _ => Error("Custom isn't a String")
+    }
+  }, ())
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
