@@ -108,7 +108,8 @@ let rec makeNode:
         rawSchema: Record.make(~unsafeFieldsArray, ~makeNode),
         isRequired: true,
       }
-    | S.Custom => {rawSchema: Raw.empty, isRequired: true}
+    | S.Unknown => {rawSchema: Raw.empty, isRequired: true}
+    | S.Null(_) => Js.Exn.raiseError("The Null struct isn't supported yet")
     | S.Dict(childStruct) => {
         let childNode = makeNode(childStruct)
         if !childNode.isRequired {

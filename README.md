@@ -48,7 +48,7 @@ let authorStruct: S.t<author> = S.record4(
   ~fields=(
     ("Id", S.float()),
     ("Tags", S.array(S.string())),
-    ("IsApproved", S.option(S.int()->S.coerce(~constructor=int =>
+    ("IsApproved", S.option(S.int()->S.transform(~constructor=int =>
           switch int {
           | 1 => true
           | _ => false

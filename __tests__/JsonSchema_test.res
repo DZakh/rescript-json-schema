@@ -296,8 +296,8 @@ test("Primitive struct schema with description", t => {
   )
 })
 
-test("Coerced struct schema with default fails when destruction failed", t => {
-  let struct = S.record1(~fields=("field", S.option(S.bool()->S.coerce(~constructor=bool => {
+test("Transformed struct schema with default fails when destruction failed", t => {
+  let struct = S.record1(~fields=("field", S.option(S.bool()->S.transform(~constructor=bool => {
           switch bool {
           | true => "true"
           | false => ""
@@ -309,12 +309,12 @@ test("Coerced struct schema with default fails when destruction failed", t => {
   }, ~expectations=ThrowsException.make(~message="Couldn't destruct value for default", ()), ())
 })
 
-test("Coerced struct schema uses default with correct type", t => {
+test("Transformed struct schema uses default with correct type", t => {
   let struct = S.record1(
     ~fields=(
       "field",
       S.option(
-        S.bool()->S.coerce(
+        S.bool()->S.transform(
           ~constructor=bool => {
             switch bool {
             | true => "true"
@@ -406,13 +406,8 @@ test("Additional raw schema works with optional fields", t => {
   )
 })
 
-test("Custom struct doesn't affect final schema", t => {
-  let struct = S.custom(~constructor=unknown => {
-    switch unknown->Js.Types.classify {
-    | JSString(string) => Ok(string)
-    | _ => Error("Custom isn't a String")
-    }
-  }, ())
+test("Unknown struct doesn't affect final schema", t => {
+  let struct = S.unknown()
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -431,7 +426,7 @@ module Example = {
       ~fields=(
         ("Id", S.float()),
         ("Tags", S.option(S.array(S.string()))->S.default([])),
-        ("IsApproved", S.int()->S.coerce(~constructor=int =>
+        ("IsApproved", S.int()->S.transform(~constructor=int =>
             switch int {
             | 1 => true
             | _ => false
