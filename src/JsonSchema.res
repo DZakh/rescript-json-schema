@@ -22,18 +22,28 @@ module Raw = {
   let integer = make({"type": "integer"})
   let number = make({"type": "number"})
   let boolean = make({"type": "boolean"})
-
-  let array = (childSchema: t) => {
+  let null = (innerSchema: t) => {
     make({
-      "items": childSchema,
+      "anyOf": [
+        innerSchema,
+        make({
+          "type": "null",
+        }),
+      ],
+    })
+  }
+
+  let array = (innerSchema: t) => {
+    make({
+      "items": innerSchema,
       "type": "array",
     })
   }
 
-  let dict = (childSchema: t) => {
+  let dict = (innerSchema: t) => {
     make({
       "type": "object",
-      "additionalProperties": childSchema,
+      "additionalProperties": innerSchema,
     })
   }
 
@@ -73,18 +83,18 @@ let rec makeNode:
     | S.Int => Ok({rawSchema: Raw.integer, isRequired: true})
     | S.Bool => Ok({rawSchema: Raw.boolean, isRequired: true})
     | S.Float => Ok({rawSchema: Raw.number, isRequired: true})
-    | S.Array(childStruct) =>
-      makeNode(childStruct)->Belt.Result.flatMap(childNode => {
-        if childNode.isRequired {
-          Ok({rawSchema: Raw.array(childNode.rawSchema), isRequired: true})
+    | S.Array(innerStruct) =>
+      makeNode(innerStruct)->Belt.Result.flatMap(innerNode => {
+        if innerNode.isRequired {
+          Ok({rawSchema: Raw.array(innerNode.rawSchema), isRequired: true})
         } else {
           Error(JsonSchema_Error.UnsupportedOptionalDictItem.make())
         }
       })
-    | S.Option(childStruct) =>
-      makeNode(childStruct)->Belt.Result.flatMap(childNode => {
-        if childNode.isRequired {
-          Ok({rawSchema: childNode.rawSchema, isRequired: false})
+    | S.Option(innerStruct) =>
+      makeNode(innerStruct)->Belt.Result.flatMap(innerNode => {
+        if innerNode.isRequired {
+          Ok({rawSchema: innerNode.rawSchema, isRequired: false})
         } else {
           Error(JsonSchema_Error.UnsupportedNestedOptional.make())
         }
@@ -117,19 +127,26 @@ let rec makeNode:
         }
       })
     | S.Unknown => Ok({rawSchema: Raw.empty, isRequired: true})
-    | S.Null(_) => Js.Exn.raiseError("The Null struct isn't supported yet")
-    | S.Dict(childStruct) =>
-      makeNode(childStruct)->Belt.Result.flatMap(childNode => {
-        if childNode.isRequired {
-          Ok({rawSchema: Raw.dict(childNode.rawSchema), isRequired: true})
+    | S.Null(innerStruct) =>
+      makeNode(innerStruct)->Belt.Result.flatMap(innerNode => {
+        if innerNode.isRequired {
+          Ok({rawSchema: Raw.null(innerNode.rawSchema), isRequired: true})
+        } else {
+          Error(JsonSchema_Error.UnsupportedOptionalNullItem.make())
+        }
+      })
+    | S.Dict(innerStruct) =>
+      makeNode(innerStruct)->Belt.Result.flatMap(innerNode => {
+        if innerNode.isRequired {
+          Ok({rawSchema: Raw.dict(innerNode.rawSchema), isRequired: true})
         } else {
           Error(JsonSchema_Error.UnsupportedOptionalDictItem.make())
         }
       })
-    | S.Deprecated({struct: childStruct, maybeMessage}) =>
-      makeNode(childStruct)->Belt.Result.flatMap(childNode => {
+    | S.Deprecated({struct: innerStruct, maybeMessage}) =>
+      makeNode(innerStruct)->Belt.Result.flatMap(innerNode => {
         let rawSchema = {
-          let rawSchema' = Raw.merge(childNode.rawSchema, Raw.deprecated)
+          let rawSchema' = Raw.merge(innerNode.rawSchema, Raw.deprecated)
           switch maybeMessage {
           | Some(message) => Raw.merge(rawSchema', Raw.description(message))
           | None => rawSchema'
@@ -137,14 +154,14 @@ let rec makeNode:
         }
         Ok({rawSchema: rawSchema, isRequired: false})
       })
-    | S.Default({struct: childStruct, value}) =>
-      switch Some(value)->S.destructWith(childStruct) {
+    | S.Default({struct: innerStruct, value}) =>
+      switch Some(value)->S.destructWith(innerStruct) {
       | Error(destructingErrorMessage) =>
         Error(JsonSchema_Error.DefaultDestructingFailed.make(~destructingErrorMessage))
       | Ok(destructedValue) =>
-        makeNode(childStruct)->Belt.Result.map(childNode => {
+        makeNode(innerStruct)->Belt.Result.map(innerNode => {
           {
-            rawSchema: Raw.merge(childNode.rawSchema, Raw.default(destructedValue)),
+            rawSchema: Raw.merge(innerNode.rawSchema, Raw.default(destructedValue)),
             isRequired: false,
           }
         })

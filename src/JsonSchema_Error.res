@@ -8,6 +8,7 @@ and kind =
   | UnsupportedOptionalArrayItem
   | UnsupportedNestedOptional
   | UnsupportedRootOptional
+  | UnsupportedOptionalNullItem
   | DefaultDestructingFailed({destructingErrorMessage: string})
 
 module UnsupportedOptionalDictItem = {
@@ -19,6 +20,12 @@ module UnsupportedOptionalDictItem = {
 module UnsupportedOptionalArrayItem = {
   let make = () => {
     {kind: UnsupportedOptionalArrayItem, location: []}
+  }
+}
+
+module UnsupportedOptionalNullItem = {
+  let make = () => {
+    {kind: UnsupportedOptionalNullItem, location: []}
   }
 }
 
@@ -71,6 +78,8 @@ let toString = error => {
     `Failed converting at ${locationText}. Reason: Optional struct is not supported as Array item yet`
   | UnsupportedRootOptional =>
     `Failed converting at ${locationText}. Reason: Optional struct is not supported at root yet`
+  | UnsupportedOptionalNullItem =>
+    `Failed converting at ${locationText}. Reason: Optional struct is not supported as Null item yet`
   | UnsupportedNestedOptional =>
     `Failed converting at ${locationText}. Reason: Optional struct is not supported inside the Option struct yet`
   | DefaultDestructingFailed({destructingErrorMessage}) =>

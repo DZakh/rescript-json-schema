@@ -12,6 +12,10 @@ module UnsupportedNestedOptional: {
   let make: unit => t
 }
 
+module UnsupportedOptionalNullItem: {
+  let make: unit => t
+}
+
 module UnsupportedRootOptional: {
   let make: unit => t
 }

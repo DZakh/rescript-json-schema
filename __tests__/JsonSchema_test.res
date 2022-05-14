@@ -46,6 +46,21 @@ test("Schema of float struct", t => {
   )
 })
 
+test("Schema of Null struct", t => {
+  let struct = S.null(S.float())
+
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "anyOf": [{"type": "number"}, {"type": "null"}]
+      }`),
+    ),
+    (),
+  )
+})
+
 test("Schema of strings array struct", t => {
   let struct = S.array(S.string())
 
