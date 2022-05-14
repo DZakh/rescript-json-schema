@@ -43,6 +43,22 @@ module Raw = {
     })
   }
 
+  let record = (
+    ~properties: Js.Dict.t<t>,
+    ~additionalProperties: bool,
+    ~required: array<string>,
+  ) => {
+    let schema = make({
+      "type": "object",
+      "properties": properties,
+      "additionalProperties": additionalProperties,
+    })
+    switch required {
+    | [] => schema
+    | required => merge(schema, make({"required": required}))
+    }
+  }
+
   let deprecated: t = make({"deprecated": true})
 
   module Metadata = S.MakeMetadata({
@@ -52,33 +68,6 @@ module Raw = {
 }
 
 type node = {rawSchema: Raw.t, isRequired: bool}
-
-module Record = {
-  let _make = %raw(`function(unsafeFieldsArray, makeChildNode) {
-    var schema = {
-        type: 'object',
-        properties: {},
-        additionalProperties: false,
-      },
-      requiredFieldNames = [];
-    unsafeFieldsArray.forEach(function(field) {
-      var fieldName = field[0],
-        fieldStruct = field[1],
-        fieldDetails = makeChildNode(fieldStruct);
-      if (fieldDetails.isRequired) {
-        if (!schema.required) {
-          schema.required = [];
-        }
-        schema.required.push(fieldName);
-      }
-      schema.properties[fieldName] = fieldDetails.rawSchema;
-    })
-    return schema;
-  }`)
-  let make = (~unsafeFieldsArray, ~makeNode: S.t<'value> => node): Raw.t => {
-    _make(~unsafeFieldsArray, ~makeChildNode=makeNode)
-  }
-}
 
 let rec makeNode:
   type value. S.t<value> => node =
@@ -104,9 +93,23 @@ let rec makeNode:
         }
         {rawSchema: childNode.rawSchema, isRequired: false}
       }
-    | S.Record(unsafeFieldsArray) => {
-        rawSchema: Record.make(~unsafeFieldsArray, ~makeNode),
-        isRequired: true,
+    | S.Record(fields) => {
+        let rawSchema = {
+          let properties = Js.Dict.empty()
+          let required = []
+          fields->Js.Array2.forEach(((fieldName, fieldStruct)) => {
+            let fieldNode = makeNode(fieldStruct)
+            if fieldNode.isRequired {
+              required->Js.Array2.push(fieldName)->ignore
+            }
+            properties->Js.Dict.set(fieldName, fieldNode.rawSchema)
+          })
+          Raw.record(~additionalProperties=false, ~properties, ~required)
+        }
+        {
+          rawSchema: rawSchema,
+          isRequired: true,
+        }
       }
     | S.Unknown => {rawSchema: Raw.empty, isRequired: true}
     | S.Null(_) => Js.Exn.raiseError("The Null struct isn't supported yet")
