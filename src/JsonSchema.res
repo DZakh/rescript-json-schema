@@ -1,9 +1,3 @@
-exception NestedOptionException
-exception RootOptionException
-exception ArrayItemOptionException
-exception DictItemOptionException
-exception DefaultValueException
-
 type t
 
 external unsafeToJsonSchema: 'a => t = "%identity"
@@ -70,35 +64,44 @@ module Raw = {
 type node = {rawSchema: Raw.t, isRequired: bool}
 
 let rec makeNode:
-  type value. S.t<value> => node =
+  type value. S.t<value> => result<node, string> =
   struct => {
     let maybeMetadataRawSchema = struct->Raw.Metadata.extract
 
-    let node = switch struct->S.classify {
-    | S.String => {rawSchema: Raw.string, isRequired: true}
-    | S.Int => {rawSchema: Raw.integer, isRequired: true}
-    | S.Bool => {rawSchema: Raw.boolean, isRequired: true}
-    | S.Float => {rawSchema: Raw.number, isRequired: true}
-    | S.Array(childStruct) => {
-        let childNode = makeNode(childStruct)
-        if !childNode.isRequired {
-          raise(ArrayItemOptionException)
+    switch struct->S.classify {
+    | S.String => Ok({rawSchema: Raw.string, isRequired: true})
+    | S.Int => Ok({rawSchema: Raw.integer, isRequired: true})
+    | S.Bool => Ok({rawSchema: Raw.boolean, isRequired: true})
+    | S.Float => Ok({rawSchema: Raw.number, isRequired: true})
+    | S.Array(childStruct) =>
+      makeNode(childStruct)->Belt.Result.flatMap(childNode => {
+        if childNode.isRequired {
+          Ok({rawSchema: Raw.array(childNode.rawSchema), isRequired: true})
+        } else {
+          Error("Optional array item struct isn't supported")
         }
-        {rawSchema: Raw.array(childNode.rawSchema), isRequired: true}
-      }
-    | S.Option(childStruct) => {
-        let childNode = makeNode(childStruct)
-        if !childNode.isRequired {
-          raise(NestedOptionException)
+      })
+    | S.Option(childStruct) =>
+      makeNode(childStruct)->Belt.Result.flatMap(childNode => {
+        if childNode.isRequired {
+          Ok({rawSchema: childNode.rawSchema, isRequired: false})
+        } else {
+          Error("The option struct can't be nested in another option struct")
         }
-        {rawSchema: childNode.rawSchema, isRequired: false}
-      }
-    | S.Record(fields) => {
+      })
+    | S.Record(fields) =>
+      fields
+      ->RescriptStruct_ResultX.Array.mapi((field, _) => {
+        let (_, fieldStruct) = field
+        makeNode(fieldStruct)
+      })
+      ->Belt.Result.map(fieldNodes => {
         let rawSchema = {
           let properties = Js.Dict.empty()
           let required = []
-          fields->Js.Array2.forEach(((fieldName, fieldStruct)) => {
-            let fieldNode = makeNode(fieldStruct)
+          fieldNodes->Js.Array2.forEachi((fieldNode, idx) => {
+            let field = fields->Js.Array2.unsafe_get(idx)
+            let (fieldName, _) = field
             if fieldNode.isRequired {
               required->Js.Array2.push(fieldName)->ignore
             }
@@ -110,18 +113,19 @@ let rec makeNode:
           rawSchema: rawSchema,
           isRequired: true,
         }
-      }
-    | S.Unknown => {rawSchema: Raw.empty, isRequired: true}
+      })
+    | S.Unknown => Ok({rawSchema: Raw.empty, isRequired: true})
     | S.Null(_) => Js.Exn.raiseError("The Null struct isn't supported yet")
-    | S.Dict(childStruct) => {
-        let childNode = makeNode(childStruct)
-        if !childNode.isRequired {
-          raise(DictItemOptionException)
+    | S.Dict(childStruct) =>
+      makeNode(childStruct)->Belt.Result.flatMap(childNode => {
+        if childNode.isRequired {
+          Ok({rawSchema: Raw.dict(childNode.rawSchema), isRequired: true})
+        } else {
+          Error("Optional dict item struct isn't supported")
         }
-        {rawSchema: Raw.dict(childNode.rawSchema), isRequired: true}
-      }
-    | S.Deprecated({struct: childStruct, maybeMessage}) => {
-        let childNode = makeNode(childStruct)
+      })
+    | S.Deprecated({struct: childStruct, maybeMessage}) =>
+      makeNode(childStruct)->Belt.Result.flatMap(childNode => {
         let rawSchema = {
           let rawSchema' = Raw.merge(childNode.rawSchema, Raw.deprecated)
           switch maybeMessage {
@@ -129,46 +133,38 @@ let rec makeNode:
           | None => rawSchema'
           }
         }
-        {rawSchema: rawSchema, isRequired: false}
-      }
+        Ok({rawSchema: rawSchema, isRequired: false})
+      })
     | S.Default({struct: childStruct, value}) =>
       switch Some(value)->S.destructWith(childStruct) {
-      | Error(_) => raise(DefaultValueException)
-      | Ok(destructedValue) => {
-          let childNode = makeNode(childStruct)
+      | Error(_) => Error("Couldn't destruct value for default")
+      | Ok(destructedValue) =>
+        makeNode(childStruct)->Belt.Result.map(childNode => {
           {
             rawSchema: Raw.merge(childNode.rawSchema, Raw.default(destructedValue)),
             isRequired: false,
           }
+        })
+      }
+    }->Belt.Result.map(node => {
+      switch maybeMetadataRawSchema {
+      | Some(metadataRawSchema) => {
+          rawSchema: Raw.merge(node.rawSchema, metadataRawSchema),
+          isRequired: node.isRequired,
         }
+      | None => node
       }
-    }
-
-    switch maybeMetadataRawSchema {
-    | Some(metadataRawSchema) => {
-        rawSchema: Raw.merge(node.rawSchema, metadataRawSchema),
-        isRequired: node.isRequired,
-      }
-    | None => node
-    }
+    })
   }
 
 let make = struct => {
-  try {
-    let node = makeNode(struct)
-    if !node.isRequired {
-      raise(RootOptionException)
+  makeNode(struct)->Belt.Result.flatMap(node => {
+    if node.isRequired {
+      Ok(Raw.merge(node.rawSchema, Raw.schemaDialect)->unsafeToJsonSchema)
+    } else {
+      Error("The root struct can't be optional")
     }
-    Ok(Raw.merge(node.rawSchema, Raw.schemaDialect)->unsafeToJsonSchema)
-  } catch {
-  | NestedOptionException => Error("The option struct can't be nested in another option struct")
-  | RootOptionException => Error("The root struct can't be optional")
-  | ArrayItemOptionException => Error("Optional array item struct isn't supported")
-  | DictItemOptionException => Error("Optional dict item struct isn't supported")
-  | DefaultValueException => Error("Couldn't destruct value for default")
-  // TODO: Raise custom instance of error
-  | _ => Error("Unknown RescriptJsonSchema error.")
-  }
+  })
 }
 
 let raw = (struct, providedRawSchema) => {
