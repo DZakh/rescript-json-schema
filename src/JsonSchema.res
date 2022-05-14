@@ -64,7 +64,7 @@ module Raw = {
 type node = {rawSchema: Raw.t, isRequired: bool}
 
 let rec makeNode:
-  type value. S.t<value> => result<node, string> =
+  type value. S.t<value> => result<node, JsonSchema_Error.t> =
   struct => {
     let maybeMetadataRawSchema = struct->Raw.Metadata.extract
 
@@ -78,7 +78,7 @@ let rec makeNode:
         if childNode.isRequired {
           Ok({rawSchema: Raw.array(childNode.rawSchema), isRequired: true})
         } else {
-          Error("Optional array item struct isn't supported")
+          Error(JsonSchema_Error.UnsupportedOptionalDictItem.make())
         }
       })
     | S.Option(childStruct) =>
@@ -86,14 +86,16 @@ let rec makeNode:
         if childNode.isRequired {
           Ok({rawSchema: childNode.rawSchema, isRequired: false})
         } else {
-          Error("The option struct can't be nested in another option struct")
+          Error(JsonSchema_Error.UnsupportedNestedOptional.make())
         }
       })
     | S.Record(fields) =>
       fields
       ->RescriptStruct_ResultX.Array.mapi((field, _) => {
-        let (_, fieldStruct) = field
-        makeNode(fieldStruct)
+        let (fieldName, fieldStruct) = field
+        makeNode(fieldStruct)->RescriptStruct_ResultX.mapError(
+          JsonSchema_Error.prependField(_, fieldName),
+        )
       })
       ->Belt.Result.map(fieldNodes => {
         let rawSchema = {
@@ -121,7 +123,7 @@ let rec makeNode:
         if childNode.isRequired {
           Ok({rawSchema: Raw.dict(childNode.rawSchema), isRequired: true})
         } else {
-          Error("Optional dict item struct isn't supported")
+          Error(JsonSchema_Error.UnsupportedOptionalDictItem.make())
         }
       })
     | S.Deprecated({struct: childStruct, maybeMessage}) =>
@@ -137,7 +139,8 @@ let rec makeNode:
       })
     | S.Default({struct: childStruct, value}) =>
       switch Some(value)->S.destructWith(childStruct) {
-      | Error(_) => Error("Couldn't destruct value for default")
+      | Error(destructingErrorMessage) =>
+        Error(JsonSchema_Error.DefaultDestructingFailed.make(~destructingErrorMessage))
       | Ok(destructedValue) =>
         makeNode(childStruct)->Belt.Result.map(childNode => {
           {
@@ -158,13 +161,15 @@ let rec makeNode:
   }
 
 let make = struct => {
-  makeNode(struct)->Belt.Result.flatMap(node => {
+  makeNode(struct)
+  ->Belt.Result.flatMap(node => {
     if node.isRequired {
       Ok(Raw.merge(node.rawSchema, Raw.schemaDialect)->unsafeToJsonSchema)
     } else {
-      Error("The root struct can't be optional")
+      Error(JsonSchema_Error.UnsupportedRootOptional.make())
     }
   })
+  ->RescriptStruct_ResultX.mapError(JsonSchema_Error.toString)
 }
 
 let raw = (struct, providedRawSchema) => {

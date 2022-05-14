@@ -275,7 +275,13 @@ test("Schema of record struct with one optional and one required string field", 
 test("Make JsonSchema throws error with optional root type", t => {
   let struct = S.option(S.string())
 
-  t->Assert.deepEqual(JsonSchema.make(struct), Error("The root struct can\'t be optional"), ())
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    Error(
+      "[ReScript JSON Schema] Failed converting at root. Reason: Optional struct is not supported at root yet",
+    ),
+    (),
+  )
 })
 
 test("Make JsonSchema throws error with record field wrapped in option multiple times", t => {
@@ -290,7 +296,7 @@ test("Make JsonSchema throws error with record field wrapped in option multiple 
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    Error("The option struct can\'t be nested in another option struct"),
+    Error(`[ReScript JSON Schema] Failed converting at ["optionalOptionalField"]. Reason: Optional struct is not supported inside the Option struct yet`),
     (),
   )
 })
@@ -319,7 +325,11 @@ test("Transformed struct schema with default fails when destruction failed", t =
           }->Ok
         }, ()))->S.default("true")), ~constructor=field => {field: field}->Ok, ())
 
-  t->Assert.deepEqual(JsonSchema.make(struct), Error("Couldn't destruct value for default"), ())
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    Error(`[ReScript JSON Schema] Failed converting at ["field"]. Reason: Couldn't destruct default value. Error: [ReScript Struct] Failed destructing at root. Reason: Struct destructor is missing`),
+    (),
+  )
 })
 
 test("Transformed struct schema uses default with correct type", t => {
