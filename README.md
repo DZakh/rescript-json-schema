@@ -123,5 +123,7 @@ The JSON has capitalized field names, after decoding they are mapped to a valid 
 
 - [ ] Add example/examples field
 - [ ] Add refinements
-- [ ] Add API section to the documentation
+- [ ] Add support for $refs
+- [ ] Able to target Open API 3 (Swagger) specification for paths
+- [ ] Add API documentation
 - [ ] Wait for the **rescript-struct** V1
