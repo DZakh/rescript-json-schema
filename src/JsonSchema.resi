@@ -1,6 +1,6 @@
 type t
 
-let make: S.t<'value> => t
+let make: S.t<'value> => result<t, string>
 
 module Raw: {
   type t

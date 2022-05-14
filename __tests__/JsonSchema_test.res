@@ -1,7 +1,5 @@
 open Ava
 
-external unsafeToJsonSchema: 'unknown => JsonSchema.t = "%identity"
-
 type recordWithOneStringField = {field: string}
 type recordWithOneOptionalStringField = {optionalField: option<string>}
 type recordWithOneOptionalOptionalStringField = {optionalOptionalField: option<option<string>>}
@@ -13,7 +11,7 @@ test("Schema of bool struct", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    {"$schema": "http://json-schema.org/draft-07/schema#", "type": "boolean"}->unsafeToJsonSchema,
+    Ok(%raw(`{"$schema": "http://json-schema.org/draft-07/schema#", "type": "boolean"}`)),
     (),
   )
 })
@@ -23,7 +21,7 @@ test("Schema of string struct", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    {"$schema": "http://json-schema.org/draft-07/schema#", "type": "string"}->unsafeToJsonSchema,
+    Ok(%raw(`{"$schema": "http://json-schema.org/draft-07/schema#", "type": "string"}`)),
     (),
   )
 })
@@ -33,7 +31,7 @@ test("Schema of int struct", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    {"$schema": "http://json-schema.org/draft-07/schema#", "type": "integer"}->unsafeToJsonSchema,
+    Ok(%raw(`{"$schema": "http://json-schema.org/draft-07/schema#", "type": "integer"}`)),
     (),
   )
 })
@@ -43,7 +41,7 @@ test("Schema of float struct", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    {"$schema": "http://json-schema.org/draft-07/schema#", "type": "number"}->unsafeToJsonSchema,
+    Ok(%raw(`{"$schema": "http://json-schema.org/draft-07/schema#", "type": "number"}`)),
     (),
   )
 })
@@ -53,11 +51,13 @@ test("Schema of strings array struct", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "array",
-      "items": {"type": "string"},
-    }->unsafeToJsonSchema,
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": {"type": "string"},
+      }`),
+    ),
     (),
   )
 })
@@ -67,11 +67,13 @@ test("Schema of strings dict struct", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "additionalProperties": {"type": "string"},
-    }->unsafeToJsonSchema,
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "additionalProperties": {"type": "string"},
+      }`),
+    ),
     (),
   )
 })
@@ -85,13 +87,15 @@ test("Schema of record struct with one string field", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "properties": {"field": {"type": "string"}},
-      "required": ["field"],
-      "additionalProperties": false,
-    }->unsafeToJsonSchema,
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {"field": {"type": "string"}},
+        "required": ["field"],
+        "additionalProperties": false,
+      }`),
+    ),
     (),
   )
 })
@@ -108,12 +112,14 @@ test("Schema of record struct with one optional string field", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "properties": {"optionalField": {"type": "string"}},
-      "additionalProperties": false,
-    }->unsafeToJsonSchema,
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {"optionalField": {"type": "string"}},
+        "additionalProperties": false,
+      }`),
+    ),
     (),
   )
 })
@@ -130,12 +136,14 @@ test("Schema of record struct with one deprecated string field", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "properties": {"optionalField": {"type": "string", "deprecated": true}},
-      "additionalProperties": false,
-    }->unsafeToJsonSchema,
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {"optionalField": {"type": "string", "deprecated": true}},
+        "additionalProperties": false,
+      }`),
+    ),
     (),
   )
 })
@@ -152,14 +160,16 @@ test("Schema of record struct with one deprecated string field and message", t =
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "properties": {
-        "optionalField": {"type": "string", "deprecated": true, "description": "Use another field"},
-      },
-      "additionalProperties": false,
-    }->unsafeToJsonSchema,
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "optionalField": {"type": "string", "deprecated": true, "description": "Use another field"},
+        },
+        "additionalProperties": false,
+      }`),
+    ),
     (),
   )
 })
@@ -182,14 +192,16 @@ test("Deprecated message overrides previous description", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "properties": {
-        "optionalField": {"type": "string", "deprecated": true, "description": "Use another field"},
-      },
-      "additionalProperties": false,
-    }->unsafeToJsonSchema,
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "optionalField": {"type": "string", "deprecated": true, "description": "Use another field"},
+        },
+        "additionalProperties": false,
+      }`),
+    ),
     (),
   )
 })
@@ -209,20 +221,22 @@ test("Schema of record struct with nested record", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "properties": {
-        "recordWithOneStringField": {
-          "type": "object",
-          "properties": {"Field": {"type": "string"}},
-          "required": ["Field"],
-          "additionalProperties": false,
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "recordWithOneStringField": {
+            "type": "object",
+            "properties": {"Field": {"type": "string"}},
+            "required": ["Field"],
+            "additionalProperties": false,
+          },
         },
-      },
-      "required": ["recordWithOneStringField"],
-      "additionalProperties": false,
-    }->unsafeToJsonSchema,
+        "required": ["recordWithOneStringField"],
+        "additionalProperties": false,
+      }`),
+    ),
     (),
   )
 })
@@ -240,18 +254,20 @@ test("Schema of record struct with one optional and one required string field", 
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "properties": {
-        "field": {
-          "type": "string",
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+          },
+          "optionalField": {"type": "string"},
         },
-        "optionalField": {"type": "string"},
-      },
-      "required": ["field"],
-      "additionalProperties": false,
-    }->unsafeToJsonSchema,
+        "required": ["field"],
+        "additionalProperties": false,
+      }`),
+    ),
     (),
   )
 })
@@ -259,9 +275,7 @@ test("Schema of record struct with one optional and one required string field", 
 test("Make JsonSchema throws error with optional root type", t => {
   let struct = S.option(S.string())
 
-  t->Assert.throws(() => {
-    JsonSchema.make(struct)->ignore
-  }, ~expectations=ThrowsException.make(~message="The root struct can\'t be optional", ()), ())
+  t->Assert.deepEqual(JsonSchema.make(struct), Error("The root struct can\'t be optional"), ())
 })
 
 test("Make JsonSchema throws error with record field wrapped in option multiple times", t => {
@@ -274,12 +288,11 @@ test("Make JsonSchema throws error with record field wrapped in option multiple 
     (),
   )
 
-  t->Assert.throws(() => {
-    JsonSchema.make(struct)->ignore
-  }, ~expectations=ThrowsException.make(
-    ~message="The option struct can\'t be nested in another option struct",
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    Error("The option struct can\'t be nested in another option struct"),
     (),
-  ), ())
+  )
 })
 
 test("Primitive struct schema with description", t => {
@@ -287,11 +300,13 @@ test("Primitive struct schema with description", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "boolean",
-      "description": "A primitive struct",
-    }->unsafeToJsonSchema,
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "boolean",
+        "description": "A primitive struct",
+      }`),
+    ),
     (),
   )
 })
@@ -304,9 +319,7 @@ test("Transformed struct schema with default fails when destruction failed", t =
           }->Ok
         }, ()))->S.default("true")), ~constructor=field => {field: field}->Ok, ())
 
-  t->Assert.throws(() => {
-    JsonSchema.make(struct)->ignore
-  }, ~expectations=ThrowsException.make(~message="Couldn't destruct value for default", ()), ())
+  t->Assert.deepEqual(JsonSchema.make(struct), Error("Couldn't destruct value for default"), ())
 })
 
 test("Transformed struct schema uses default with correct type", t => {
@@ -337,12 +350,14 @@ test("Transformed struct schema uses default with correct type", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": false,
-      "properties": {"field": {"default": true, "type": "boolean"}},
-      "type": "object",
-    }->unsafeToJsonSchema,
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {"field": {"default": true, "type": "boolean"}},
+        "type": "object",
+      }`),
+    ),
     (),
   )
 })
@@ -352,11 +367,13 @@ test("Primitive struct schema with additional raw schema", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "boolean",
-      "nullable": true,
-    }->unsafeToJsonSchema,
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "boolean",
+        "nullable": true,
+      }`),
+    ),
     (),
   )
 })
@@ -369,12 +386,14 @@ test("Multiple additional raw schemas are merged together", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "boolean",
-      "deprecated": true,
-      "nullable": true,
-    }->unsafeToJsonSchema,
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "boolean",
+        "deprecated": true,
+        "nullable": true,
+      }`),
+    ),
     (),
   )
 })
@@ -394,14 +413,16 @@ test("Additional raw schema works with optional fields", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "type": "object",
-      "properties": {
-        "optionalField": {"nullable": true, "type": "string"},
-      },
-      "additionalProperties": false,
-    }->unsafeToJsonSchema,
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "optionalField": {"nullable": true, "type": "string"},
+        },
+        "additionalProperties": false,
+      }`),
+    ),
     (),
   )
 })
@@ -411,9 +432,11 @@ test("Unknown struct doesn't affect final schema", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-    }->unsafeToJsonSchema,
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+      }`),
+    ),
     (),
   )
 })
@@ -441,26 +464,28 @@ module Example = {
 
     t->Assert.deepEqual(
       JsonSchema.make(authorStruct),
-      %raw(`{
-        '$schema': 'http://json-schema.org/draft-07/schema#',
-        additionalProperties: false,
-        properties: {
-          Age: {
-            deprecated: true,
-            description: 'A useful explanation',
-            type: 'integer'
+      Ok(
+        %raw(`{
+          '$schema': 'http://json-schema.org/draft-07/schema#',
+          additionalProperties: false,
+          properties: {
+            Age: {
+              deprecated: true,
+              description: 'A useful explanation',
+              type: 'integer'
+            },
+            Id: { type: 'number' },
+            IsApproved: { type: 'integer' },
+            Tags: { 
+              default: [],
+              items: { type: 'string' },
+              type: 'array'
+            }
           },
-          Id: { type: 'number' },
-          IsApproved: { type: 'integer' },
-          Tags: { 
-            default: [],
-            items: { type: 'string' },
-            type: 'array'
-          }
-        },
-        required: [ 'Id', 'IsApproved' ],
-        type: 'object'
-      }`),
+          required: [ 'Id', 'IsApproved' ],
+          type: 'object'
+        }`),
+      ),
       (),
     )
   })

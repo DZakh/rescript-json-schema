@@ -156,16 +156,15 @@ let make = struct => {
     if !node.isRequired {
       raise(RootOptionException)
     }
-    Raw.merge(node.rawSchema, Raw.schemaDialect)->unsafeToJsonSchema
+    Ok(Raw.merge(node.rawSchema, Raw.schemaDialect)->unsafeToJsonSchema)
   } catch {
-  | NestedOptionException =>
-    Js.Exn.raiseError("The option struct can't be nested in another option struct")
-  | RootOptionException => Js.Exn.raiseError("The root struct can't be optional")
-  | ArrayItemOptionException => Js.Exn.raiseError("Optional array item struct isn't supported")
-  | DictItemOptionException => Js.Exn.raiseError("Optional dict item struct isn't supported")
-  | DefaultValueException => Js.Exn.raiseError("Couldn't destruct value for default")
+  | NestedOptionException => Error("The option struct can't be nested in another option struct")
+  | RootOptionException => Error("The root struct can't be optional")
+  | ArrayItemOptionException => Error("Optional array item struct isn't supported")
+  | DictItemOptionException => Error("Optional dict item struct isn't supported")
+  | DefaultValueException => Error("Couldn't destruct value for default")
   // TODO: Raise custom instance of error
-  | _ => Js.Exn.raiseError("Unknown RescriptJsonSchema error.")
+  | _ => Error("Unknown RescriptJsonSchema error.")
   }
 }
 

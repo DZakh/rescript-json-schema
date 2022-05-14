@@ -72,7 +72,7 @@ When the struct is defined it can be used to generate JSON Schema.
 JsonSchema.make(authorStruct)
 ```
 ```js
-{
+Ok({
   '$schema': 'http://json-schema.org/draft-07/schema#',
   additionalProperties: false,
   properties: {
@@ -91,7 +91,7 @@ JsonSchema.make(authorStruct)
   },
   required: [ 'Id', 'IsApproved' ],
   type: 'object'
-}
+})
 ```
 
 ### Decoding validated data
