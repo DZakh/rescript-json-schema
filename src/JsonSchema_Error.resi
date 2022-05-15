@@ -16,6 +16,10 @@ module UnsupportedOptionalNullItem: {
   let make: unit => t
 }
 
+module UnsupportedEmptyOptionLiteral: {
+  let make: unit => t
+}
+
 module UnsupportedRootOptional: {
   let make: unit => t
 }

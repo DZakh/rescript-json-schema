@@ -32,6 +32,7 @@ module Raw = {
       ],
     })
   }
+  let never = make({"not": Js.Dict.empty()})
 
   let array = (innerSchema: t) => {
     make({
@@ -64,6 +65,14 @@ module Raw = {
   }
 
   let deprecated: t = make({"deprecated": true})
+
+  module Literal = {
+    let string = value => make({"type": "string", "const": value})
+    let integer = value => make({"type": "integer", "const": value})
+    let number = value => make({"type": "number", "const": value})
+    let boolean = value => make({"type": "boolean", "const": value})
+    let null = make({"type": "null"})
+  }
 
   module Metadata = S.MakeMetadata({
     type content = t
@@ -142,6 +151,13 @@ let rec makeNode:
           Error(JsonSchema_Error.UnsupportedOptionalNullItem.make())
         }
       })
+    | S.Never => Ok({rawSchema: Raw.never, isRequired: true})
+    | S.Literal(S.Bool(value)) => Ok({rawSchema: Raw.Literal.boolean(value), isRequired: true})
+    | S.Literal(S.Int(value)) => Ok({rawSchema: Raw.Literal.integer(value), isRequired: true})
+    | S.Literal(S.Float(value)) => Ok({rawSchema: Raw.Literal.number(value), isRequired: true})
+    | S.Literal(S.String(value)) => Ok({rawSchema: Raw.Literal.string(value), isRequired: true})
+    | S.Literal(S.EmptyNull) => Ok({rawSchema: Raw.Literal.null, isRequired: true})
+    | S.Literal(S.EmptyOption) => Error(JsonSchema_Error.UnsupportedEmptyOptionLiteral.make())
     | S.Dict(innerStruct) =>
       makeNode(innerStruct)->Belt.Result.flatMap(innerNode => {
         if innerNode.isRequired {
@@ -198,8 +214,8 @@ let make = struct => {
 
 let raw = (struct, providedRawSchema) => {
   let rawSchema = switch struct->Raw.Metadata.extract {
-  | Some(existingRawSchema) => Raw.merge(existingRawSchema, providedRawSchema)
-  | None => providedRawSchema
+  | Some(existingRawSchema) => Raw.merge(existingRawSchema, providedRawSchema->Raw.make)
+  | None => providedRawSchema->Raw.make
   }
   struct->Raw.Metadata.mixin(rawSchema)
 }

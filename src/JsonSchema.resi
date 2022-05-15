@@ -2,17 +2,6 @@ type t
 
 let make: S.t<'value> => result<t, string>
 
-module Raw: {
-  type t
+let raw: (S.t<'value>, 'raw) => S.t<'value>
 
-  let make: 'rawSchema => t
-
-  let string: t
-  let integer: t
-  let number: t
-  let boolean: t
-  let array: t => t
-}
-
-let raw: (S.t<'value>, Raw.t) => S.t<'value>
 let description: (S.t<'value>, string) => S.t<'value>

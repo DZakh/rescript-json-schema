@@ -61,6 +61,110 @@ test("Schema of Null struct", t => {
   )
 })
 
+test("Schema of Never struct", t => {
+  let struct = S.never()
+
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "not": {}
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of Bool Literal struct", t => {
+  let struct = S.literal(Bool(false))
+
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "boolean",
+        "const": false
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of String Literal struct", t => {
+  let struct = S.literal(String("Hello World!"))
+
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "const": "Hello World!"
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of Int Literal struct", t => {
+  let struct = S.literal(Int(123))
+
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "integer",
+        "const": 123
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of Float Literal struct", t => {
+  let struct = S.literal(Float(-123.456))
+
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "const": -123.456
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of EmptyNull Literal struct", t => {
+  let struct = S.literal(EmptyNull)
+
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "null",
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of EmptyOption Literal struct isn't supported", t => {
+  let struct = S.literal(EmptyOption)
+
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    Error(`[ReScript JSON Schema] Failed converting at root. Reason: The EmptyOption struct is not supported yet`),
+    (),
+  )
+})
+
 test("Schema of strings array struct", t => {
   let struct = S.array(S.string())
 
@@ -411,7 +515,7 @@ test("Transformed struct schema uses default with correct type", t => {
 })
 
 test("Primitive struct schema with additional raw schema", t => {
-  let struct = S.bool()->JsonSchema.raw(JsonSchema.Raw.make({"nullable": true}))
+  let struct = S.bool()->JsonSchema.raw({"nullable": true})
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -427,10 +531,7 @@ test("Primitive struct schema with additional raw schema", t => {
 })
 
 test("Multiple additional raw schemas are merged together", t => {
-  let struct =
-    S.bool()
-    ->JsonSchema.raw(JsonSchema.Raw.make({"nullable": true}))
-    ->JsonSchema.raw(JsonSchema.Raw.make({"deprecated": true}))
+  let struct = S.bool()->JsonSchema.raw({"nullable": true})->JsonSchema.raw({"deprecated": true})
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -448,10 +549,7 @@ test("Multiple additional raw schemas are merged together", t => {
 
 test("Additional raw schema works with optional fields", t => {
   let struct = S.record1(
-    ~fields=(
-      "optionalField",
-      S.option(S.string())->JsonSchema.raw(JsonSchema.Raw.make({"nullable": true})),
-    ),
+    ~fields=("optionalField", S.option(S.string())->JsonSchema.raw({"nullable": true})),
     ~constructor=optionalField =>
       {
         optionalField: optionalField,
