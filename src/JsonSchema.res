@@ -99,7 +99,7 @@ let rec makeNode:
           Error(JsonSchema_Error.UnsupportedNestedOptional.make())
         }
       })
-    | S.Record(fields) =>
+    | S.Record({fields, unknownKeys}) =>
       fields
       ->RescriptStruct_ResultX.Array.mapi((field, _) => {
         let (fieldName, fieldStruct) = field
@@ -119,7 +119,14 @@ let rec makeNode:
             }
             properties->Js.Dict.set(fieldName, fieldNode.rawSchema)
           })
-          Raw.record(~additionalProperties=false, ~properties, ~required)
+          Raw.record(
+            ~additionalProperties=switch unknownKeys {
+            | Strict => false
+            | Strip => true
+            },
+            ~properties,
+            ~required,
+          )
         }
         {
           rawSchema: rawSchema,

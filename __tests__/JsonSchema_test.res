@@ -115,6 +115,29 @@ test("Schema of record struct with one string field", t => {
   )
 })
 
+test("Schema of record struct with Strip unknownKeys strategy allows additionalProperties", t => {
+  let struct =
+    S.record1(
+      ~fields=("field", S.string()),
+      ~constructor=field => {field: field}->Ok,
+      (),
+    )->S.Record.strip
+
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {"field": {"type": "string"}},
+        "required": ["field"],
+        "additionalProperties": true,
+      }`),
+    ),
+    (),
+  )
+})
+
 test("Schema of record struct with one optional string field", t => {
   let struct = S.record1(
     ~fields=("optionalField", S.option(S.string())),
