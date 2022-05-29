@@ -1,3 +1,32 @@
+module Inline = {
+  module Result: {
+    let mapError: (result<'ok, 'error1>, 'error1 => 'error2) => result<'ok, 'error2>
+    let map: (result<'ok1, 'error>, 'ok1 => 'ok2) => result<'ok2, 'error>
+    let flatMap: (result<'ok1, 'error>, 'ok1 => result<'ok2, 'error>) => result<'ok2, 'error>
+  } = {
+    @inline
+    let mapError = (result, fn) =>
+      switch result {
+      | Ok(_) as ok => ok
+      | Error(error) => Error(fn(error))
+      }
+
+    @inline
+    let map = (result, fn) =>
+      switch result {
+      | Ok(value) => Ok(fn(value))
+      | Error(_) as error => error
+      }
+
+    @inline
+    let flatMap = (result, fn) =>
+      switch result {
+      | Ok(value) => fn(value)
+      | Error(_) as error => error
+      }
+  }
+}
+
 type t
 
 external unsafeToJsonSchema: 'a => t = "%identity"
@@ -85,7 +114,7 @@ type node = {rawSchema: Raw.t, isRequired: bool}
 let rec makeNode:
   type value. S.t<value> => result<node, JsonSchema_Error.t> =
   struct => {
-    let maybeMetadataRawSchema = struct->Raw.Metadata.extract
+    let maybeMetadataRawSchema = struct->Raw.Metadata.get
 
     switch struct->S.classify {
     | S.String => Ok({rawSchema: Raw.string, isRequired: true})
@@ -93,7 +122,7 @@ let rec makeNode:
     | S.Bool => Ok({rawSchema: Raw.boolean, isRequired: true})
     | S.Float => Ok({rawSchema: Raw.number, isRequired: true})
     | S.Array(innerStruct) =>
-      makeNode(innerStruct)->Belt.Result.flatMap(innerNode => {
+      makeNode(innerStruct)->Inline.Result.flatMap(innerNode => {
         if innerNode.isRequired {
           Ok({rawSchema: Raw.array(innerNode.rawSchema), isRequired: true})
         } else {
@@ -101,7 +130,7 @@ let rec makeNode:
         }
       })
     | S.Option(innerStruct) =>
-      makeNode(innerStruct)->Belt.Result.flatMap(innerNode => {
+      makeNode(innerStruct)->Inline.Result.flatMap(innerNode => {
         if innerNode.isRequired {
           Ok({rawSchema: innerNode.rawSchema, isRequired: false})
         } else {
@@ -110,13 +139,11 @@ let rec makeNode:
       })
     | S.Record({fields, unknownKeys}) =>
       fields
-      ->RescriptStruct_ResultX.Array.mapi((field, _) => {
+      ->RescriptStruct_ResultX.Array.mapi((. field, _) => {
         let (fieldName, fieldStruct) = field
-        makeNode(fieldStruct)->RescriptStruct_ResultX.mapError(
-          JsonSchema_Error.prependField(_, fieldName),
-        )
+        makeNode(fieldStruct)->Inline.Result.mapError(JsonSchema_Error.prependField(_, fieldName))
       })
-      ->Belt.Result.map(fieldNodes => {
+      ->Inline.Result.map(fieldNodes => {
         let rawSchema = {
           let properties = Js.Dict.empty()
           let required = []
@@ -144,7 +171,7 @@ let rec makeNode:
       })
     | S.Unknown => Ok({rawSchema: Raw.empty, isRequired: true})
     | S.Null(innerStruct) =>
-      makeNode(innerStruct)->Belt.Result.flatMap(innerNode => {
+      makeNode(innerStruct)->Inline.Result.flatMap(innerNode => {
         if innerNode.isRequired {
           Ok({rawSchema: Raw.null(innerNode.rawSchema), isRequired: true})
         } else {
@@ -159,7 +186,7 @@ let rec makeNode:
     | S.Literal(S.EmptyNull) => Ok({rawSchema: Raw.Literal.null, isRequired: true})
     | S.Literal(S.EmptyOption) => Error(JsonSchema_Error.UnsupportedEmptyOptionLiteral.make())
     | S.Dict(innerStruct) =>
-      makeNode(innerStruct)->Belt.Result.flatMap(innerNode => {
+      makeNode(innerStruct)->Inline.Result.flatMap(innerNode => {
         if innerNode.isRequired {
           Ok({rawSchema: Raw.dict(innerNode.rawSchema), isRequired: true})
         } else {
@@ -167,7 +194,7 @@ let rec makeNode:
         }
       })
     | S.Deprecated({struct: innerStruct, maybeMessage}) =>
-      makeNode(innerStruct)->Belt.Result.flatMap(innerNode => {
+      makeNode(innerStruct)->Inline.Result.flatMap(innerNode => {
         let rawSchema = {
           let rawSchema' = Raw.merge(innerNode.rawSchema, Raw.deprecated)
           switch maybeMessage {
@@ -178,18 +205,18 @@ let rec makeNode:
         Ok({rawSchema: rawSchema, isRequired: false})
       })
     | S.Default({struct: innerStruct, value}) =>
-      switch Some(value)->S.destructWith(innerStruct) {
+      switch Some(value)->S.serializeWith(~mode=Safe, innerStruct) {
       | Error(destructingErrorMessage) =>
         Error(JsonSchema_Error.DefaultDestructingFailed.make(~destructingErrorMessage))
       | Ok(destructedValue) =>
-        makeNode(innerStruct)->Belt.Result.map(innerNode => {
+        makeNode(innerStruct)->Inline.Result.map(innerNode => {
           {
             rawSchema: Raw.merge(innerNode.rawSchema, Raw.default(destructedValue)),
             isRequired: false,
           }
         })
       }
-    }->Belt.Result.map(node => {
+    }->Inline.Result.map(node => {
       switch maybeMetadataRawSchema {
       | Some(metadataRawSchema) => {
           rawSchema: Raw.merge(node.rawSchema, metadataRawSchema),
@@ -202,22 +229,22 @@ let rec makeNode:
 
 let make = struct => {
   makeNode(struct)
-  ->Belt.Result.flatMap(node => {
+  ->Inline.Result.flatMap(node => {
     if node.isRequired {
       Ok(Raw.merge(node.rawSchema, Raw.schemaDialect)->unsafeToJsonSchema)
     } else {
       Error(JsonSchema_Error.UnsupportedRootOptional.make())
     }
   })
-  ->RescriptStruct_ResultX.mapError(JsonSchema_Error.toString)
+  ->Inline.Result.mapError(JsonSchema_Error.toString)
 }
 
 let raw = (struct, providedRawSchema) => {
-  let rawSchema = switch struct->Raw.Metadata.extract {
+  let rawSchema = switch struct->Raw.Metadata.get {
   | Some(existingRawSchema) => Raw.merge(existingRawSchema, providedRawSchema->Raw.make)
   | None => providedRawSchema->Raw.make
   }
-  struct->Raw.Metadata.mixin(rawSchema)
+  struct->Raw.Metadata.set(rawSchema)
 }
 
 let description = (struct, value) => {
