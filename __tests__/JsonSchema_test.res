@@ -469,7 +469,7 @@ test("Transformed struct schema with default fails when destruction failed", t =
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    Error(`[ReScript JSON Schema] Failed converting at ["field"]. Reason: Couldn't destruct default value. Error: [ReScript Struct] Failed destructing at root. Reason: Struct destructor is missing`),
+    Error(`[ReScript JSON Schema] Failed converting at ["field"]. Reason: Couldn't destruct default value. Error: [ReScript Struct] Failed serializing at root. Reason: Struct destructor is missing`),
     (),
   )
 })

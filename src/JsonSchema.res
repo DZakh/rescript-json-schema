@@ -3,6 +3,9 @@ module Inline = {
     let mapError: (result<'ok, 'error1>, 'error1 => 'error2) => result<'ok, 'error2>
     let map: (result<'ok1, 'error>, 'ok1 => 'ok2) => result<'ok2, 'error>
     let flatMap: (result<'ok1, 'error>, 'ok1 => result<'ok2, 'error>) => result<'ok2, 'error>
+    module Array: {
+      let mapi: (array<'a>, (. 'a, int) => result<'b, 'e>) => result<array<'b>, 'e>
+    }
   } = {
     @inline
     let mapError = (result, fn) =>
@@ -24,6 +27,31 @@ module Inline = {
       | Ok(value) => fn(value)
       | Error(_) as error => error
       }
+
+    module Array = {
+      let mapi = (array, fn) => {
+        let newArray = []
+        let idxRef = ref(0)
+        let maybeErrorRef = ref(None)
+
+        while idxRef.contents < array->Js.Array2.length && maybeErrorRef.contents === None {
+          let idx = idxRef.contents
+          let item = array->Js.Array2.unsafe_get(idx)
+          switch fn(. item, idx) {
+          | Ok(value) => {
+              newArray->Js.Array2.push(value)->ignore
+              idxRef.contents = idxRef.contents + 1
+            }
+          | Error(_) as error => maybeErrorRef.contents = Some(error)
+          }
+        }
+
+        switch maybeErrorRef.contents {
+        | Some(error) => error
+        | None => Ok(newArray)
+        }
+      }
+    }
   }
 }
 
@@ -137,10 +165,10 @@ let rec makeNode:
           Error(JsonSchema_Error.UnsupportedNestedOptional.make())
         }
       })
-    | S.Record({fields, unknownKeys}) =>
-      fields
-      ->RescriptStruct_ResultX.Array.mapi((. field, _) => {
-        let (fieldName, fieldStruct) = field
+    | S.Record({fields, fieldNames, unknownKeys}) =>
+      fieldNames
+      ->Inline.Result.Array.mapi((. fieldName, _) => {
+        let fieldStruct = fields->Js.Dict.unsafeGet(fieldName)
         makeNode(fieldStruct)->Inline.Result.mapError(JsonSchema_Error.prependField(_, fieldName))
       })
       ->Inline.Result.map(fieldNodes => {
@@ -148,8 +176,7 @@ let rec makeNode:
           let properties = Js.Dict.empty()
           let required = []
           fieldNodes->Js.Array2.forEachi((fieldNode, idx) => {
-            let field = fields->Js.Array2.unsafe_get(idx)
-            let (fieldName, _) = field
+            let fieldName = fieldNames->Js.Array2.unsafe_get(idx)
             if fieldNode.isRequired {
               required->Js.Array2.push(fieldName)->ignore
             }
