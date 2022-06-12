@@ -212,6 +212,7 @@ let rec makeNode:
     | S.Literal(S.String(value)) => Ok({rawSchema: Raw.Literal.string(value), isRequired: true})
     | S.Literal(S.EmptyNull) => Ok({rawSchema: Raw.Literal.null, isRequired: true})
     | S.Literal(S.EmptyOption) => Error(JsonSchema_Error.UnsupportedEmptyOptionLiteral.make())
+    | S.Literal(S.Unit) => Error(JsonSchema_Error.UnsupportedEmptyOptionLiteral.make())
     | S.Dict(innerStruct) =>
       makeNode(innerStruct)->Inline.Result.flatMap(innerNode => {
         if innerNode.isRequired {
