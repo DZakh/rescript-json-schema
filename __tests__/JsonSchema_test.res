@@ -1,11 +1,5 @@
 open Ava
 
-type recordWithOneStringField = {field: string}
-type recordWithOneOptionalStringField = {optionalField: option<string>}
-type recordWithOneOptionalOptionalStringField = {optionalOptionalField: option<option<string>>}
-type recordWithOneOptionalAndOneRequiredStringField = {optionalField: option<string>, field: string}
-type nestedRecord = {recordWithOneStringField: recordWithOneStringField}
-
 test("Schema of bool struct", t => {
   let struct = S.bool()
 
@@ -160,7 +154,62 @@ test("Schema of EmptyOption Literal struct isn't supported", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    Error(`[ReScript JSON Schema] Failed converting at root. Reason: The EmptyOption struct is not supported yet`),
+    Error(`[ReScript JSON Schema] Failed converting at root. Reason: The EmptyOption Literal struct is not supported`),
+    (),
+  )
+})
+
+test("Schema of NaN Literal struct isn't supported", t => {
+  let struct = S.literal(NaN)
+
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    Error(`[ReScript JSON Schema] Failed converting at root. Reason: The NaN Literal struct is not supported`),
+    (),
+  )
+})
+
+test("Schema of tuple struct", t => {
+  let struct = S.tuple2(. S.string(), S.bool())
+
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": [{"type": "string"}, {"type": "boolean"}],
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of union struct", t => {
+  let struct = S.union([
+    S.literalVariant(String("Yes"), true),
+    S.literalVariant(String("No"), false),
+  ])
+
+  t->Assert.deepEqual(
+    JsonSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "anyOf": [
+          {
+            const: 'Yes',
+            type: 'string'
+          },
+          {
+            const: 'No',
+            type: 'string'
+          }
+        ]
+      }`),
+    ),
     (),
   )
 })
@@ -198,11 +247,7 @@ test("Schema of strings dict struct", t => {
 })
 
 test("Schema of record struct with one string field", t => {
-  let struct = S.record1(
-    ~fields=("field", S.string()),
-    ~constructor=field => {field: field}->Ok,
-    (),
-  )
+  let struct = S.record1(. ("field", S.string()))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -220,12 +265,7 @@ test("Schema of record struct with one string field", t => {
 })
 
 test("Schema of record struct with Strip unknownKeys strategy allows additionalProperties", t => {
-  let struct =
-    S.record1(
-      ~fields=("field", S.string()),
-      ~constructor=field => {field: field}->Ok,
-      (),
-    )->S.Record.strip
+  let struct = S.record1(. ("field", S.string()))->S.Record.strip
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -243,14 +283,7 @@ test("Schema of record struct with Strip unknownKeys strategy allows additionalP
 })
 
 test("Schema of record struct with one optional string field", t => {
-  let struct = S.record1(
-    ~fields=("optionalField", S.option(S.string())),
-    ~constructor=optionalField =>
-      {
-        optionalField: optionalField,
-      }->Ok,
-    (),
-  )
+  let struct = S.record1(. ("optionalField", S.option(S.string())))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -267,14 +300,7 @@ test("Schema of record struct with one optional string field", t => {
 })
 
 test("Schema of record struct with one deprecated string field", t => {
-  let struct = S.record1(
-    ~fields=("optionalField", S.deprecated(S.string())),
-    ~constructor=optionalField =>
-      {
-        optionalField: optionalField,
-      }->Ok,
-    (),
-  )
+  let struct = S.record1(. ("optionalField", S.deprecated(S.string())))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -291,14 +317,10 @@ test("Schema of record struct with one deprecated string field", t => {
 })
 
 test("Schema of record struct with one deprecated string field and message", t => {
-  let struct = S.record1(
-    ~fields=("optionalField", S.deprecated(~message="Use another field", S.string())),
-    ~constructor=optionalField =>
-      {
-        optionalField: optionalField,
-      }->Ok,
-    (),
-  )
+  let struct = S.record1(. (
+    "optionalField",
+    S.deprecated(~message="Use another field", S.string()),
+  ))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -317,20 +339,13 @@ test("Schema of record struct with one deprecated string field and message", t =
 })
 
 test("Deprecated message overrides previous description", t => {
-  let struct = S.record1(
-    ~fields=(
-      "optionalField",
-      S.deprecated(
-        ~message="Use another field",
-        S.string()->JsonSchema.description("Previous description"),
-      ),
+  let struct = S.record1(. (
+    "optionalField",
+    S.deprecated(
+      ~message="Use another field",
+      S.string()->JsonSchema.description("Previous description"),
     ),
-    ~constructor=optionalField =>
-      {
-        optionalField: optionalField,
-      }->Ok,
-    (),
-  )
+  ))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -349,17 +364,7 @@ test("Deprecated message overrides previous description", t => {
 })
 
 test("Schema of record struct with nested record", t => {
-  let struct = S.record1(
-    ~fields=(
-      "recordWithOneStringField",
-      S.record1(~fields=("Field", S.string()), ~constructor=field => {field: field}->Ok, ()),
-    ),
-    ~constructor=recordWithOneStringField =>
-      {
-        recordWithOneStringField: recordWithOneStringField,
-      }->Ok,
-    (),
-  )
+  let struct = S.record1(. ("recordWithOneStringField", S.record1(. ("Field", S.string()))))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -384,15 +389,7 @@ test("Schema of record struct with nested record", t => {
 })
 
 test("Schema of record struct with one optional and one required string field", t => {
-  let struct = S.record2(
-    ~fields=(("field", S.string()), ("optionalField", S.option(S.string()))),
-    ~constructor=((field, optionalField)) =>
-      {
-        field: field,
-        optionalField: optionalField,
-      }->Ok,
-    (),
-  )
+  let struct = S.record2(. ("field", S.string()), ("optionalField", S.option(S.string())))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -420,25 +417,18 @@ test("Make JsonSchema throws error with optional root type", t => {
   t->Assert.deepEqual(
     JsonSchema.make(struct),
     Error(
-      "[ReScript JSON Schema] Failed converting at root. Reason: Optional struct is not supported at root yet",
+      "[ReScript JSON Schema] Failed converting at root. Reason: Optional struct is not supported at root",
     ),
     (),
   )
 })
 
 test("Make JsonSchema throws error with record field wrapped in option multiple times", t => {
-  let struct = S.record1(
-    ~fields=("optionalOptionalField", S.option(S.option(S.string()))),
-    ~constructor=optionalOptionalField =>
-      {
-        optionalOptionalField: optionalOptionalField,
-      }->Ok,
-    (),
-  )
+  let struct = S.record1(. ("optionalOptionalField", S.option(S.option(S.string()))))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    Error(`[ReScript JSON Schema] Failed converting at ["optionalOptionalField"]. Reason: Optional struct is not supported inside the Option struct yet`),
+    Error(`[ReScript JSON Schema] Failed converting at ["optionalOptionalField"]. Reason: Optional struct is not supported inside the Option struct`),
     (),
   )
 })
@@ -460,45 +450,41 @@ test("Primitive struct schema with description", t => {
 })
 
 test("Transformed struct schema with default fails when destruction failed", t => {
-  let struct = S.record1(~fields=("field", S.option(S.bool()->S.transform(~constructor=bool => {
-          switch bool {
-          | true => "true"
-          | false => ""
-          }->Ok
-        }, ()))->S.default("true")), ~constructor=field => {field: field}->Ok, ())
+  let struct = S.record1(. ("field", S.option(S.bool()->S.transform(~parser=bool => {
+        switch bool {
+        | true => "true"
+        | false => ""
+        }->Ok
+      }, ()))->S.default("true")))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    Error(`[ReScript JSON Schema] Failed converting at ["field"]. Reason: Couldn't destruct default value. Error: [ReScript Struct] Failed serializing at root. Reason: Struct destructor is missing`),
+    Error(`[ReScript JSON Schema] Failed converting at ["field"]. Reason: Couldn't destruct default value. Error: [ReScript Struct] Failed serializing at root. Reason: Struct serializer is missing`),
     (),
   )
 })
 
 test("Transformed struct schema uses default with correct type", t => {
-  let struct = S.record1(
-    ~fields=(
-      "field",
-      S.option(
-        S.bool()->S.transform(
-          ~constructor=bool => {
-            switch bool {
-            | true => "true"
-            | false => ""
-            }->Ok
-          },
-          ~destructor=string => {
-            switch string {
-            | "true" => true
-            | _ => false
-            }->Ok
-          },
-          (),
-        ),
-      )->S.default("true"),
-    ),
-    ~constructor=field => {field: field}->Ok,
-    (),
-  )
+  let struct = S.record1(. (
+    "field",
+    S.option(
+      S.bool()->S.transform(
+        ~parser=bool => {
+          switch bool {
+          | true => "true"
+          | false => ""
+          }->Ok
+        },
+        ~serializer=string => {
+          switch string {
+          | "true" => true
+          | _ => false
+          }->Ok
+        },
+        (),
+      ),
+    )->S.default("true"),
+  ))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -548,14 +534,10 @@ test("Multiple additional raw schemas are merged together", t => {
 })
 
 test("Additional raw schema works with optional fields", t => {
-  let struct = S.record1(
-    ~fields=("optionalField", S.option(S.string())->JsonSchema.raw({"nullable": true})),
-    ~constructor=optionalField =>
-      {
-        optionalField: optionalField,
-      }->Ok,
-    (),
-  )
+  let struct = S.record1(. (
+    "optionalField",
+    S.option(S.string())->JsonSchema.raw({"nullable": true}),
+  ))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -588,24 +570,15 @@ test("Unknown struct doesn't affect final schema", t => {
 })
 
 module Example = {
-  type author = {id: float, tags: array<string>, isAproved: bool, deprecatedAge: option<int>}
-
   test("Example", t => {
-    let authorStruct: S.t<author> = S.record4(
-      ~fields=(
-        ("Id", S.float()),
-        ("Tags", S.option(S.array(S.string()))->S.default([])),
-        ("IsApproved", S.int()->S.transform(~constructor=int =>
-            switch int {
-            | 1 => true
-            | _ => false
-            }->Ok
-          , ())),
-        ("Age", S.deprecated(~message="A useful explanation", S.int())),
+    let authorStruct = S.record4(.
+      ("Id", S.float()),
+      ("Tags", S.option(S.array(S.string()))->S.default([])),
+      (
+        "IsApproved",
+        S.union([S.literalVariant(String("Yes"), true), S.literalVariant(String("No"), false)]),
       ),
-      ~constructor=((id, tags, isAproved, deprecatedAge)) =>
-        {id: id, tags: tags, isAproved: isAproved, deprecatedAge: deprecatedAge}->Ok,
-      (),
+      ("Age", S.deprecated(~message="A useful explanation", S.int())),
     )
 
     t->Assert.deepEqual(
@@ -621,7 +594,18 @@ module Example = {
               type: 'integer'
             },
             Id: { type: 'number' },
-            IsApproved: { type: 'integer' },
+            IsApproved: { 
+              anyOf: [
+                {
+                  const: 'Yes',
+                  type: 'string'
+                },
+                {
+                  const: 'No',
+                  type: 'string'
+                }
+              ]
+             },
             Tags: { 
               default: [],
               items: { type: 'string' },

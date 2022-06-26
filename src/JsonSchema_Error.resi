@@ -4,6 +4,18 @@ module UnsupportedOptionalDictItem: {
   let make: unit => t
 }
 
+module UnsupportedOptionalTupleItem: {
+  let make: unit => t
+}
+
+module UnsupportedOptionalUnionItem: {
+  let make: unit => t
+}
+
+module UnsupportedInstance: {
+  let make: unit => t
+}
+
 module UnsupportedOptionalArrayItem: {
   let make: unit => t
 }
@@ -17,6 +29,10 @@ module UnsupportedOptionalNullItem: {
 }
 
 module UnsupportedEmptyOptionLiteral: {
+  let make: unit => t
+}
+
+module UnsupportedNaNLiteral: {
   let make: unit => t
 }
 

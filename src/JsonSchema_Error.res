@@ -10,11 +10,33 @@ and kind =
   | UnsupportedRootOptional
   | UnsupportedOptionalNullItem
   | UnsupportedEmptyOptionLiteral
+  | UnsupportedNaNLiteral
+  | UnsupportedOptionalTupleItem
+  | UnsupportedOptionalUnionItem
+  | UnsupportedInstance
   | DefaultDestructingFailed({destructingErrorMessage: string})
 
 module UnsupportedOptionalDictItem = {
   let make = () => {
     {kind: UnsupportedOptionalDictItem, location: []}
+  }
+}
+
+module UnsupportedOptionalTupleItem = {
+  let make = () => {
+    {kind: UnsupportedOptionalTupleItem, location: []}
+  }
+}
+
+module UnsupportedOptionalUnionItem = {
+  let make = () => {
+    {kind: UnsupportedOptionalUnionItem, location: []}
+  }
+}
+
+module UnsupportedInstance = {
+  let make = () => {
+    {kind: UnsupportedInstance, location: []}
   }
 }
 
@@ -27,6 +49,12 @@ module UnsupportedOptionalArrayItem = {
 module UnsupportedEmptyOptionLiteral = {
   let make = () => {
     {kind: UnsupportedEmptyOptionLiteral, location: []}
+  }
+}
+
+module UnsupportedNaNLiteral = {
+  let make = () => {
+    {kind: UnsupportedNaNLiteral, location: []}
   }
 }
 
@@ -78,21 +106,19 @@ let prependField = (error, field) => {
 
 let toString = error => {
   let locationText = error.location->formatLocation
-  let message = switch error.kind {
-  | UnsupportedOptionalDictItem =>
-    `Failed converting at ${locationText}. Reason: Optional struct is not supported as Dict item yet`
-  | UnsupportedOptionalArrayItem =>
-    `Failed converting at ${locationText}. Reason: Optional struct is not supported as Array item yet`
-  | UnsupportedRootOptional =>
-    `Failed converting at ${locationText}. Reason: Optional struct is not supported at root yet`
-  | UnsupportedEmptyOptionLiteral =>
-    `Failed converting at ${locationText}. Reason: The EmptyOption struct is not supported yet`
-  | UnsupportedOptionalNullItem =>
-    `Failed converting at ${locationText}. Reason: Optional struct is not supported as Null item yet`
-  | UnsupportedNestedOptional =>
-    `Failed converting at ${locationText}. Reason: Optional struct is not supported inside the Option struct yet`
+  let reason = switch error.kind {
+  | UnsupportedOptionalDictItem => `Optional struct is not supported as Dict item`
+  | UnsupportedOptionalArrayItem => `Optional struct is not supported as Array item`
+  | UnsupportedRootOptional => `Optional struct is not supported at root`
+  | UnsupportedEmptyOptionLiteral => `The EmptyOption Literal struct is not supported`
+  | UnsupportedOptionalNullItem => `Optional struct is not supported as Null item`
+  | UnsupportedNestedOptional => `Optional struct is not supported inside the Option struct`
+  | UnsupportedNaNLiteral => `The NaN Literal struct is not supported`
+  | UnsupportedOptionalTupleItem => `Optional struct is not supported as Tuple item`
+  | UnsupportedOptionalUnionItem => `Optional struct is not supported as Union item`
+  | UnsupportedInstance => `The Instance struct is not supported`
   | DefaultDestructingFailed({destructingErrorMessage}) =>
-    `Failed converting at ${locationText}. Reason: Couldn't destruct default value. Error: ${destructingErrorMessage}`
+    `Couldn't destruct default value. Error: ${destructingErrorMessage}`
   }
-  `[ReScript JSON Schema] ${message}`
+  `[ReScript JSON Schema] Failed converting at ${locationText}. Reason: ${reason}`
 }
