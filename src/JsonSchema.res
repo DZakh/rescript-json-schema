@@ -42,6 +42,7 @@ module Lib = {
               newArray->Js.Array2.push(value)->ignore
               idxRef.contents = idxRef.contents + 1
             }
+
           | Error(_) as error => maybeErrorRef.contents = Some(error)
           }
         }
