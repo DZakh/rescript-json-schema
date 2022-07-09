@@ -2,7 +2,7 @@
   "name": "rescript-json-schema",
   "namespace": false,
   "bsc-flags": ["-bs-no-version-header", "-bs-super-errors"],
-  "bs-dev-dependencies": ["rescript-ava"],
+  "bs-dev-dependencies": ["@dzakh/rescript-ava"],
   "bs-dependencies": ["rescript-struct"],
   "suffix": ".bs.js",
   "package-specs": {
