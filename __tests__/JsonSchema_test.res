@@ -257,7 +257,7 @@ test("Schema of record struct with one string field", t => {
         "type": "object",
         "properties": {"field": {"type": "string"}},
         "required": ["field"],
-        "additionalProperties": false,
+        "additionalProperties": true,
       }`),
     ),
     (),
@@ -282,6 +282,27 @@ test("Schema of record struct with Strip unknownKeys strategy allows additionalP
   )
 })
 
+test(
+  "Schema of record struct with Strict unknownKeys strategy disallows additionalProperties",
+  t => {
+    let struct = S.record1(. ("field", S.string()))->S.Record.strict
+
+    t->Assert.deepEqual(
+      JsonSchema.make(struct),
+      Ok(
+        %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {"field": {"type": "string"}},
+        "required": ["field"],
+        "additionalProperties": false,
+      }`),
+      ),
+      (),
+    )
+  },
+)
+
 test("Schema of record struct with one optional string field", t => {
   let struct = S.record1(. ("optionalField", S.option(S.string())))
 
@@ -292,7 +313,7 @@ test("Schema of record struct with one optional string field", t => {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {"optionalField": {"type": "string"}},
-        "additionalProperties": false,
+        "additionalProperties": true,
       }`),
     ),
     (),
@@ -309,7 +330,7 @@ test("Schema of record struct with one deprecated string field", t => {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {"optionalField": {"type": "string", "deprecated": true}},
-        "additionalProperties": false,
+        "additionalProperties": true,
       }`),
     ),
     (),
@@ -331,7 +352,7 @@ test("Schema of record struct with one deprecated string field and message", t =
         "properties": {
           "optionalField": {"type": "string", "deprecated": true, "description": "Use another field"},
         },
-        "additionalProperties": false,
+        "additionalProperties": true,
       }`),
     ),
     (),
@@ -356,7 +377,7 @@ test("Deprecated message overrides previous description", t => {
         "properties": {
           "optionalField": {"type": "string", "deprecated": true, "description": "Use another field"},
         },
-        "additionalProperties": false,
+        "additionalProperties": true,
       }`),
     ),
     (),
@@ -377,11 +398,11 @@ test("Schema of record struct with nested record", t => {
             "type": "object",
             "properties": {"Field": {"type": "string"}},
             "required": ["Field"],
-            "additionalProperties": false,
+            "additionalProperties": true,
           },
         },
         "required": ["recordWithOneStringField"],
-        "additionalProperties": false,
+        "additionalProperties": true,
       }`),
     ),
     (),
@@ -404,7 +425,7 @@ test("Schema of record struct with one optional and one required string field", 
           "optionalField": {"type": "string"},
         },
         "required": ["field"],
-        "additionalProperties": false,
+        "additionalProperties": true,
       }`),
     ),
     (),
@@ -454,7 +475,7 @@ test("Transformed struct schema with default fails when destruction failed", t =
         switch bool {
         | true => "true"
         | false => ""
-        }->Ok
+        }
       }, ()))->S.default("true")))
 
   t->Assert.deepEqual(
@@ -473,13 +494,13 @@ test("Transformed struct schema uses default with correct type", t => {
           switch bool {
           | true => "true"
           | false => ""
-          }->Ok
+          }
         },
         ~serializer=string => {
           switch string {
           | "true" => true
           | _ => false
-          }->Ok
+          }
         },
         (),
       ),
@@ -491,7 +512,7 @@ test("Transformed struct schema uses default with correct type", t => {
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
-        "additionalProperties": false,
+        "additionalProperties": true,
         "properties": {"field": {"default": true, "type": "boolean"}},
         "type": "object",
       }`),
@@ -548,7 +569,7 @@ test("Additional raw schema works with optional fields", t => {
         "properties": {
           "optionalField": {"nullable": true, "type": "string"},
         },
-        "additionalProperties": false,
+        "additionalProperties": true,
       }`),
     ),
     (),
@@ -586,7 +607,7 @@ module Example = {
       Ok(
         %raw(`{
           '$schema': 'http://json-schema.org/draft-07/schema#',
-          additionalProperties: false,
+          additionalProperties: true,
           properties: {
             Age: {
               deprecated: true,

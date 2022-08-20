@@ -281,7 +281,7 @@ let rec makeNode:
         Ok({rawSchema: rawSchema, isRequired: false})
       })
     | S.Default({struct: innerStruct, value}) =>
-      switch Some(value)->S.serializeWith(~mode=Safe, innerStruct) {
+      switch Some(value)->S.serializeWith(innerStruct) {
       | Error(destructingError) =>
         Error(
           JsonSchema_Error.DefaultDestructingFailed.make(

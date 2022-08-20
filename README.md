@@ -49,7 +49,7 @@ JsonSchema.make(authorStruct)
 ```js
 Ok({
   '$schema': 'http://json-schema.org/draft-07/schema#',
-  additionalProperties: false,
+  type: 'object'
   properties: {
     Age: {
       deprecated: true,
@@ -74,7 +74,7 @@ Ok({
     }
   },
   required: ['Id', 'IsApproved'],
-  type: 'object'
+  additionalProperties: true,
 })
 ```
 
