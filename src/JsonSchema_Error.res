@@ -9,11 +9,9 @@ and kind =
   | UnsupportedNestedOptional
   | UnsupportedRootOptional
   | UnsupportedOptionalNullItem
-  | UnsupportedEmptyOptionLiteral
-  | UnsupportedNaNLiteral
   | UnsupportedOptionalTupleItem
   | UnsupportedOptionalUnionItem
-  | UnsupportedInstance
+  | UnsupportedStruct(string)
   | DefaultDestructingFailed({destructingErrorMessage: string})
 
 module UnsupportedOptionalDictItem = {
@@ -34,27 +32,15 @@ module UnsupportedOptionalUnionItem = {
   }
 }
 
-module UnsupportedInstance = {
-  let make = () => {
-    {kind: UnsupportedInstance, location: []}
+module UnsupportedStruct = {
+  let make = struct => {
+    {kind: UnsupportedStruct(struct->S.name), location: []}
   }
 }
 
 module UnsupportedOptionalArrayItem = {
   let make = () => {
     {kind: UnsupportedOptionalArrayItem, location: []}
-  }
-}
-
-module UnsupportedEmptyOptionLiteral = {
-  let make = () => {
-    {kind: UnsupportedEmptyOptionLiteral, location: []}
-  }
-}
-
-module UnsupportedNaNLiteral = {
-  let make = () => {
-    {kind: UnsupportedNaNLiteral, location: []}
   }
 }
 
@@ -110,13 +96,11 @@ let toString = error => {
   | UnsupportedOptionalDictItem => `Optional struct is not supported as Dict item`
   | UnsupportedOptionalArrayItem => `Optional struct is not supported as Array item`
   | UnsupportedRootOptional => `Optional struct is not supported at root`
-  | UnsupportedEmptyOptionLiteral => `The EmptyOption Literal struct is not supported`
   | UnsupportedOptionalNullItem => `Optional struct is not supported as Null item`
   | UnsupportedNestedOptional => `Optional struct is not supported inside the Option struct`
-  | UnsupportedNaNLiteral => `The NaN Literal struct is not supported`
   | UnsupportedOptionalTupleItem => `Optional struct is not supported as Tuple item`
   | UnsupportedOptionalUnionItem => `Optional struct is not supported as Union item`
-  | UnsupportedInstance => `The Instance struct is not supported`
+  | UnsupportedStruct(structName) => `The ${structName} struct is not supported`
   | DefaultDestructingFailed({destructingErrorMessage}) =>
     `Couldn't destruct default value. Error: ${destructingErrorMessage}`
   }

@@ -42,6 +42,7 @@ module Lib = {
               newArray->Js.Array2.push(value)->ignore
               idxRef.contents = idxRef.contents + 1
             }
+
           | Error(_) as error => maybeErrorRef.contents = Some(error)
           }
         }
@@ -204,7 +205,6 @@ let rec makeNode:
       ->Lib.Result.map(items => {
         {rawSchema: Raw.union(items), isRequired: true}
       })
-    | S.Instance(_) => Error(JsonSchema_Error.UnsupportedInstance.make())
     | S.Option(innerStruct) =>
       makeNode(innerStruct)->Lib.Result.flatMap(innerNode => {
         if innerNode.isRequired {
@@ -240,7 +240,7 @@ let rec makeNode:
           )
         }
         {
-          rawSchema: rawSchema,
+          rawSchema,
           isRequired: true,
         }
       })
@@ -259,8 +259,9 @@ let rec makeNode:
     | S.Literal(S.Float(value)) => Ok({rawSchema: Raw.Literal.number(value), isRequired: true})
     | S.Literal(S.String(value)) => Ok({rawSchema: Raw.Literal.string(value), isRequired: true})
     | S.Literal(S.EmptyNull) => Ok({rawSchema: Raw.Literal.null, isRequired: true})
-    | S.Literal(S.EmptyOption) => Error(JsonSchema_Error.UnsupportedEmptyOptionLiteral.make())
-    | S.Literal(S.NaN) => Error(JsonSchema_Error.UnsupportedNaNLiteral.make())
+    | S.Literal(S.EmptyOption) => Error(JsonSchema_Error.UnsupportedStruct.make(struct))
+    | S.Literal(S.NaN) => Error(JsonSchema_Error.UnsupportedStruct.make(struct))
+    | S.Date => Error(JsonSchema_Error.UnsupportedStruct.make(struct))
     | S.Dict(innerStruct) =>
       makeNode(innerStruct)->Lib.Result.flatMap(innerNode => {
         if innerNode.isRequired {
@@ -278,7 +279,7 @@ let rec makeNode:
           | None => rawSchema'
           }
         }
-        Ok({rawSchema: rawSchema, isRequired: false})
+        Ok({rawSchema, isRequired: false})
       })
     | S.Default({struct: innerStruct, value}) =>
       switch Some(value)->S.serializeWith(innerStruct) {

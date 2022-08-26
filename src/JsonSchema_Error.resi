@@ -12,8 +12,8 @@ module UnsupportedOptionalUnionItem: {
   let make: unit => t
 }
 
-module UnsupportedInstance: {
-  let make: unit => t
+module UnsupportedStruct: {
+  let make: S.t<'any> => t
 }
 
 module UnsupportedOptionalArrayItem: {
@@ -25,14 +25,6 @@ module UnsupportedNestedOptional: {
 }
 
 module UnsupportedOptionalNullItem: {
-  let make: unit => t
-}
-
-module UnsupportedEmptyOptionLiteral: {
-  let make: unit => t
-}
-
-module UnsupportedNaNLiteral: {
   let make: unit => t
 }
 

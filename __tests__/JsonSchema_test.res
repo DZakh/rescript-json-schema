@@ -154,7 +154,7 @@ test("Schema of EmptyOption Literal struct isn't supported", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    Error(`[ReScript JSON Schema] Failed converting at root. Reason: The EmptyOption Literal struct is not supported`),
+    Error(`[ReScript JSON Schema] Failed converting at root. Reason: The EmptyOption Literal (undefined) struct is not supported`),
     (),
   )
 })
@@ -164,7 +164,7 @@ test("Schema of NaN Literal struct isn't supported", t => {
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
-    Error(`[ReScript JSON Schema] Failed converting at root. Reason: The NaN Literal struct is not supported`),
+    Error(`[ReScript JSON Schema] Failed converting at root. Reason: The NaN Literal (NaN) struct is not supported`),
     (),
   )
 })
@@ -321,7 +321,7 @@ test("Schema of record struct with one optional string field", t => {
 })
 
 test("Schema of record struct with one deprecated string field", t => {
-  let struct = S.record1(. ("optionalField", S.deprecated(S.string())))
+  let struct = S.record1(. ("optionalField", S.string()->S.deprecated()))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -340,7 +340,7 @@ test("Schema of record struct with one deprecated string field", t => {
 test("Schema of record struct with one deprecated string field and message", t => {
   let struct = S.record1(. (
     "optionalField",
-    S.deprecated(~message="Use another field", S.string()),
+    S.string()->S.deprecated(~message="Use another field", ()),
   ))
 
   t->Assert.deepEqual(
@@ -362,10 +362,9 @@ test("Schema of record struct with one deprecated string field and message", t =
 test("Deprecated message overrides previous description", t => {
   let struct = S.record1(. (
     "optionalField",
-    S.deprecated(
-      ~message="Use another field",
-      S.string()->JsonSchema.description("Previous description"),
-    ),
+    S.string()
+    ->JsonSchema.description("Previous description")
+    ->S.deprecated(~message="Use another field", ()),
   ))
 
   t->Assert.deepEqual(
@@ -599,7 +598,7 @@ module Example = {
         "IsApproved",
         S.union([S.literalVariant(String("Yes"), true), S.literalVariant(String("No"), false)]),
       ),
-      ("Age", S.deprecated(~message="A useful explanation", S.int())),
+      ("Age", S.int()->S.deprecated(~message="Will be removed in APIv2", ())),
     )
 
     t->Assert.deepEqual(
@@ -611,7 +610,7 @@ module Example = {
           properties: {
             Age: {
               deprecated: true,
-              description: 'A useful explanation',
+              description: 'Will be removed in APIv2',
               type: 'integer'
             },
             Id: { type: 'number' },

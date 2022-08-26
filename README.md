@@ -40,7 +40,7 @@ let authorStruct = S.record4(.
       S.literalVariant(String("No"), false),
     ]),
   ),
-  ("Age", S.deprecated(~message="A useful explanation", S.int())),
+  ("Age", S.int()->S.deprecated(~message="Will be removed in APIv2", ())),
 )
 
 JsonSchema.make(authorStruct)
@@ -53,7 +53,7 @@ Ok({
   properties: {
     Age: {
       deprecated: true,
-      description: 'A useful explanation',
+      description: 'Will be removed in APIv2',
       type: 'integer'
     },
     Id: { type: 'number' },
