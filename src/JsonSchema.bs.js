@@ -111,6 +111,13 @@ var deprecated = {
   deprecated: true
 };
 
+function deprecatedWithMessage(message) {
+  return {
+          deprecated: true,
+          description: message
+        };
+}
+
 function string$1(value) {
   return {
           type: "string",
@@ -143,21 +150,26 @@ var $$null$1 = {
   type: "null"
 };
 
-var Metadata = S.MakeMetadata({
-      namespace: "rescript-json-schema:raw"
-    });
+var metadataId = Curry._2(S.Metadata.Id.make, "rescript-json-schema", "raw");
 
 function makeNode(struct) {
-  var maybeMetadataRawSchema = Curry._1(Metadata.get, struct);
+  var maybeMetadataRawSchema = S.Metadata.get(struct, metadataId);
   var fn = function (node) {
-    if (maybeMetadataRawSchema !== undefined) {
-      return {
-              rawSchema: Deepmerge(node.rawSchema, Caml_option.valFromOption(maybeMetadataRawSchema)),
-              isRequired: node.isRequired
-            };
-    } else {
-      return node;
-    }
+    var rawSchema = maybeMetadataRawSchema !== undefined ? Deepmerge(node.rawSchema, Caml_option.valFromOption(maybeMetadataRawSchema)) : node.rawSchema;
+    return {
+            rawSchema: rawSchema,
+            isRequired: node.isRequired
+          };
+  };
+  var fn$1 = function (node) {
+    var match = S.Deprecated.classify(struct);
+    var rawSchema = match !== undefined ? (
+        match ? Deepmerge(node.rawSchema, deprecatedWithMessage(match._0)) : Deepmerge(node.rawSchema, deprecated)
+      ) : node.rawSchema;
+    return {
+            rawSchema: rawSchema,
+            isRequired: node.isRequired
+          };
   };
   var innerStruct = S.classify(struct);
   var result;
@@ -345,11 +357,10 @@ function makeNode(struct) {
             result = result$3;
           }
           break;
-      case /* Record */4 :
-          var unknownKeys = innerStruct.unknownKeys;
+      case /* Object */4 :
           var fieldNames = innerStruct.fieldNames;
           var fields = innerStruct.fields;
-          var fn$1 = function (fieldNodes) {
+          var fn$2 = function (fieldNodes) {
             var properties = {};
             var required = [];
             fieldNodes.forEach(function (fieldNode, idx) {
@@ -359,7 +370,8 @@ function makeNode(struct) {
                   }
                   properties[fieldName] = fieldNode.rawSchema;
                 });
-            var rawSchema = record(properties, unknownKeys ? true : false, required);
+            var match = Curry._1(S.$$Object.UnknownKeys.classify, struct);
+            var rawSchema = record(properties, match ? true : false, required);
             return {
                     rawSchema: rawSchema,
                     isRequired: true
@@ -379,7 +391,7 @@ function makeNode(struct) {
                 }));
           result = result$4.TAG === /* Ok */0 ? ({
                 TAG: /* Ok */0,
-                _0: fn$1(result$4._0)
+                _0: fn$2(result$4._0)
               }) : result$4;
           break;
       case /* Tuple */5 :
@@ -416,7 +428,7 @@ function makeNode(struct) {
               }) : result$5;
           break;
       case /* Union */6 :
-          var fn$2 = function (items) {
+          var fn$3 = function (items) {
             return {
                     rawSchema: {
                       anyOf: items
@@ -450,7 +462,7 @@ function makeNode(struct) {
                 }));
           result = result$6.TAG === /* Ok */0 ? ({
                 TAG: /* Ok */0,
-                _0: fn$2(result$6._0)
+                _0: fn$3(result$6._0)
               }) : result$6;
           break;
       case /* Dict */7 :
@@ -471,61 +483,48 @@ function makeNode(struct) {
             result = result$7;
           }
           break;
-      case /* Deprecated */8 :
-          var maybeMessage = innerStruct.maybeMessage;
-          var result$8 = makeNode(innerStruct.struct);
-          if (result$8.TAG === /* Ok */0) {
-            var innerNode$4 = result$8._0;
-            var rawSchema$p = Deepmerge(innerNode$4.rawSchema, deprecated);
-            var rawSchema = maybeMessage !== undefined ? Deepmerge(rawSchema$p, {
-                    description: maybeMessage
-                  }) : rawSchema$p;
-            result = {
-              TAG: /* Ok */0,
-              _0: {
-                rawSchema: rawSchema,
-                isRequired: false
-              }
-            };
-          } else {
-            result = result$8;
-          }
-          break;
-      case /* Default */9 :
-          var innerStruct$1 = innerStruct.struct;
-          var destructingError = S.serializeWith(Caml_option.some(innerStruct.value), innerStruct$1);
-          if (destructingError.TAG === /* Ok */0) {
-            var destructedValue = destructingError._0;
-            var fn$3 = function (innerNode) {
-              return {
-                      rawSchema: Deepmerge(innerNode.rawSchema, {
-                            default: destructedValue
-                          }),
-                      isRequired: false
-                    };
-            };
-            var result$9 = makeNode(innerStruct$1);
-            result = result$9.TAG === /* Ok */0 ? ({
-                  TAG: /* Ok */0,
-                  _0: fn$3(result$9._0)
-                }) : result$9;
-          } else {
-            result = {
-              TAG: /* Error */1,
-              _0: JsonSchema_Error.DefaultDestructingFailed.make(S.$$Error.toString(destructingError._0))
-            };
-          }
-          break;
       
     }
   }
-  if (result.TAG === /* Ok */0) {
+  var result$8;
+  result$8 = result.TAG === /* Ok */0 ? ({
+        TAG: /* Ok */0,
+        _0: fn$1(result._0)
+      }) : result;
+  var result$9;
+  if (result$8.TAG === /* Ok */0) {
+    var node = result$8._0;
+    var match = S.Defaulted.classify(struct);
+    if (match !== undefined) {
+      var destructingError = S.serializeWith(Caml_option.some(match._0), struct);
+      result$9 = destructingError.TAG === /* Ok */0 ? ({
+            TAG: /* Ok */0,
+            _0: {
+              rawSchema: Deepmerge(node.rawSchema, {
+                    default: destructingError._0
+                  }),
+              isRequired: false
+            }
+          }) : ({
+            TAG: /* Error */1,
+            _0: JsonSchema_Error.DefaultDestructingFailed.make(S.$$Error.toString(destructingError._0))
+          });
+    } else {
+      result$9 = {
+        TAG: /* Ok */0,
+        _0: node
+      };
+    }
+  } else {
+    result$9 = result$8;
+  }
+  if (result$9.TAG === /* Ok */0) {
     return {
             TAG: /* Ok */0,
-            _0: fn(result._0)
+            _0: fn(result$9._0)
           };
   } else {
-    return result;
+    return result$9;
   }
 }
 
@@ -555,9 +554,9 @@ function make(struct) {
 }
 
 function raw(struct, providedRawSchema) {
-  var existingRawSchema = Curry._1(Metadata.get, struct);
+  var existingRawSchema = S.Metadata.get(struct, metadataId);
   var rawSchema = existingRawSchema !== undefined ? Deepmerge(Caml_option.valFromOption(existingRawSchema), providedRawSchema) : providedRawSchema;
-  return Curry._2(Metadata.set, struct, rawSchema);
+  return S.Metadata.set(struct, metadataId, rawSchema, false, false);
 }
 
 function description(struct, value) {
@@ -569,4 +568,4 @@ function description(struct, value) {
 exports.make = make;
 exports.raw = raw;
 exports.description = description;
-/* Metadata Not a pure module */
+/* metadataId Not a pure module */

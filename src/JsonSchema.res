@@ -138,6 +138,7 @@ module Raw = {
   }
 
   let deprecated: t = make({"deprecated": true})
+  let deprecatedWithMessage = (message): t => make({"deprecated": true, "description": message})
 
   module Literal = {
     let string = value => make({"type": "string", "const": value})
@@ -147,10 +148,10 @@ module Raw = {
     let null = make({"type": "null"})
   }
 
-  module Metadata = S.MakeMetadata({
-    type content = t
-    let namespace = "rescript-json-schema:raw"
-  })
+  let metadataId: S.Metadata.Id.t<t> = S.Metadata.Id.make(
+    ~namespace="rescript-json-schema",
+    ~name="raw",
+  )
 }
 
 type node = {rawSchema: Raw.t, isRequired: bool}
@@ -158,7 +159,7 @@ type node = {rawSchema: Raw.t, isRequired: bool}
 let rec makeNode:
   type value. S.t<value> => result<node, JsonSchema_Error.t> =
   struct => {
-    let maybeMetadataRawSchema = struct->Raw.Metadata.get
+    let maybeMetadataRawSchema = struct->S.Metadata.get(~id=Raw.metadataId)
 
     switch struct->S.classify {
     | S.String => Ok({rawSchema: Raw.string, isRequired: true})
@@ -213,7 +214,7 @@ let rec makeNode:
           Error(JsonSchema_Error.UnsupportedNestedOptional.make())
         }
       })
-    | S.Record({fields, fieldNames, unknownKeys}) =>
+    | S.Object({fields, fieldNames}) =>
       fieldNames
       ->Lib.Result.Array.mapi((. fieldName, _) => {
         let fieldStruct = fields->Js.Dict.unsafeGet(fieldName)
@@ -231,7 +232,7 @@ let rec makeNode:
             properties->Js.Dict.set(fieldName, fieldNode.rawSchema)
           })
           Raw.record(
-            ~additionalProperties=switch unknownKeys {
+            ~additionalProperties=switch struct->S.Object.UnknownKeys.classify {
             | Strict => false
             | Strip => true
             },
@@ -270,41 +271,40 @@ let rec makeNode:
           Error(JsonSchema_Error.UnsupportedOptionalDictItem.make())
         }
       })
-    | S.Deprecated({struct: innerStruct, maybeMessage}) =>
-      makeNode(innerStruct)->Lib.Result.flatMap(innerNode => {
-        let rawSchema = {
-          let rawSchema' = Raw.merge(innerNode.rawSchema, Raw.deprecated)
-          switch maybeMessage {
-          | Some(message) => Raw.merge(rawSchema', Raw.description(message))
-          | None => rawSchema'
-          }
-        }
-        Ok({rawSchema, isRequired: false})
-      })
-    | S.Default({struct: innerStruct, value}) =>
-      switch Some(value)->S.serializeWith(innerStruct) {
-      | Error(destructingError) =>
-        Error(
-          JsonSchema_Error.DefaultDestructingFailed.make(
-            ~destructingErrorMessage=destructingError->S.Error.toString,
-          ),
-        )
-      | Ok(destructedValue) =>
-        makeNode(innerStruct)->Lib.Result.map(innerNode => {
-          {
-            rawSchema: Raw.merge(innerNode.rawSchema, Raw.default(destructedValue)),
+    }
+    ->Lib.Result.map(node => {
+      let rawSchema = switch struct->S.Deprecated.classify {
+      | Some(WithoutMessage) => Raw.merge(node.rawSchema, Raw.deprecated)
+      | Some(WithMessage(message)) => Raw.merge(node.rawSchema, Raw.deprecatedWithMessage(message))
+      | None => node.rawSchema
+      }
+      {...node, rawSchema}
+    })
+    ->Lib.Result.flatMap(node => {
+      switch struct->S.Defaulted.classify {
+      | Some(WithDefaultValue(defaultValue)) =>
+        switch Some(defaultValue)->Obj.magic->S.serializeWith(struct) {
+        | Error(destructingError) =>
+          Error(
+            JsonSchema_Error.DefaultDestructingFailed.make(
+              ~destructingErrorMessage=destructingError->S.Error.toString,
+            ),
+          )
+        | Ok(destructedValue) =>
+          Ok({
+            rawSchema: Raw.merge(node.rawSchema, Raw.default(destructedValue)),
             isRequired: false,
-          }
-        })
-      }
-    }->Lib.Result.map(node => {
-      switch maybeMetadataRawSchema {
-      | Some(metadataRawSchema) => {
-          rawSchema: Raw.merge(node.rawSchema, metadataRawSchema),
-          isRequired: node.isRequired,
+          })
         }
-      | None => node
+      | None => Ok(node)
       }
+    })
+    ->Lib.Result.map(node => {
+      let rawSchema = switch maybeMetadataRawSchema {
+      | Some(metadataRawSchema) => Raw.merge(node.rawSchema, metadataRawSchema)
+      | None => node.rawSchema
+      }
+      {...node, rawSchema}
     })
   }
 
@@ -321,11 +321,16 @@ let make = struct => {
 }
 
 let raw = (struct, providedRawSchema) => {
-  let rawSchema = switch struct->Raw.Metadata.get {
+  let rawSchema = switch struct->S.Metadata.get(~id=Raw.metadataId) {
   | Some(existingRawSchema) => Raw.merge(existingRawSchema, providedRawSchema->Raw.make)
   | None => providedRawSchema->Raw.make
   }
-  struct->Raw.Metadata.set(rawSchema)
+  struct->S.Metadata.set(
+    ~id=Raw.metadataId,
+    ~metadata=rawSchema,
+    ~withParserUpdate=false,
+    ~withSerializerUpdate=false,
+  )
 }
 
 let description = (struct, value) => {

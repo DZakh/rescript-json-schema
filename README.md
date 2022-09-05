@@ -30,7 +30,7 @@ Then add `rescript-json-schema` to `bs-dependencies` in your `bsconfig.json`:
 ## Usage
 
 ```rescript
-let authorStruct = S.record4(.
+let authorStruct = S.object4(.
   ("Id", S.float()),
   ("Tags", S.option(S.array(S.string()))),
   (
@@ -83,8 +83,6 @@ Mostly you'll work with **rescript-struct** to describe the structure of the val
 ## V1 Roadmap
 
 - [ ] Add example/examples field
-- [ ] Add refinements
 - [ ] Add support for $refs
 - [ ] Able to target Open API 3 (Swagger) specification for paths
 - [ ] Add API documentation
-- [ ] Wait for the **rescript-struct** V1

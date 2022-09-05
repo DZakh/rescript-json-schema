@@ -1,6 +1,6 @@
 open Ava
 
-test("Schema of bool struct", t => {
+ava->test("Schema of bool struct", t => {
   let struct = S.bool()
 
   t->Assert.deepEqual(
@@ -10,7 +10,7 @@ test("Schema of bool struct", t => {
   )
 })
 
-test("Schema of string struct", t => {
+ava->test("Schema of string struct", t => {
   let struct = S.string()
 
   t->Assert.deepEqual(
@@ -20,7 +20,7 @@ test("Schema of string struct", t => {
   )
 })
 
-test("Schema of int struct", t => {
+ava->test("Schema of int struct", t => {
   let struct = S.int()
 
   t->Assert.deepEqual(
@@ -30,7 +30,7 @@ test("Schema of int struct", t => {
   )
 })
 
-test("Schema of float struct", t => {
+ava->test("Schema of float struct", t => {
   let struct = S.float()
 
   t->Assert.deepEqual(
@@ -40,7 +40,7 @@ test("Schema of float struct", t => {
   )
 })
 
-test("Schema of Null struct", t => {
+ava->test("Schema of Null struct", t => {
   let struct = S.null(S.float())
 
   t->Assert.deepEqual(
@@ -55,7 +55,7 @@ test("Schema of Null struct", t => {
   )
 })
 
-test("Schema of Never struct", t => {
+ava->test("Schema of Never struct", t => {
   let struct = S.never()
 
   t->Assert.deepEqual(
@@ -70,7 +70,7 @@ test("Schema of Never struct", t => {
   )
 })
 
-test("Schema of Bool Literal struct", t => {
+ava->test("Schema of Bool Literal struct", t => {
   let struct = S.literal(Bool(false))
 
   t->Assert.deepEqual(
@@ -86,7 +86,7 @@ test("Schema of Bool Literal struct", t => {
   )
 })
 
-test("Schema of String Literal struct", t => {
+ava->test("Schema of String Literal struct", t => {
   let struct = S.literal(String("Hello World!"))
 
   t->Assert.deepEqual(
@@ -102,7 +102,7 @@ test("Schema of String Literal struct", t => {
   )
 })
 
-test("Schema of Int Literal struct", t => {
+ava->test("Schema of Int Literal struct", t => {
   let struct = S.literal(Int(123))
 
   t->Assert.deepEqual(
@@ -118,7 +118,7 @@ test("Schema of Int Literal struct", t => {
   )
 })
 
-test("Schema of Float Literal struct", t => {
+ava->test("Schema of Float Literal struct", t => {
   let struct = S.literal(Float(-123.456))
 
   t->Assert.deepEqual(
@@ -134,7 +134,7 @@ test("Schema of Float Literal struct", t => {
   )
 })
 
-test("Schema of EmptyNull Literal struct", t => {
+ava->test("Schema of EmptyNull Literal struct", t => {
   let struct = S.literal(EmptyNull)
 
   t->Assert.deepEqual(
@@ -149,7 +149,7 @@ test("Schema of EmptyNull Literal struct", t => {
   )
 })
 
-test("Schema of EmptyOption Literal struct isn't supported", t => {
+ava->test("Schema of EmptyOption Literal struct isn't supported", t => {
   let struct = S.literal(EmptyOption)
 
   t->Assert.deepEqual(
@@ -159,7 +159,7 @@ test("Schema of EmptyOption Literal struct isn't supported", t => {
   )
 })
 
-test("Schema of NaN Literal struct isn't supported", t => {
+ava->test("Schema of NaN Literal struct isn't supported", t => {
   let struct = S.literal(NaN)
 
   t->Assert.deepEqual(
@@ -169,7 +169,7 @@ test("Schema of NaN Literal struct isn't supported", t => {
   )
 })
 
-test("Schema of tuple struct", t => {
+ava->test("Schema of tuple struct", t => {
   let struct = S.tuple2(. S.string(), S.bool())
 
   t->Assert.deepEqual(
@@ -187,7 +187,7 @@ test("Schema of tuple struct", t => {
   )
 })
 
-test("Schema of union struct", t => {
+ava->test("Schema of union struct", t => {
   let struct = S.union([
     S.literalVariant(String("Yes"), true),
     S.literalVariant(String("No"), false),
@@ -214,7 +214,7 @@ test("Schema of union struct", t => {
   )
 })
 
-test("Schema of strings array struct", t => {
+ava->test("Schema of strings array struct", t => {
   let struct = S.array(S.string())
 
   t->Assert.deepEqual(
@@ -230,7 +230,7 @@ test("Schema of strings array struct", t => {
   )
 })
 
-test("Schema of strings dict struct", t => {
+ava->test("Schema of strings dict struct", t => {
   let struct = S.dict(S.string())
 
   t->Assert.deepEqual(
@@ -246,8 +246,8 @@ test("Schema of strings dict struct", t => {
   )
 })
 
-test("Schema of record struct with one string field", t => {
-  let struct = S.record1(. ("field", S.string()))
+ava->test("Schema of object struct with one string field", t => {
+  let struct = S.object1(. ("field", S.string()))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -264,28 +264,31 @@ test("Schema of record struct with one string field", t => {
   )
 })
 
-test("Schema of record struct with Strip unknownKeys strategy allows additionalProperties", t => {
-  let struct = S.record1(. ("field", S.string()))->S.Record.strip
-
-  t->Assert.deepEqual(
-    JsonSchema.make(struct),
-    Ok(
-      %raw(`{
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {"field": {"type": "string"}},
-        "required": ["field"],
-        "additionalProperties": true,
-      }`),
-    ),
-    (),
-  )
-})
-
-test(
-  "Schema of record struct with Strict unknownKeys strategy disallows additionalProperties",
+ava->test(
+  "Schema of object struct with Strip unknownKeys strategy allows additionalProperties",
   t => {
-    let struct = S.record1(. ("field", S.string()))->S.Record.strict
+    let struct = S.object1(. ("field", S.string()))->S.Object.strip
+
+    t->Assert.deepEqual(
+      JsonSchema.make(struct),
+      Ok(
+        %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {"field": {"type": "string"}},
+        "required": ["field"],
+        "additionalProperties": true,
+      }`),
+      ),
+      (),
+    )
+  },
+)
+
+ava->test(
+  "Schema of object struct with Strict unknownKeys strategy disallows additionalProperties",
+  t => {
+    let struct = S.object1(. ("field", S.string()))->S.Object.strict
 
     t->Assert.deepEqual(
       JsonSchema.make(struct),
@@ -303,8 +306,8 @@ test(
   },
 )
 
-test("Schema of record struct with one optional string field", t => {
-  let struct = S.record1(. ("optionalField", S.option(S.string())))
+ava->test("Schema of object struct with one optional string field", t => {
+  let struct = S.object1(. ("optionalField", S.option(S.string())))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -320,8 +323,8 @@ test("Schema of record struct with one optional string field", t => {
   )
 })
 
-test("Schema of record struct with one deprecated string field", t => {
-  let struct = S.record1(. ("optionalField", S.string()->S.deprecated()))
+ava->test("Schema of object struct with one deprecated string field", t => {
+  let struct = S.object1(. ("optionalField", S.string()->S.deprecated()))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -337,8 +340,8 @@ test("Schema of record struct with one deprecated string field", t => {
   )
 })
 
-test("Schema of record struct with one deprecated string field and message", t => {
-  let struct = S.record1(. (
+ava->test("Schema of object struct with one deprecated string field and message", t => {
+  let struct = S.object1(. (
     "optionalField",
     S.string()->S.deprecated(~message="Use another field", ()),
   ))
@@ -359,8 +362,8 @@ test("Schema of record struct with one deprecated string field and message", t =
   )
 })
 
-test("Deprecated message overrides previous description", t => {
-  let struct = S.record1(. (
+ava->test("Deprecated message overrides previous description", t => {
+  let struct = S.object1(. (
     "optionalField",
     S.string()
     ->JsonSchema.description("Previous description")
@@ -383,8 +386,8 @@ test("Deprecated message overrides previous description", t => {
   )
 })
 
-test("Schema of record struct with nested record", t => {
-  let struct = S.record1(. ("recordWithOneStringField", S.record1(. ("Field", S.string()))))
+ava->test("Schema of object struct with nested object", t => {
+  let struct = S.object1(. ("objectWithOneStringField", S.object1(. ("Field", S.string()))))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -393,14 +396,14 @@ test("Schema of record struct with nested record", t => {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
-          "recordWithOneStringField": {
+          "objectWithOneStringField": {
             "type": "object",
             "properties": {"Field": {"type": "string"}},
             "required": ["Field"],
             "additionalProperties": true,
           },
         },
-        "required": ["recordWithOneStringField"],
+        "required": ["objectWithOneStringField"],
         "additionalProperties": true,
       }`),
     ),
@@ -408,8 +411,8 @@ test("Schema of record struct with nested record", t => {
   )
 })
 
-test("Schema of record struct with one optional and one required string field", t => {
-  let struct = S.record2(. ("field", S.string()), ("optionalField", S.option(S.string())))
+ava->test("Schema of object struct with one optional and one required string field", t => {
+  let struct = S.object2(. ("field", S.string()), ("optionalField", S.option(S.string())))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -431,7 +434,7 @@ test("Schema of record struct with one optional and one required string field", 
   )
 })
 
-test("Make JsonSchema throws error with optional root type", t => {
+ava->test("Make JsonSchema throws error with optional root type", t => {
   let struct = S.option(S.string())
 
   t->Assert.deepEqual(
@@ -443,8 +446,8 @@ test("Make JsonSchema throws error with optional root type", t => {
   )
 })
 
-test("Make JsonSchema throws error with record field wrapped in option multiple times", t => {
-  let struct = S.record1(. ("optionalOptionalField", S.option(S.option(S.string()))))
+ava->test("Make JsonSchema throws error with object field wrapped in option multiple times", t => {
+  let struct = S.object1(. ("optionalOptionalField", S.option(S.option(S.string()))))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -453,7 +456,7 @@ test("Make JsonSchema throws error with record field wrapped in option multiple 
   )
 })
 
-test("Primitive struct schema with description", t => {
+ava->test("Primitive struct schema with description", t => {
   let struct = S.bool()->JsonSchema.description("A primitive struct")
 
   t->Assert.deepEqual(
@@ -469,13 +472,13 @@ test("Primitive struct schema with description", t => {
   )
 })
 
-test("Transformed struct schema with default fails when destruction failed", t => {
-  let struct = S.record1(. ("field", S.option(S.bool()->S.transform(~parser=bool => {
+ava->test("Transformed struct schema with default fails when destruction failed", t => {
+  let struct = S.object1(. ("field", S.option(S.bool()->S.transform(~parser=bool => {
         switch bool {
         | true => "true"
         | false => ""
         }
-      }, ()))->S.default("true")))
+      }, ()))->S.defaulted("true")))
 
   t->Assert.deepEqual(
     JsonSchema.make(struct),
@@ -484,8 +487,8 @@ test("Transformed struct schema with default fails when destruction failed", t =
   )
 })
 
-test("Transformed struct schema uses default with correct type", t => {
-  let struct = S.record1(. (
+ava->test("Transformed struct schema uses default with correct type", t => {
+  let struct = S.object1(. (
     "field",
     S.option(
       S.bool()->S.transform(
@@ -503,7 +506,7 @@ test("Transformed struct schema uses default with correct type", t => {
         },
         (),
       ),
-    )->S.default("true"),
+    )->S.defaulted("true"),
   ))
 
   t->Assert.deepEqual(
@@ -520,7 +523,7 @@ test("Transformed struct schema uses default with correct type", t => {
   )
 })
 
-test("Primitive struct schema with additional raw schema", t => {
+ava->test("Primitive struct schema with additional raw schema", t => {
   let struct = S.bool()->JsonSchema.raw({"nullable": true})
 
   t->Assert.deepEqual(
@@ -536,7 +539,7 @@ test("Primitive struct schema with additional raw schema", t => {
   )
 })
 
-test("Multiple additional raw schemas are merged together", t => {
+ava->test("Multiple additional raw schemas are merged together", t => {
   let struct = S.bool()->JsonSchema.raw({"nullable": true})->JsonSchema.raw({"deprecated": true})
 
   t->Assert.deepEqual(
@@ -553,8 +556,8 @@ test("Multiple additional raw schemas are merged together", t => {
   )
 })
 
-test("Additional raw schema works with optional fields", t => {
-  let struct = S.record1(. (
+ava->test("Additional raw schema works with optional fields", t => {
+  let struct = S.object1(. (
     "optionalField",
     S.option(S.string())->JsonSchema.raw({"nullable": true}),
   ))
@@ -575,7 +578,7 @@ test("Additional raw schema works with optional fields", t => {
   )
 })
 
-test("Unknown struct doesn't affect final schema", t => {
+ava->test("Unknown struct doesn't affect final schema", t => {
   let struct = S.unknown()
 
   t->Assert.deepEqual(
@@ -590,10 +593,10 @@ test("Unknown struct doesn't affect final schema", t => {
 })
 
 module Example = {
-  test("Example", t => {
-    let authorStruct = S.record4(.
+  ava->test("Example", t => {
+    let authorStruct = S.object4(.
       ("Id", S.float()),
-      ("Tags", S.option(S.array(S.string()))->S.default([])),
+      ("Tags", S.option(S.array(S.string()))->S.defaulted([])),
       (
         "IsApproved",
         S.union([S.literalVariant(String("Yes"), true), S.literalVariant(String("No"), false)]),
