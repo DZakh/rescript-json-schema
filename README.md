@@ -46,36 +46,37 @@ let authorStruct = S.object4(.
 JsonSchema.make(authorStruct)
 ```
 
-```js
-Ok({
-  '$schema': 'http://json-schema.org/draft-07/schema#',
-  type: 'object'
-  properties: {
-    Age: {
-      deprecated: true,
-      description: 'Will be removed in APIv2',
-      type: 'integer'
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "Age": {
+      "deprecated": true,
+      "description": "Will be removed in APIv2",
+      "type": "integer"
     },
-    Id: { type: 'number' },
-    IsApproved: { 
-      anyOf: [
+    "Id": { "type": "number" },
+    "IsApproved": {
+      "anyOf": [
         {
-          const: 'Yes',
-          type: 'string'
+          "const": "Yes",
+          "type": "string"
         },
         {
-          const: 'No',
-          type: 'string'
-        }]
-      },
-    Tags: { 
-      items: { type: 'string' },
-      type: 'array'
+          "const": "No",
+          "type": "string"
+        }
+      ]
+    },
+    "Tags": {
+      "items": { "type": "string" },
+      "type": "array"
     }
   },
-  required: ['Id', 'IsApproved'],
-  additionalProperties: true,
-})
+  "required": ["Id", "IsApproved"],
+  "additionalProperties": true
+}
 ```
 
 Mostly you'll work with **rescript-struct** to describe the structure of the value. The structure contains meta information for parsing, serializing, and generating JSON Schema.
