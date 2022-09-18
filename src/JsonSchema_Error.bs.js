@@ -170,4 +170,4 @@ exports.UnsupportedRootOptional = UnsupportedRootOptional;
 exports.DefaultDestructingFailed = DefaultDestructingFailed;
 exports.prependField = prependField;
 exports.toString = toString;
-/* S Not a pure module */
+/* No side effect */

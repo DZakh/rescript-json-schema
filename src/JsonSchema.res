@@ -255,13 +255,13 @@ let rec makeNode:
         }
       })
     | S.Never => Ok({rawSchema: Raw.never, isRequired: true})
-    | S.Literal(S.Bool(value)) => Ok({rawSchema: Raw.Literal.boolean(value), isRequired: true})
-    | S.Literal(S.Int(value)) => Ok({rawSchema: Raw.Literal.integer(value), isRequired: true})
-    | S.Literal(S.Float(value)) => Ok({rawSchema: Raw.Literal.number(value), isRequired: true})
-    | S.Literal(S.String(value)) => Ok({rawSchema: Raw.Literal.string(value), isRequired: true})
-    | S.Literal(S.EmptyNull) => Ok({rawSchema: Raw.Literal.null, isRequired: true})
-    | S.Literal(S.EmptyOption) => Error(JsonSchema_Error.UnsupportedStruct.make(struct))
-    | S.Literal(S.NaN) => Error(JsonSchema_Error.UnsupportedStruct.make(struct))
+    | S.Literal(Bool(value)) => Ok({rawSchema: Raw.Literal.boolean(value), isRequired: true})
+    | S.Literal(Int(value)) => Ok({rawSchema: Raw.Literal.integer(value), isRequired: true})
+    | S.Literal(Float(value)) => Ok({rawSchema: Raw.Literal.number(value), isRequired: true})
+    | S.Literal(String(value)) => Ok({rawSchema: Raw.Literal.string(value), isRequired: true})
+    | S.Literal(EmptyNull) => Ok({rawSchema: Raw.Literal.null, isRequired: true})
+    | S.Literal(EmptyOption) => Error(JsonSchema_Error.UnsupportedStruct.make(struct))
+    | S.Literal(NaN) => Error(JsonSchema_Error.UnsupportedStruct.make(struct))
     | S.Date => Error(JsonSchema_Error.UnsupportedStruct.make(struct))
     | S.Dict(innerStruct) =>
       makeNode(innerStruct)->Lib.Result.flatMap(innerNode => {
