@@ -1,7 +1,7 @@
 {
   "name": "rescript-json-schema",
   "namespace": false,
-  "bsc-flags": ["-bs-no-version-header", "-bs-super-errors"],
+  "bsc-flags": ["-open ReScriptStruct"],
   "bs-dev-dependencies": ["@dzakh/rescript-ava"],
   "bs-dependencies": ["rescript-struct"],
   "suffix": ".bs.js",
@@ -17,8 +17,5 @@
       "dir": "__tests__",
       "type": "dev"
     }
-  ],
-  "warnings": {
-    "number": "-44"
-  }
+  ]
 }

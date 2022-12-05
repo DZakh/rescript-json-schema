@@ -2,47 +2,57 @@
 
 Typesafe JSON Schema for ReScript
 
-**rescript-json-schema** uses **rescript-struct** to build 100% typesafe schema. No need to worry about type definitions becoming unsync with generated schema. ReScript compiler will check it for you.
+**rescript-json-schema** is a library that generates type-safe JSON schemas using **rescript-struct**. This ensures that your schemas are always in sync with your ReScript code and are fully type-checked and valid.
 
-## Status
-
-> **rescript-json-schema** is currently in beta. Its core API is useable right now, but you might need to pull request improvements for advanced use cases, or fixes for some bugs. Some of its APIs are not "finalized" and will have breaking changes over time as we discover better solutions.
-
-## Installation
-
-Install **rescript-struct** following its [installation instruction](https://github.com/DZakh/rescript-struct#installation)
-
-Install **rescript-json-schema**
+## Install
 
 ```sh
-npm install rescript-json-schema
+npm install rescript-json-schema rescript-struct
 ```
 
-Then add `rescript-json-schema` to `bs-dependencies` in your `bsconfig.json`:
+Then add `rescript-json-schema` and `rescript-struct` to `bs-dependencies` in your `bsconfig.json`:
 
 ```diff
 {
   ...
-+ "bs-dependencies": ["rescript-json-schema"]
++ "bs-dependencies": ["rescript-json-schema", "rescript-struct"]
++ "bsc-flags": ["-open ReScriptStruct"],
 }
 ```
 
-## Usage
+> 🧠 You need to have rescript >10.1.0
+
+## Basic usage
+
+One of the library's main features is the **rescript-struct**, which provides a way to describe the structure of a value. This structure contains meta information used for parsing, serializing, and generating JSON Schema. When working with the library, you will mostly interact with **rescript-struct** to define the structure of the values you are working with.
+
+For example, if you have the following struct:
 
 ```rescript
-let authorStruct = S.object4(.
-  ("Id", S.float()),
-  ("Tags", S.option(S.array(S.string()))),
-  (
-    "IsApproved",
-    S.union([
-      S.literalVariant(String("Yes"), true),
-      S.literalVariant(String("No"), false),
-    ]),
-  ),
-  ("Age", S.int()->S.deprecated(~message="Will be removed in APIv2", ())),
-)
+type author = {
+  id: float,
+  tags: array<string>,
+  isAproved: bool,
+  deprecatedAge: option<int>,
+}
 
+let authorStruct = S.object(o => {
+  id: o->S.field("Id", S.float()),
+  tags: o->S.field("Tags", S.option(S.array(S.string()))->S.defaulted([])),
+  isAproved: o->S.field(
+    "IsApproved",
+    S.union([S.literalVariant(String("Yes"), true), S.literalVariant(String("No"), false)]),
+  ),
+  deprecatedAge: o->S.field(
+    "Age",
+    S.int()->S.deprecated(~message="Will be removed in APIv2", ()),
+  ),
+})
+```
+
+You can use it to generate JSON Schema for the value it describes:
+
+```rescript
 JsonSchema.make(authorStruct)
 ```
 
@@ -78,12 +88,3 @@ JsonSchema.make(authorStruct)
   "additionalProperties": true
 }
 ```
-
-Mostly you'll work with **rescript-struct** to describe the structure of the value. The structure contains meta information for parsing, serializing, and generating JSON Schema.
-
-## V1 Roadmap
-
-- [ ] Add example/examples field
-- [ ] Add support for $refs
-- [ ] Able to target Open API 3 (Swagger) specification for paths
-- [ ] Add API documentation

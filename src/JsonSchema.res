@@ -262,7 +262,6 @@ let rec makeNode:
     | S.Literal(EmptyNull) => Ok({rawSchema: Raw.Literal.null, isRequired: true})
     | S.Literal(EmptyOption) => Error(JsonSchema_Error.UnsupportedStruct.make(struct))
     | S.Literal(NaN) => Error(JsonSchema_Error.UnsupportedStruct.make(struct))
-    | S.Date => Error(JsonSchema_Error.UnsupportedStruct.make(struct))
     | S.Dict(innerStruct) =>
       makeNode(innerStruct)->Lib.Result.flatMap(innerNode => {
         if innerNode.isRequired {
@@ -325,12 +324,7 @@ let raw = (struct, providedRawSchema) => {
   | Some(existingRawSchema) => Raw.merge(existingRawSchema, providedRawSchema->Raw.make)
   | None => providedRawSchema->Raw.make
   }
-  struct->S.Metadata.set(
-    ~id=Raw.metadataId,
-    ~metadata=rawSchema,
-    ~withParserUpdate=false,
-    ~withSerializerUpdate=false,
-  )
+  struct->S.Metadata.set(~id=Raw.metadataId, ~metadata=rawSchema)
 }
 
 let description = (struct, value) => {
