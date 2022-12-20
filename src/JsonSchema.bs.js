@@ -2,7 +2,7 @@
 'use strict';
 
 var Curry = require("rescript/lib/js/curry.js");
-var Deepmerge = require("deepmerge");
+var Deepmerge = require("deepmerge").default;
 var Caml_option = require("rescript/lib/js/caml_option.js");
 var JsonSchema_Error = require("./JsonSchema_Error.bs.js");
 var S$ReScriptStruct = require("rescript-struct/src/S.bs.js");

@@ -65,8 +65,8 @@ module Raw = {
 
   external make: 'a => t = "%identity"
 
-  @module
-  external merge: (t, t) => t = "deepmerge"
+  @module("deepmerge")
+  external merge: (t, t) => t = "default"
 
   let description = value => make({"description": value})
 
