@@ -2,7 +2,6 @@
 'use strict';
 
 var Curry = require("rescript/lib/js/curry.js");
-var Deepmerge = require("deepmerge").default;
 var Caml_option = require("rescript/lib/js/caml_option.js");
 var JsonSchema_Error = require("./JsonSchema_Error.bs.js");
 var S$ReScriptStruct = require("rescript-struct/src/S.bs.js");
@@ -32,6 +31,8 @@ function mapi(array, fn) {
           };
   }
 }
+
+var merge = ((s1, s2) => Object.assign({}, s1, s2));
 
 var schemaDialect = {
   $schema: "http://json-schema.org/draft-07/schema#"
@@ -100,7 +101,7 @@ function record(properties, additionalProperties, required) {
     additionalProperties: additionalProperties
   };
   if (required.length !== 0) {
-    return Deepmerge(schema, {
+    return merge(schema, {
                 required: required
               });
   } else {
@@ -156,7 +157,7 @@ var metadataId = Curry._2(S$ReScriptStruct.Metadata.Id.make, "rescript-json-sche
 function makeNode(struct) {
   var maybeMetadataRawSchema = S$ReScriptStruct.Metadata.get(struct, metadataId);
   var fn = function (node) {
-    var rawSchema = maybeMetadataRawSchema !== undefined ? Deepmerge(node.rawSchema, Caml_option.valFromOption(maybeMetadataRawSchema)) : node.rawSchema;
+    var rawSchema = maybeMetadataRawSchema !== undefined ? merge(node.rawSchema, Caml_option.valFromOption(maybeMetadataRawSchema)) : node.rawSchema;
     return {
             rawSchema: rawSchema,
             isRequired: node.isRequired
@@ -165,7 +166,7 @@ function makeNode(struct) {
   var fn$1 = function (node) {
     var match = S$ReScriptStruct.Deprecated.classify(struct);
     var rawSchema = match !== undefined ? (
-        match ? Deepmerge(node.rawSchema, deprecatedWithMessage(match._0)) : Deepmerge(node.rawSchema, deprecated)
+        match ? merge(node.rawSchema, deprecatedWithMessage(match._0)) : merge(node.rawSchema, deprecated)
       ) : node.rawSchema;
     return {
             rawSchema: rawSchema,
@@ -495,7 +496,7 @@ function makeNode(struct) {
       result$9 = destructingError.TAG === /* Ok */0 ? ({
             TAG: /* Ok */0,
             _0: {
-              rawSchema: Deepmerge(node.rawSchema, {
+              rawSchema: merge(node.rawSchema, {
                     default: destructingError._0
                   }),
               isRequired: false
@@ -530,7 +531,7 @@ function make(struct) {
     var node = result._0;
     result$1 = node.isRequired ? ({
           TAG: /* Ok */0,
-          _0: Deepmerge(node.rawSchema, schemaDialect)
+          _0: merge(node.rawSchema, schemaDialect)
         }) : ({
           TAG: /* Error */1,
           _0: JsonSchema_Error.UnsupportedRootOptional.make(undefined)
@@ -550,7 +551,7 @@ function make(struct) {
 
 function raw(struct, providedRawSchema) {
   var existingRawSchema = S$ReScriptStruct.Metadata.get(struct, metadataId);
-  var rawSchema = existingRawSchema !== undefined ? Deepmerge(Caml_option.valFromOption(existingRawSchema), providedRawSchema) : providedRawSchema;
+  var rawSchema = existingRawSchema !== undefined ? merge(Caml_option.valFromOption(existingRawSchema), providedRawSchema) : providedRawSchema;
   return S$ReScriptStruct.Metadata.set(struct, metadataId, rawSchema);
 }
 
