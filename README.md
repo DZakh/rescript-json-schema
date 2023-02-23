@@ -1,8 +1,12 @@
+[![CI](https://github.com/DZakh/rescript-json-schema/actions/workflows/ci.yml/badge.svg)](https://github.com/DZakh/rescript-json-schema/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/DZakh/rescript-json-schema/branch/main/graph/badge.svg?token=40G6YKKD6J)](https://codecov.io/gh/DZakh/rescript-json-schema)
+[![npm](https://img.shields.io/npm/dm/rescript-json-schema)](https://www.npmjs.com/package/rescript-json-schema)
+
 # ReScript JSON Schema
 
 Typesafe JSON Schema for ReScript
 
-**rescript-json-schema** is a library that generates type-safe JSON schemas using **rescript-struct**. This ensures that your schemas are always in sync with your ReScript code and are fully type-checked and valid.
+**rescript-json-schema** is a library that generates type-safe JSON schemas using [**rescript-struct**](https://github.com/DZakh/rescript-struct). This ensures that your schemas are always in sync with your ReScript code and are fully type-checked and valid.
 
 ## Install
 
