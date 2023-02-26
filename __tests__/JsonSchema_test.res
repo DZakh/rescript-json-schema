@@ -624,6 +624,35 @@ test("Unknown struct doesn't affect final schema", t => {
   )
 })
 
+test("Fails to create schema for structs with optional items", t => {
+  t->Assert.deepEqual(
+    JsonSchema.make(S.dict(S.option(S.string()))),
+    Error(
+      "[ReScript JSON Schema] Failed converting at root. Reason: Optional struct is not supported as Dict item",
+    ),
+    (),
+  )
+  t->Assert.deepEqual(
+    JsonSchema.make(S.array(S.option(S.string()))),
+    Error(
+      "[ReScript JSON Schema] Failed converting at root. Reason: Optional struct is not supported as Array item",
+    ),
+    (),
+  )
+  t->Assert.deepEqual(
+    JsonSchema.make(S.union([S.option(S.string()), S.null(S.string())])),
+    Error(
+      "[ReScript JSON Schema] Failed converting at root. Reason: Optional struct is not supported as Union item",
+    ),
+    (),
+  )
+  t->Assert.deepEqual(
+    JsonSchema.make(S.tuple1(. S.option(S.string()))),
+    Error(`[ReScript JSON Schema] Failed converting at ["0"]. Reason: Optional struct is not supported as Tuple item`),
+    (),
+  )
+})
+
 module Example = {
   @live
   type author = {id: float, tags: array<string>, isAproved: bool, deprecatedAge: option<int>}
