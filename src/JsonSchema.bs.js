@@ -75,27 +75,7 @@ function toString(error) {
 
 var merge = ((s1, s2) => Object.assign({}, s1, s2));
 
-var schemaDialect = {
-  $schema: "http://json-schema.org/draft-07/schema#"
-};
-
-var empty = {};
-
-var string = {
-  type: "string"
-};
-
-var integer = {
-  type: "integer"
-};
-
-var number = {
-  type: "number"
-};
-
-var $$boolean = {
-  type: "boolean"
-};
+var mixin = ((s1, s2) => Object.assign(s1, s2));
 
 function $$null(innerSchema) {
   return {
@@ -107,10 +87,6 @@ function $$null(innerSchema) {
           ]
         };
 }
-
-var never = {
-  not: {}
-};
 
 function array(innerSchema) {
   return {
@@ -142,17 +118,13 @@ function record(properties, additionalProperties, required) {
     additionalProperties: additionalProperties
   };
   if (required.length !== 0) {
-    return merge(schema, {
+    return mixin(schema, {
                 required: required
               });
   } else {
     return schema;
   }
 }
-
-var deprecated = {
-  deprecated: true
-};
 
 function deprecatedWithMessage(message) {
   return {
@@ -161,37 +133,33 @@ function deprecatedWithMessage(message) {
         };
 }
 
-function string$1(value) {
+function string(value) {
   return {
           type: "string",
           const: value
         };
 }
 
-function integer$1(value) {
+function integer(value) {
   return {
           type: "integer",
           const: value
         };
 }
 
-function number$1(value) {
+function number(value) {
   return {
           type: "number",
           const: value
         };
 }
 
-function $$boolean$1(value) {
+function $$boolean(value) {
   return {
           type: "boolean",
           const: value
         };
 }
-
-var $$null$1 = {
-  type: "null"
-};
 
 var metadataId = Curry._2(S$ReScriptStruct.Metadata.Id.make, "rescript-json-schema", "raw");
 
@@ -203,37 +171,47 @@ function makeNode(struct) {
     switch (innerStruct) {
       case /* Never */0 :
           node = {
-            rawSchema: never,
+            rawSchema: {
+              not: {}
+            },
             isRequired: true
           };
           break;
       case /* Unknown */1 :
           node = {
-            rawSchema: empty,
+            rawSchema: {},
             isRequired: true
           };
           break;
       case /* String */2 :
           node = {
-            rawSchema: string,
+            rawSchema: {
+              type: "string"
+            },
             isRequired: true
           };
           break;
       case /* Int */3 :
           node = {
-            rawSchema: integer,
+            rawSchema: {
+              type: "integer"
+            },
             isRequired: true
           };
           break;
       case /* Float */4 :
           node = {
-            rawSchema: number,
+            rawSchema: {
+              type: "number"
+            },
             isRequired: true
           };
           break;
       case /* Bool */5 :
           node = {
-            rawSchema: $$boolean,
+            rawSchema: {
+              type: "boolean"
+            },
             isRequired: true
           };
           break;
@@ -247,7 +225,9 @@ function makeNode(struct) {
             switch (value) {
               case /* EmptyNull */0 :
                   node = {
-                    rawSchema: $$null$1,
+                    rawSchema: {
+                      type: "null"
+                    },
                     isRequired: true
                   };
                   break;
@@ -261,25 +241,25 @@ function makeNode(struct) {
             switch (value.TAG | 0) {
               case /* String */0 :
                   node = {
-                    rawSchema: string$1(value._0),
+                    rawSchema: string(value._0),
                     isRequired: true
                   };
                   break;
               case /* Int */1 :
                   node = {
-                    rawSchema: integer$1(value._0),
+                    rawSchema: integer(value._0),
                     isRequired: true
                   };
                   break;
               case /* Float */2 :
                   node = {
-                    rawSchema: number$1(value._0),
+                    rawSchema: number(value._0),
                     isRequired: true
                   };
                   break;
               case /* Bool */3 :
                   node = {
-                    rawSchema: $$boolean$1(value._0),
+                    rawSchema: $$boolean(value._0),
                     isRequired: true
                   };
                   break;
@@ -386,7 +366,9 @@ function makeNode(struct) {
   }
   var match$1 = S$ReScriptStruct.Deprecated.classify(struct);
   var rawSchema$1 = match$1 !== undefined ? (
-      match$1 ? merge(node.rawSchema, deprecatedWithMessage(match$1._0)) : merge(node.rawSchema, deprecated)
+      match$1 ? mixin(node.rawSchema, deprecatedWithMessage(match$1._0)) : mixin(node.rawSchema, {
+              deprecated: true
+            })
     ) : node.rawSchema;
   var node_isRequired = node.isRequired;
   var node$1 = {
@@ -398,7 +380,7 @@ function makeNode(struct) {
   if (match$2 !== undefined) {
     var destructingError = S$ReScriptStruct.serializeWith(Caml_option.some(match$2._0), struct);
     node$2 = destructingError.TAG === /* Ok */0 ? ({
-          rawSchema: merge(rawSchema$1, {
+          rawSchema: mixin(rawSchema$1, {
                 default: destructingError._0
               }),
           isRequired: false
@@ -409,7 +391,7 @@ function makeNode(struct) {
   } else {
     node$2 = node$1;
   }
-  var rawSchema$2 = maybeMetadataRawSchema !== undefined ? merge(node$2.rawSchema, Caml_option.valFromOption(maybeMetadataRawSchema)) : node$2.rawSchema;
+  var rawSchema$2 = maybeMetadataRawSchema !== undefined ? mixin(node$2.rawSchema, Caml_option.valFromOption(maybeMetadataRawSchema)) : node$2.rawSchema;
   return {
           rawSchema: rawSchema$2,
           isRequired: node$2.isRequired
@@ -422,7 +404,9 @@ function make(struct) {
     if (node.isRequired) {
       return {
               TAG: /* Ok */0,
-              _0: merge(node.rawSchema, schemaDialect)
+              _0: mixin(node.rawSchema, {
+                    $schema: "http://json-schema.org/draft-07/schema#"
+                  })
             };
     } else {
       return raise(undefined, /* UnsupportedRootOptional */1);

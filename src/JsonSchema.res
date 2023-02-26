@@ -63,18 +63,20 @@ module Raw = {
 
   let merge: (t, t) => t = %raw("(s1, s2) => Object.assign({}, s1, s2)")
 
+  let mixin: (t, t) => t = %raw("(s1, s2) => Object.assign(s1, s2)")
+
   let description = value => make({"description": value})
 
   let default = value => make({"default": value})
 
-  let schemaDialect = make({"$schema": "http://json-schema.org/draft-07/schema#"})
+  let schemaDialect = () => make({"$schema": "http://json-schema.org/draft-07/schema#"})
 
-  let empty = make(Js.Dict.empty())
+  let empty = () => make(Js.Dict.empty())
 
-  let string = make({"type": "string"})
-  let integer = make({"type": "integer"})
-  let number = make({"type": "number"})
-  let boolean = make({"type": "boolean"})
+  let string = () => make({"type": "string"})
+  let integer = () => make({"type": "integer"})
+  let number = () => make({"type": "number"})
+  let boolean = () => make({"type": "boolean"})
   let null = (innerSchema: t) => {
     make({
       "anyOf": [
@@ -85,7 +87,7 @@ module Raw = {
       ],
     })
   }
-  let never = make({"not": Js.Dict.empty()})
+  let never = () => make({"not": Js.Dict.empty()})
 
   let array = (innerSchema: t) => {
     make({
@@ -128,19 +130,19 @@ module Raw = {
     })
     switch required {
     | [] => schema
-    | required => merge(schema, make({"required": required}))
+    | required => mixin(schema, make({"required": required}))
     }
   }
 
-  let deprecated: t = make({"deprecated": true})
-  let deprecatedWithMessage = (message): t => make({"deprecated": true, "description": message})
+  let deprecated = () => make({"deprecated": true})
+  let deprecatedWithMessage = message => make({"deprecated": true, "description": message})
 
   module Literal = {
     let string = value => make({"type": "string", "const": value})
     let integer = value => make({"type": "integer", "const": value})
     let number = value => make({"type": "number", "const": value})
     let boolean = value => make({"type": "boolean", "const": value})
-    let null = make({"type": "null"})
+    let null = () => make({"type": "null"})
   }
 
   let metadataId: S.Metadata.Id.t<t> = S.Metadata.Id.make(
@@ -157,10 +159,10 @@ let rec makeNode:
     let maybeMetadataRawSchema = struct->S.Metadata.get(~id=Raw.metadataId)
 
     switch struct->S.classify {
-    | S.String => {rawSchema: Raw.string, isRequired: true}
-    | S.Int => {rawSchema: Raw.integer, isRequired: true}
-    | S.Bool => {rawSchema: Raw.boolean, isRequired: true}
-    | S.Float => {rawSchema: Raw.number, isRequired: true}
+    | S.String => {rawSchema: Raw.string(), isRequired: true}
+    | S.Int => {rawSchema: Raw.integer(), isRequired: true}
+    | S.Bool => {rawSchema: Raw.boolean(), isRequired: true}
+    | S.Float => {rawSchema: Raw.number(), isRequired: true}
     | S.Array(innerStruct) => {
         let innerNode = makeNode(innerStruct)
         if innerNode.isRequired {
@@ -238,7 +240,7 @@ let rec makeNode:
         }
       }
 
-    | S.Unknown => {rawSchema: Raw.empty, isRequired: true}
+    | S.Unknown => {rawSchema: Raw.empty(), isRequired: true}
     | S.Null(innerStruct) => {
         let innerNode = makeNode(innerStruct)
         if innerNode.isRequired {
@@ -248,12 +250,12 @@ let rec makeNode:
         }
       }
 
-    | S.Never => {rawSchema: Raw.never, isRequired: true}
+    | S.Never => {rawSchema: Raw.never(), isRequired: true}
     | S.Literal(Bool(value)) => {rawSchema: Raw.Literal.boolean(value), isRequired: true}
     | S.Literal(Int(value)) => {rawSchema: Raw.Literal.integer(value), isRequired: true}
     | S.Literal(Float(value)) => {rawSchema: Raw.Literal.number(value), isRequired: true}
     | S.Literal(String(value)) => {rawSchema: Raw.Literal.string(value), isRequired: true}
-    | S.Literal(EmptyNull) => {rawSchema: Raw.Literal.null, isRequired: true}
+    | S.Literal(EmptyNull) => {rawSchema: Raw.Literal.null(), isRequired: true}
     | S.Literal(EmptyOption) => Error.UnsupportedStruct.raise(struct)
     | S.Literal(NaN) => Error.UnsupportedStruct.raise(struct)
     | S.Dict(innerStruct) => {
@@ -267,9 +269,9 @@ let rec makeNode:
     }->(
       node => {
         let rawSchema = switch struct->S.Deprecated.classify {
-        | Some(WithoutMessage) => Raw.merge(node.rawSchema, Raw.deprecated)
+        | Some(WithoutMessage) => Raw.mixin(node.rawSchema, Raw.deprecated())
         | Some(WithMessage(message)) =>
-          Raw.merge(node.rawSchema, Raw.deprecatedWithMessage(message))
+          Raw.mixin(node.rawSchema, Raw.deprecatedWithMessage(message))
         | None => node.rawSchema
         }
         let node = {...node, rawSchema}
@@ -285,14 +287,14 @@ let rec makeNode:
               }),
             )
           | Ok(destructedValue) => {
-              rawSchema: Raw.merge(node.rawSchema, Raw.default(destructedValue)),
+              rawSchema: Raw.mixin(node.rawSchema, Raw.default(destructedValue)),
               isRequired: false,
             }
           }
         | None => node
         }
         let rawSchema = switch maybeMetadataRawSchema {
-        | Some(metadataRawSchema) => Raw.merge(node.rawSchema, metadataRawSchema)
+        | Some(metadataRawSchema) => Raw.mixin(node.rawSchema, metadataRawSchema)
         | None => node.rawSchema
         }
         {...node, rawSchema}
@@ -304,7 +306,7 @@ let make = struct => {
   try {
     let node = makeNode(struct)
     if node.isRequired {
-      Ok(Raw.merge(node.rawSchema, Raw.schemaDialect)->unsafeToJsonSchema)
+      Ok(Raw.mixin(node.rawSchema, Raw.schemaDialect())->unsafeToJsonSchema)
     } else {
       Error.raise(UnsupportedRootOptional)
     }
