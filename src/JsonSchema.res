@@ -1,100 +1,27 @@
-module Stdlib = {
-  module Result: {
-    let mapError: (result<'ok, 'error1>, 'error1 => 'error2) => result<'ok, 'error2>
-    let map: (result<'ok1, 'error>, 'ok1 => 'ok2) => result<'ok2, 'error>
-    let flatMap: (result<'ok1, 'error>, 'ok1 => result<'ok2, 'error>) => result<'ok2, 'error>
-    module Array: {
-      let mapi: (array<'a>, (. 'a, int) => result<'b, 'e>) => result<array<'b>, 'e>
-    }
-  } = {
-    @inline
-    let mapError = (result, fn) =>
-      switch result {
-      | Ok(_) as ok => ok
-      | Error(error) => Error(fn(error))
-      }
-
-    @inline
-    let map = (result, fn) =>
-      switch result {
-      | Ok(value) => Ok(fn(value))
-      | Error(_) as error => error
-      }
-
-    @inline
-    let flatMap = (result, fn) =>
-      switch result {
-      | Ok(value) => fn(value)
-      | Error(_) as error => error
-      }
-
-    module Array = {
-      let mapi = (array, fn) => {
-        let newArray = []
-        let idxRef = ref(0)
-        let maybeErrorRef = ref(None)
-
-        while idxRef.contents < array->Js.Array2.length && maybeErrorRef.contents === None {
-          let idx = idxRef.contents
-          let item = array->Js.Array2.unsafe_get(idx)
-          switch fn(. item, idx) {
-          | Ok(value) => {
-              newArray->Js.Array2.push(value)->ignore
-              idxRef.contents = idxRef.contents + 1
-            }
-
-          | Error(_) as error => maybeErrorRef.contents = Some(error)
-          }
-        }
-
-        switch maybeErrorRef.contents {
-        | Some(error) => error
-        | None => Ok(newArray)
-        }
-      }
-    }
-  }
-}
-
 module Error = {
-  type rec t = {kind: kind, mutable path: array<string>}
-  and kind =
+  type rec t = {code: code, mutable path: array<string>}
+  and code =
     | UnsupportedNestedOptional
     | UnsupportedRootOptional
     | UnsupportedOptionalItem(string)
     | UnsupportedStruct(string)
     | DefaultDestructingFailed({destructingErrorMessage: string})
 
+  exception Exception(t)
+
+  let raise = (~path=[], code) => {
+    raise(Exception({code, path}))
+  }
+
   module UnsupportedOptionalItem = {
-    let make = struct => {
-      {kind: UnsupportedOptionalItem(struct->S.name), path: []}
+    let raise = (~path=?, struct) => {
+      raise(~path?, UnsupportedOptionalItem(struct->S.name))
     }
   }
 
   module UnsupportedStruct = {
-    let make = struct => {
-      {kind: UnsupportedStruct(struct->S.name), path: []}
-    }
-  }
-
-  module UnsupportedNestedOptional = {
-    let make = () => {
-      {kind: UnsupportedNestedOptional, path: []}
-    }
-  }
-
-  module UnsupportedRootOptional = {
-    let make = () => {
-      {kind: UnsupportedRootOptional, path: []}
-    }
-  }
-
-  module DefaultDestructingFailed = {
-    let make = (~destructingErrorMessage) => {
-      {
-        kind: DefaultDestructingFailed({destructingErrorMessage: destructingErrorMessage}),
-        path: [],
-      }
+    let raise = (~path=?, struct) => {
+      raise(~path?, UnsupportedStruct(struct->S.name))
     }
   }
 
@@ -112,7 +39,7 @@ module Error = {
 
   let toString = error => {
     let pathText = error.path->pathToText
-    let reason = switch error.kind {
+    let reason = switch error.code {
     | UnsupportedRootOptional => `Optional struct is not supported at root`
     | UnsupportedNestedOptional => `Optional struct is not supported inside the Option struct`
     | UnsupportedOptionalItem(structName) =>
@@ -225,68 +152,67 @@ module Raw = {
 type node = {rawSchema: Raw.t, isRequired: bool}
 
 let rec makeNode:
-  type value. S.t<value> => result<node, Error.t> =
+  type value. S.t<value> => node =
   struct => {
     let maybeMetadataRawSchema = struct->S.Metadata.get(~id=Raw.metadataId)
 
     switch struct->S.classify {
-    | S.String => Ok({rawSchema: Raw.string, isRequired: true})
-    | S.Int => Ok({rawSchema: Raw.integer, isRequired: true})
-    | S.Bool => Ok({rawSchema: Raw.boolean, isRequired: true})
-    | S.Float => Ok({rawSchema: Raw.number, isRequired: true})
-    | S.Array(innerStruct) =>
-      makeNode(innerStruct)->Stdlib.Result.flatMap(innerNode => {
+    | S.String => {rawSchema: Raw.string, isRequired: true}
+    | S.Int => {rawSchema: Raw.integer, isRequired: true}
+    | S.Bool => {rawSchema: Raw.boolean, isRequired: true}
+    | S.Float => {rawSchema: Raw.number, isRequired: true}
+    | S.Array(innerStruct) => {
+        let innerNode = makeNode(innerStruct)
         if innerNode.isRequired {
-          Ok({rawSchema: Raw.array(innerNode.rawSchema), isRequired: true})
+          {rawSchema: Raw.array(innerNode.rawSchema), isRequired: true}
         } else {
-          Error(Error.UnsupportedOptionalItem.make(struct))
+          Error.UnsupportedOptionalItem.raise(struct)
         }
-      })
-    | S.Tuple(innerStructs) =>
-      innerStructs
-      ->Stdlib.Result.Array.mapi((. innerStruct, idx) => {
-        makeNode(innerStruct)
-        ->Stdlib.Result.flatMap(innerNode => {
+      }
+
+    | S.Tuple(innerStructs) => {
+        let items = innerStructs->Js.Array2.mapi((innerStruct, idx) => {
+          let innerNode = makeNode(innerStruct)
           if innerNode.isRequired {
-            Ok(innerNode.rawSchema)
+            innerNode.rawSchema
           } else {
-            Error(Error.UnsupportedOptionalItem.make(struct))
+            Error.UnsupportedOptionalItem.raise(~path=[idx->Js.Int.toString], struct)
           }
         })
-        ->Stdlib.Result.mapError(Error.prependLocation(_, idx->Js.Int.toString))
-      })
-      ->Stdlib.Result.map(items => {
         {rawSchema: Raw.tuple(items), isRequired: true}
-      })
-    | S.Union(innerStructs) =>
-      innerStructs
-      ->Stdlib.Result.Array.mapi((. innerStruct, _) => {
-        makeNode(innerStruct)->Stdlib.Result.flatMap(innerNode => {
+      }
+
+    | S.Union(innerStructs) => {
+        let items = innerStructs->Js.Array2.map(innerStruct => {
+          let innerNode = makeNode(innerStruct)
           if innerNode.isRequired {
-            Ok(innerNode.rawSchema)
+            innerNode.rawSchema
           } else {
-            Error(Error.UnsupportedOptionalItem.make(struct))
+            Error.UnsupportedOptionalItem.raise(struct)
           }
         })
-      })
-      ->Stdlib.Result.map(items => {
         {rawSchema: Raw.union(items), isRequired: true}
-      })
-    | S.Option(innerStruct) =>
-      makeNode(innerStruct)->Stdlib.Result.flatMap(innerNode => {
+      }
+
+    | S.Option(innerStruct) => {
+        let innerNode = makeNode(innerStruct)
         if innerNode.isRequired {
-          Ok({rawSchema: innerNode.rawSchema, isRequired: false})
+          {rawSchema: innerNode.rawSchema, isRequired: false}
         } else {
-          Error(Error.UnsupportedNestedOptional.make())
+          Error.raise(UnsupportedNestedOptional)
         }
-      })
-    | S.Object({fields, fieldNames}) =>
-      fieldNames
-      ->Stdlib.Result.Array.mapi((. fieldName, _) => {
-        let fieldStruct = fields->Js.Dict.unsafeGet(fieldName)
-        makeNode(fieldStruct)->Stdlib.Result.mapError(Error.prependLocation(_, fieldName))
-      })
-      ->Stdlib.Result.map(fieldNodes => {
+      }
+
+    | S.Object({fields, fieldNames}) => {
+        let fieldNodes = fieldNames->Js.Array2.map(fieldName => {
+          let fieldStruct = fields->Js.Dict.unsafeGet(fieldName)
+          try {
+            makeNode(fieldStruct)
+          } catch {
+          | Error.Exception(error) =>
+            raise(Error.Exception(error->Error.prependLocation(fieldName)))
+          }
+        })
         let rawSchema = {
           let properties = Js.Dict.empty()
           let required = []
@@ -310,79 +236,81 @@ let rec makeNode:
           rawSchema,
           isRequired: true,
         }
-      })
-    | S.Unknown => Ok({rawSchema: Raw.empty, isRequired: true})
-    | S.Null(innerStruct) =>
-      makeNode(innerStruct)->Stdlib.Result.flatMap(innerNode => {
+      }
+
+    | S.Unknown => {rawSchema: Raw.empty, isRequired: true}
+    | S.Null(innerStruct) => {
+        let innerNode = makeNode(innerStruct)
         if innerNode.isRequired {
-          Ok({rawSchema: Raw.null(innerNode.rawSchema), isRequired: true})
+          {rawSchema: Raw.null(innerNode.rawSchema), isRequired: true}
         } else {
-          Error(Error.UnsupportedOptionalItem.make(struct))
+          Error.UnsupportedOptionalItem.raise(struct)
         }
-      })
-    | S.Never => Ok({rawSchema: Raw.never, isRequired: true})
-    | S.Literal(Bool(value)) => Ok({rawSchema: Raw.Literal.boolean(value), isRequired: true})
-    | S.Literal(Int(value)) => Ok({rawSchema: Raw.Literal.integer(value), isRequired: true})
-    | S.Literal(Float(value)) => Ok({rawSchema: Raw.Literal.number(value), isRequired: true})
-    | S.Literal(String(value)) => Ok({rawSchema: Raw.Literal.string(value), isRequired: true})
-    | S.Literal(EmptyNull) => Ok({rawSchema: Raw.Literal.null, isRequired: true})
-    | S.Literal(EmptyOption) => Error(Error.UnsupportedStruct.make(struct))
-    | S.Literal(NaN) => Error(Error.UnsupportedStruct.make(struct))
-    | S.Dict(innerStruct) =>
-      makeNode(innerStruct)->Stdlib.Result.flatMap(innerNode => {
+      }
+
+    | S.Never => {rawSchema: Raw.never, isRequired: true}
+    | S.Literal(Bool(value)) => {rawSchema: Raw.Literal.boolean(value), isRequired: true}
+    | S.Literal(Int(value)) => {rawSchema: Raw.Literal.integer(value), isRequired: true}
+    | S.Literal(Float(value)) => {rawSchema: Raw.Literal.number(value), isRequired: true}
+    | S.Literal(String(value)) => {rawSchema: Raw.Literal.string(value), isRequired: true}
+    | S.Literal(EmptyNull) => {rawSchema: Raw.Literal.null, isRequired: true}
+    | S.Literal(EmptyOption) => Error.UnsupportedStruct.raise(struct)
+    | S.Literal(NaN) => Error.UnsupportedStruct.raise(struct)
+    | S.Dict(innerStruct) => {
+        let innerNode = makeNode(innerStruct)
         if innerNode.isRequired {
-          Ok({rawSchema: Raw.dict(innerNode.rawSchema), isRequired: true})
+          {rawSchema: Raw.dict(innerNode.rawSchema), isRequired: true}
         } else {
-          Error(Error.UnsupportedOptionalItem.make(struct))
+          Error.UnsupportedOptionalItem.raise(struct)
         }
-      })
-    }
-    ->Stdlib.Result.map(node => {
-      let rawSchema = switch struct->S.Deprecated.classify {
-      | Some(WithoutMessage) => Raw.merge(node.rawSchema, Raw.deprecated)
-      | Some(WithMessage(message)) => Raw.merge(node.rawSchema, Raw.deprecatedWithMessage(message))
-      | None => node.rawSchema
       }
-      {...node, rawSchema}
-    })
-    ->Stdlib.Result.flatMap(node => {
-      switch struct->S.Defaulted.classify {
-      | Some(WithDefaultValue(defaultValue)) =>
-        switch Some(defaultValue)->Obj.magic->S.serializeWith(struct) {
-        | Error(destructingError) =>
-          Error(
-            Error.DefaultDestructingFailed.make(
-              ~destructingErrorMessage=destructingError->S.Error.toString,
-            ),
-          )
-        | Ok(destructedValue) =>
-          Ok({
-            rawSchema: Raw.merge(node.rawSchema, Raw.default(destructedValue)),
-            isRequired: false,
-          })
+    }->(
+      node => {
+        let rawSchema = switch struct->S.Deprecated.classify {
+        | Some(WithoutMessage) => Raw.merge(node.rawSchema, Raw.deprecated)
+        | Some(WithMessage(message)) =>
+          Raw.merge(node.rawSchema, Raw.deprecatedWithMessage(message))
+        | None => node.rawSchema
         }
-      | None => Ok(node)
+        let node = {...node, rawSchema}
+        let node = switch struct->S.Defaulted.classify {
+        | Some(WithDefaultValue(defaultValue)) =>
+          switch Some(defaultValue)
+          ->(Obj.magic: option<unknown> => value)
+          ->S.serializeWith(struct) {
+          | Error(destructingError) =>
+            Error.raise(
+              DefaultDestructingFailed({
+                destructingErrorMessage: destructingError->S.Error.toString,
+              }),
+            )
+          | Ok(destructedValue) => {
+              rawSchema: Raw.merge(node.rawSchema, Raw.default(destructedValue)),
+              isRequired: false,
+            }
+          }
+        | None => node
+        }
+        let rawSchema = switch maybeMetadataRawSchema {
+        | Some(metadataRawSchema) => Raw.merge(node.rawSchema, metadataRawSchema)
+        | None => node.rawSchema
+        }
+        {...node, rawSchema}
       }
-    })
-    ->Stdlib.Result.map(node => {
-      let rawSchema = switch maybeMetadataRawSchema {
-      | Some(metadataRawSchema) => Raw.merge(node.rawSchema, metadataRawSchema)
-      | None => node.rawSchema
-      }
-      {...node, rawSchema}
-    })
+    )
   }
 
 let make = struct => {
-  makeNode(struct)
-  ->Stdlib.Result.flatMap(node => {
+  try {
+    let node = makeNode(struct)
     if node.isRequired {
       Ok(Raw.merge(node.rawSchema, Raw.schemaDialect)->unsafeToJsonSchema)
     } else {
-      Error(Error.UnsupportedRootOptional.make())
+      Error.raise(UnsupportedRootOptional)
     }
-  })
-  ->Stdlib.Result.mapError(Error.toString)
+  } catch {
+  | Error.Exception(error) => Error(error->Error.toString)
+  }
 }
 
 let raw = (struct, providedRawSchema) => {
