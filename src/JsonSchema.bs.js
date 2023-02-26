@@ -37,7 +37,7 @@ function make(struct) {
             TAG: /* UnsupportedOptionalItem */0,
             _0: S$ReScriptStruct.name(struct)
           },
-          location: []
+          path: []
         };
 }
 
@@ -47,29 +47,27 @@ function make$1(struct) {
             TAG: /* UnsupportedStruct */1,
             _0: S$ReScriptStruct.name(struct)
           },
-          location: []
+          path: []
         };
 }
 
-function formatLocation($$location) {
-  if ($$location.length === 0) {
-    return "root";
-  } else {
-    return $$location.map(function (s) {
-                  return "[\"" + s._0 + "\"]";
+function pathToText(path) {
+  if (path.length !== 0) {
+    return path.map(function (pathItem) {
+                  return "[\"" + pathItem + "\"]";
                 }).join("");
+  } else {
+    return "root";
   }
 }
 
-function prependField(error, field) {
-  error.location = [/* Field */{
-        _0: field
-      }].concat(error.location);
+function prependLocation(error, $$location) {
+  error.path = [$$location].concat(error.path);
   return error;
 }
 
 function toString(error) {
-  var locationText = formatLocation(error.location);
+  var pathText = pathToText(error.path);
   var structName = error.kind;
   var reason;
   if (typeof structName === "number") {
@@ -88,7 +86,7 @@ function toString(error) {
       
     }
   }
-  return "[ReScript JSON Schema] Failed converting at " + locationText + ". Reason: " + reason + "";
+  return "[ReScript JSON Schema] Failed converting at " + pathText + ". Reason: " + reason + "";
 }
 
 var merge = ((s1, s2) => Object.assign({}, s1, s2));
@@ -372,7 +370,7 @@ function makeNode(struct) {
                   TAG: /* Error */1,
                   _0: {
                     kind: /* UnsupportedNestedOptional */0,
-                    location: []
+                    path: []
                   }
                 });
           } else {
@@ -443,7 +441,7 @@ function makeNode(struct) {
                   } else {
                     return {
                             TAG: /* Error */1,
-                            _0: prependField(result._0, fieldName)
+                            _0: prependLocation(result._0, fieldName)
                           };
                   }
                 }));
@@ -473,7 +471,7 @@ function makeNode(struct) {
                   } else {
                     return {
                             TAG: /* Error */1,
-                            _0: prependField(result$1._0, idx.toString())
+                            _0: prependLocation(result$1._0, idx.toString())
                           };
                   }
                 }));
@@ -568,7 +566,7 @@ function makeNode(struct) {
               TAG: /* DefaultDestructingFailed */2,
               destructingErrorMessage: destructingErrorMessage
             },
-            location: []
+            path: []
           }
         };
       }
@@ -603,7 +601,7 @@ function make$2(struct) {
           TAG: /* Error */1,
           _0: {
             kind: /* UnsupportedRootOptional */1,
-            location: []
+            path: []
           }
         });
   } else {

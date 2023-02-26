@@ -57,11 +57,7 @@ module Stdlib = {
 }
 
 module Error = {
-  type locationComponent = Field(string)
-
-  type location = array<locationComponent>
-
-  type rec t = {kind: kind, mutable location: location}
+  type rec t = {kind: kind, mutable path: array<string>}
   and kind =
     | UnsupportedNestedOptional
     | UnsupportedRootOptional
@@ -71,25 +67,25 @@ module Error = {
 
   module UnsupportedOptionalItem = {
     let make = struct => {
-      {kind: UnsupportedOptionalItem(struct->S.name), location: []}
+      {kind: UnsupportedOptionalItem(struct->S.name), path: []}
     }
   }
 
   module UnsupportedStruct = {
     let make = struct => {
-      {kind: UnsupportedStruct(struct->S.name), location: []}
+      {kind: UnsupportedStruct(struct->S.name), path: []}
     }
   }
 
   module UnsupportedNestedOptional = {
     let make = () => {
-      {kind: UnsupportedNestedOptional, location: []}
+      {kind: UnsupportedNestedOptional, path: []}
     }
   }
 
   module UnsupportedRootOptional = {
     let make = () => {
-      {kind: UnsupportedRootOptional, location: []}
+      {kind: UnsupportedRootOptional, path: []}
     }
   }
 
@@ -97,32 +93,25 @@ module Error = {
     let make = (~destructingErrorMessage) => {
       {
         kind: DefaultDestructingFailed({destructingErrorMessage: destructingErrorMessage}),
-        location: [],
+        path: [],
       }
     }
   }
 
-  let formatLocation = location => {
-    if location->Js.Array2.length === 0 {
-      "root"
-    } else {
-      location
-      ->Js.Array2.map(s =>
-        switch s {
-        | Field(field) => `["` ++ field ++ `"]`
-        }
-      )
-      ->Js.Array2.joinWith("")
+  let pathToText = path => {
+    switch path {
+    | [] => "root"
+    | _ => path->Js.Array2.map(pathItem => `["${pathItem}"]`)->Js.Array2.joinWith("")
     }
   }
 
-  let prependField = (error, field) => {
-    error.location = [Field(field)]->Js.Array2.concat(error.location)
+  let prependLocation = (error, location) => {
+    error.path = [location]->Js.Array2.concat(error.path)
     error
   }
 
   let toString = error => {
-    let locationText = error.location->formatLocation
+    let pathText = error.path->pathToText
     let reason = switch error.kind {
     | UnsupportedRootOptional => `Optional struct is not supported at root`
     | UnsupportedNestedOptional => `Optional struct is not supported inside the Option struct`
@@ -132,7 +121,7 @@ module Error = {
     | DefaultDestructingFailed({destructingErrorMessage}) =>
       `Couldn't destruct default value. Error: ${destructingErrorMessage}`
     }
-    `[ReScript JSON Schema] Failed converting at ${locationText}. Reason: ${reason}`
+    `[ReScript JSON Schema] Failed converting at ${pathText}. Reason: ${reason}`
   }
 }
 
@@ -264,7 +253,7 @@ let rec makeNode:
             Error(Error.UnsupportedOptionalItem.make(struct))
           }
         })
-        ->Stdlib.Result.mapError(Error.prependField(_, idx->Js.Int.toString))
+        ->Stdlib.Result.mapError(Error.prependLocation(_, idx->Js.Int.toString))
       })
       ->Stdlib.Result.map(items => {
         {rawSchema: Raw.tuple(items), isRequired: true}
@@ -295,7 +284,7 @@ let rec makeNode:
       fieldNames
       ->Stdlib.Result.Array.mapi((. fieldName, _) => {
         let fieldStruct = fields->Js.Dict.unsafeGet(fieldName)
-        makeNode(fieldStruct)->Stdlib.Result.mapError(Error.prependField(_, fieldName))
+        makeNode(fieldStruct)->Stdlib.Result.mapError(Error.prependLocation(_, fieldName))
       })
       ->Stdlib.Result.map(fieldNodes => {
         let rawSchema = {
