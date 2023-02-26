@@ -3,7 +3,6 @@
 
 var Curry = require("rescript/lib/js/curry.js");
 var Caml_option = require("rescript/lib/js/caml_option.js");
-var JsonSchema_Error = require("./JsonSchema_Error.bs.js");
 var S$ReScriptStruct = require("rescript-struct/src/S.bs.js");
 
 function mapi(array, fn) {
@@ -30,6 +29,66 @@ function mapi(array, fn) {
             _0: newArray
           };
   }
+}
+
+function make(struct) {
+  return {
+          kind: {
+            TAG: /* UnsupportedOptionalItem */0,
+            _0: S$ReScriptStruct.name(struct)
+          },
+          location: []
+        };
+}
+
+function make$1(struct) {
+  return {
+          kind: {
+            TAG: /* UnsupportedStruct */1,
+            _0: S$ReScriptStruct.name(struct)
+          },
+          location: []
+        };
+}
+
+function formatLocation($$location) {
+  if ($$location.length === 0) {
+    return "root";
+  } else {
+    return $$location.map(function (s) {
+                  return "[\"" + s._0 + "\"]";
+                }).join("");
+  }
+}
+
+function prependField(error, field) {
+  error.location = [/* Field */{
+        _0: field
+      }].concat(error.location);
+  return error;
+}
+
+function toString(error) {
+  var locationText = formatLocation(error.location);
+  var structName = error.kind;
+  var reason;
+  if (typeof structName === "number") {
+    reason = structName === /* UnsupportedNestedOptional */0 ? "Optional struct is not supported inside the Option struct" : "Optional struct is not supported at root";
+  } else {
+    switch (structName.TAG | 0) {
+      case /* UnsupportedOptionalItem */0 :
+          reason = "Optional struct is not supported as " + structName._0 + " item";
+          break;
+      case /* UnsupportedStruct */1 :
+          reason = "The " + structName._0 + " struct is not supported";
+          break;
+      case /* DefaultDestructingFailed */2 :
+          reason = "Couldn't destruct default value. Error: " + structName.destructingErrorMessage + "";
+          break;
+      
+    }
+  }
+  return "[ReScript JSON Schema] Failed converting at " + locationText + ". Reason: " + reason + "";
 }
 
 var merge = ((s1, s2) => Object.assign({}, s1, s2));
@@ -252,7 +311,7 @@ function makeNode(struct) {
               case /* NaN */2 :
                   result = {
                     TAG: /* Error */1,
-                    _0: JsonSchema_Error.UnsupportedStruct.make(struct)
+                    _0: make$1(struct)
                   };
                   break;
               
@@ -311,7 +370,10 @@ function makeNode(struct) {
                   }
                 }) : ({
                   TAG: /* Error */1,
-                  _0: JsonSchema_Error.UnsupportedNestedOptional.make(undefined)
+                  _0: {
+                    kind: /* UnsupportedNestedOptional */0,
+                    location: []
+                  }
                 });
           } else {
             result = result$1;
@@ -329,7 +391,7 @@ function makeNode(struct) {
                   }
                 }) : ({
                   TAG: /* Error */1,
-                  _0: JsonSchema_Error.UnsupportedOptionalNullItem.make(undefined)
+                  _0: make(struct)
                 });
           } else {
             result = result$2;
@@ -347,7 +409,7 @@ function makeNode(struct) {
                   }
                 }) : ({
                   TAG: /* Error */1,
-                  _0: JsonSchema_Error.UnsupportedOptionalDictItem.make(undefined)
+                  _0: make(struct)
                 });
           } else {
             result = result$3;
@@ -381,7 +443,7 @@ function makeNode(struct) {
                   } else {
                     return {
                             TAG: /* Error */1,
-                            _0: JsonSchema_Error.prependField(result._0, fieldName)
+                            _0: prependField(result._0, fieldName)
                           };
                   }
                 }));
@@ -401,7 +463,7 @@ function makeNode(struct) {
                           _0: innerNode.rawSchema
                         }) : ({
                           TAG: /* Error */1,
-                          _0: JsonSchema_Error.UnsupportedOptionalDictItem.make(undefined)
+                          _0: make(struct)
                         });
                   } else {
                     result$1 = result;
@@ -411,7 +473,7 @@ function makeNode(struct) {
                   } else {
                     return {
                             TAG: /* Error */1,
-                            _0: JsonSchema_Error.prependField(result$1._0, idx.toString())
+                            _0: prependField(result$1._0, idx.toString())
                           };
                   }
                 }));
@@ -432,27 +494,21 @@ function makeNode(struct) {
                     isRequired: true
                   };
           };
-          var result$6 = mapi(innerStruct._0, (function (innerStruct, idx) {
+          var result$6 = mapi(innerStruct._0, (function (innerStruct, param) {
                   var result = makeNode(innerStruct);
-                  var result$1;
-                  if (result.TAG === /* Ok */0) {
-                    var innerNode = result._0;
-                    result$1 = innerNode.isRequired ? ({
-                          TAG: /* Ok */0,
-                          _0: innerNode.rawSchema
-                        }) : ({
-                          TAG: /* Error */1,
-                          _0: JsonSchema_Error.UnsupportedOptionalUnionItem.make(undefined)
-                        });
-                  } else {
-                    result$1 = result;
+                  if (result.TAG !== /* Ok */0) {
+                    return result;
                   }
-                  if (result$1.TAG === /* Ok */0) {
-                    return result$1;
+                  var innerNode = result._0;
+                  if (innerNode.isRequired) {
+                    return {
+                            TAG: /* Ok */0,
+                            _0: innerNode.rawSchema
+                          };
                   } else {
                     return {
                             TAG: /* Error */1,
-                            _0: JsonSchema_Error.prependField(result$1._0, idx.toString())
+                            _0: make(struct)
                           };
                   }
                 }));
@@ -473,7 +529,7 @@ function makeNode(struct) {
                   }
                 }) : ({
                   TAG: /* Error */1,
-                  _0: JsonSchema_Error.UnsupportedOptionalDictItem.make(undefined)
+                  _0: make(struct)
                 });
           } else {
             result = result$7;
@@ -493,18 +549,29 @@ function makeNode(struct) {
     var match = S$ReScriptStruct.Defaulted.classify(struct);
     if (match !== undefined) {
       var destructingError = S$ReScriptStruct.serializeWith(Caml_option.some(match._0), struct);
-      result$9 = destructingError.TAG === /* Ok */0 ? ({
-            TAG: /* Ok */0,
-            _0: {
-              rawSchema: merge(node.rawSchema, {
-                    default: destructingError._0
-                  }),
-              isRequired: false
-            }
-          }) : ({
-            TAG: /* Error */1,
-            _0: JsonSchema_Error.DefaultDestructingFailed.make(S$ReScriptStruct.$$Error.toString(destructingError._0))
-          });
+      if (destructingError.TAG === /* Ok */0) {
+        result$9 = {
+          TAG: /* Ok */0,
+          _0: {
+            rawSchema: merge(node.rawSchema, {
+                  default: destructingError._0
+                }),
+            isRequired: false
+          }
+        };
+      } else {
+        var destructingErrorMessage = S$ReScriptStruct.$$Error.toString(destructingError._0);
+        result$9 = {
+          TAG: /* Error */1,
+          _0: {
+            kind: {
+              TAG: /* DefaultDestructingFailed */2,
+              destructingErrorMessage: destructingErrorMessage
+            },
+            location: []
+          }
+        };
+      }
     } else {
       result$9 = {
         TAG: /* Ok */0,
@@ -524,7 +591,7 @@ function makeNode(struct) {
   }
 }
 
-function make(struct) {
+function make$2(struct) {
   var result = makeNode(struct);
   var result$1;
   if (result.TAG === /* Ok */0) {
@@ -534,7 +601,10 @@ function make(struct) {
           _0: merge(node.rawSchema, schemaDialect)
         }) : ({
           TAG: /* Error */1,
-          _0: JsonSchema_Error.UnsupportedRootOptional.make(undefined)
+          _0: {
+            kind: /* UnsupportedRootOptional */1,
+            location: []
+          }
         });
   } else {
     result$1 = result;
@@ -544,7 +614,7 @@ function make(struct) {
   } else {
     return {
             TAG: /* Error */1,
-            _0: JsonSchema_Error.toString(result$1._0)
+            _0: toString(result$1._0)
           };
   }
 }
@@ -561,7 +631,7 @@ function description(struct, value) {
             });
 }
 
-exports.make = make;
+exports.make = make$2;
 exports.raw = raw;
 exports.description = description;
 /* metadataId Not a pure module */
