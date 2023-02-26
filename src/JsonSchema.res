@@ -1,4 +1,4 @@
-module Lib = {
+module Stdlib = {
   module Result: {
     let mapError: (result<'ok, 'error1>, 'error1 => 'error2) => result<'ok, 'error2>
     let map: (result<'ok1, 'error>, 'ok1 => 'ok2) => result<'ok2, 'error>
@@ -166,7 +166,7 @@ let rec makeNode:
     | S.Bool => Ok({rawSchema: Raw.boolean, isRequired: true})
     | S.Float => Ok({rawSchema: Raw.number, isRequired: true})
     | S.Array(innerStruct) =>
-      makeNode(innerStruct)->Lib.Result.flatMap(innerNode => {
+      makeNode(innerStruct)->Stdlib.Result.flatMap(innerNode => {
         if innerNode.isRequired {
           Ok({rawSchema: Raw.array(innerNode.rawSchema), isRequired: true})
         } else {
@@ -175,38 +175,38 @@ let rec makeNode:
       })
     | S.Tuple(innerStructs) =>
       innerStructs
-      ->Lib.Result.Array.mapi((. innerStruct, idx) => {
+      ->Stdlib.Result.Array.mapi((. innerStruct, idx) => {
         makeNode(innerStruct)
-        ->Lib.Result.flatMap(innerNode => {
+        ->Stdlib.Result.flatMap(innerNode => {
           if innerNode.isRequired {
             Ok(innerNode.rawSchema)
           } else {
             Error(JsonSchema_Error.UnsupportedOptionalDictItem.make())
           }
         })
-        ->Lib.Result.mapError(JsonSchema_Error.prependField(_, idx->Js.Int.toString))
+        ->Stdlib.Result.mapError(JsonSchema_Error.prependField(_, idx->Js.Int.toString))
       })
-      ->Lib.Result.map(items => {
+      ->Stdlib.Result.map(items => {
         {rawSchema: Raw.tuple(items), isRequired: true}
       })
     | S.Union(innerStructs) =>
       innerStructs
-      ->Lib.Result.Array.mapi((. innerStruct, idx) => {
+      ->Stdlib.Result.Array.mapi((. innerStruct, idx) => {
         makeNode(innerStruct)
-        ->Lib.Result.flatMap(innerNode => {
+        ->Stdlib.Result.flatMap(innerNode => {
           if innerNode.isRequired {
             Ok(innerNode.rawSchema)
           } else {
             Error(JsonSchema_Error.UnsupportedOptionalUnionItem.make())
           }
         })
-        ->Lib.Result.mapError(JsonSchema_Error.prependField(_, idx->Js.Int.toString))
+        ->Stdlib.Result.mapError(JsonSchema_Error.prependField(_, idx->Js.Int.toString))
       })
-      ->Lib.Result.map(items => {
+      ->Stdlib.Result.map(items => {
         {rawSchema: Raw.union(items), isRequired: true}
       })
     | S.Option(innerStruct) =>
-      makeNode(innerStruct)->Lib.Result.flatMap(innerNode => {
+      makeNode(innerStruct)->Stdlib.Result.flatMap(innerNode => {
         if innerNode.isRequired {
           Ok({rawSchema: innerNode.rawSchema, isRequired: false})
         } else {
@@ -215,11 +215,11 @@ let rec makeNode:
       })
     | S.Object({fields, fieldNames}) =>
       fieldNames
-      ->Lib.Result.Array.mapi((. fieldName, _) => {
+      ->Stdlib.Result.Array.mapi((. fieldName, _) => {
         let fieldStruct = fields->Js.Dict.unsafeGet(fieldName)
-        makeNode(fieldStruct)->Lib.Result.mapError(JsonSchema_Error.prependField(_, fieldName))
+        makeNode(fieldStruct)->Stdlib.Result.mapError(JsonSchema_Error.prependField(_, fieldName))
       })
-      ->Lib.Result.map(fieldNodes => {
+      ->Stdlib.Result.map(fieldNodes => {
         let rawSchema = {
           let properties = Js.Dict.empty()
           let required = []
@@ -246,7 +246,7 @@ let rec makeNode:
       })
     | S.Unknown => Ok({rawSchema: Raw.empty, isRequired: true})
     | S.Null(innerStruct) =>
-      makeNode(innerStruct)->Lib.Result.flatMap(innerNode => {
+      makeNode(innerStruct)->Stdlib.Result.flatMap(innerNode => {
         if innerNode.isRequired {
           Ok({rawSchema: Raw.null(innerNode.rawSchema), isRequired: true})
         } else {
@@ -262,7 +262,7 @@ let rec makeNode:
     | S.Literal(EmptyOption) => Error(JsonSchema_Error.UnsupportedStruct.make(struct))
     | S.Literal(NaN) => Error(JsonSchema_Error.UnsupportedStruct.make(struct))
     | S.Dict(innerStruct) =>
-      makeNode(innerStruct)->Lib.Result.flatMap(innerNode => {
+      makeNode(innerStruct)->Stdlib.Result.flatMap(innerNode => {
         if innerNode.isRequired {
           Ok({rawSchema: Raw.dict(innerNode.rawSchema), isRequired: true})
         } else {
@@ -270,7 +270,7 @@ let rec makeNode:
         }
       })
     }
-    ->Lib.Result.map(node => {
+    ->Stdlib.Result.map(node => {
       let rawSchema = switch struct->S.Deprecated.classify {
       | Some(WithoutMessage) => Raw.merge(node.rawSchema, Raw.deprecated)
       | Some(WithMessage(message)) => Raw.merge(node.rawSchema, Raw.deprecatedWithMessage(message))
@@ -278,7 +278,7 @@ let rec makeNode:
       }
       {...node, rawSchema}
     })
-    ->Lib.Result.flatMap(node => {
+    ->Stdlib.Result.flatMap(node => {
       switch struct->S.Defaulted.classify {
       | Some(WithDefaultValue(defaultValue)) =>
         switch Some(defaultValue)->Obj.magic->S.serializeWith(struct) {
@@ -297,7 +297,7 @@ let rec makeNode:
       | None => Ok(node)
       }
     })
-    ->Lib.Result.map(node => {
+    ->Stdlib.Result.map(node => {
       let rawSchema = switch maybeMetadataRawSchema {
       | Some(metadataRawSchema) => Raw.merge(node.rawSchema, metadataRawSchema)
       | None => node.rawSchema
@@ -308,14 +308,14 @@ let rec makeNode:
 
 let make = struct => {
   makeNode(struct)
-  ->Lib.Result.flatMap(node => {
+  ->Stdlib.Result.flatMap(node => {
     if node.isRequired {
       Ok(Raw.merge(node.rawSchema, Raw.schemaDialect)->unsafeToJsonSchema)
     } else {
       Error(JsonSchema_Error.UnsupportedRootOptional.make())
     }
   })
-  ->Lib.Result.mapError(JsonSchema_Error.toString)
+  ->Stdlib.Result.mapError(JsonSchema_Error.toString)
 }
 
 let raw = (struct, providedRawSchema) => {
