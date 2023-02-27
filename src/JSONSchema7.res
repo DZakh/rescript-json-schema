@@ -1,11 +1,17 @@
-module Arrayable: {
+module Arrayable = {
   type t<'item>
   type tagged<'item> = Single('item) | Array(array<'item>)
 
   external array: array<'item> => t<'item> = "%identity"
   external single: 'item => t<'item> = "%identity"
 
-  let classify: t<'item> => tagged<'item>
+  let classify = (arrayable: t<'item>): tagged<'item> => {
+    if arrayable->Js.Array2.isArray {
+      Array(arrayable->(Obj.magic: t<'item> => array<'item>))
+    } else {
+      Single(arrayable->(Obj.magic: t<'item> => 'item))
+    }
+  }
 }
 
 /**
@@ -134,26 +140,32 @@ type rec t = {
 and definition
 and dependency
 
-module Definition: {
+module Definition = {
   type tagged = Schema(t) | Boolean(bool)
 
   external schema: t => definition = "%identity"
   external boolean: bool => definition = "%identity"
 
-  let classify: definition => tagged
+  let classify = definition => {
+    if definition->Js.typeof === "boolean" {
+      Boolean(definition->(Obj.magic: definition => bool))
+    } else {
+      Schema(definition->(Obj.magic: definition => t))
+    }
+  }
 }
 
-module Dependency: {
+module Dependency = {
   type tagged = Schema(t) | Required(array<string>)
 
   external required: array<string> => dependency = "%identity"
   external schema: t => dependency = "%identity"
 
-  let classify: dependency => tagged
+  let classify = dependency => {
+    if dependency->Js.Array2.isArray {
+      Required(dependency->(Obj.magic: dependency => array<string>))
+    } else {
+      Schema(dependency->(Obj.magic: dependency => t))
+    }
+  }
 }
-
-let make: S.t<'value> => result<t, string>
-
-let raw: (S.t<'value>, 'raw) => S.t<'value>
-
-let description: (S.t<'value>, string) => S.t<'value>

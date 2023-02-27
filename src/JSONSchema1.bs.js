@@ -3,11 +3,12 @@
 
 var Curry = require("rescript/lib/js/curry.js");
 var Caml_option = require("rescript/lib/js/caml_option.js");
+var JSONSchema7 = require("./JSONSchema7.bs.js");
 var Caml_exceptions = require("rescript/lib/js/caml_exceptions.js");
 var S$ReScriptStruct = require("rescript-struct/src/S.bs.js");
 var Caml_js_exceptions = require("rescript/lib/js/caml_js_exceptions.js");
 
-var Exception = /* @__PURE__ */Caml_exceptions.create("JsonSchema.Error.Exception");
+var Exception = /* @__PURE__ */Caml_exceptions.create("JSONSchema1.Error.Exception");
 
 function raise(pathOpt, code) {
   var path = pathOpt !== undefined ? pathOpt : [];
@@ -72,60 +73,6 @@ function toString(error) {
   }
   return "[ReScript JSON Schema] Failed converting at " + pathText + ". Reason: " + reason + "";
 }
-
-function classify(arrayable) {
-  if (Array.isArray(arrayable)) {
-    return {
-            TAG: /* Array */1,
-            _0: arrayable
-          };
-  } else {
-    return {
-            TAG: /* Single */0,
-            _0: arrayable
-          };
-  }
-}
-
-var Arrayable = {
-  classify: classify
-};
-
-function classify$1(definition) {
-  if (typeof definition === "boolean") {
-    return {
-            TAG: /* Boolean */1,
-            _0: definition
-          };
-  } else {
-    return {
-            TAG: /* Schema */0,
-            _0: definition
-          };
-  }
-}
-
-var Definition = {
-  classify: classify$1
-};
-
-function classify$2(dependency) {
-  if (Array.isArray(dependency)) {
-    return {
-            TAG: /* Required */1,
-            _0: dependency
-          };
-  } else {
-    return {
-            TAG: /* Schema */0,
-            _0: dependency
-          };
-  }
-}
-
-var Dependency = {
-  classify: classify$2
-};
 
 function description(value) {
   return {
@@ -526,6 +473,12 @@ function raw(struct, providedRawSchema) {
 function description$1(struct, value) {
   return raw(struct, description(value));
 }
+
+var Arrayable = JSONSchema7.Arrayable;
+
+var Definition = JSONSchema7.Definition;
+
+var Dependency = JSONSchema7.Dependency;
 
 exports.Arrayable = Arrayable;
 exports.Definition = Definition;
