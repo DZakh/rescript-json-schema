@@ -8,7 +8,7 @@ var Caml_exceptions = require("rescript/lib/js/caml_exceptions.js");
 var S$ReScriptStruct = require("rescript-struct/src/S.bs.js");
 var Caml_js_exceptions = require("rescript/lib/js/caml_js_exceptions.js");
 
-var Exception = /* @__PURE__ */Caml_exceptions.create("JSONSchema1.Error.Exception");
+var Exception = /* @__PURE__ */Caml_exceptions.create("JSONSchema.Error.Exception");
 
 function raise(pathOpt, code) {
   var path = pathOpt !== undefined ? pathOpt : [];
