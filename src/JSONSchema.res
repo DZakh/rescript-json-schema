@@ -9,19 +9,19 @@ module Error = {
 
   exception Exception(t)
 
-  let raise = (~path=[], code) => {
-    raise(Exception({code, path}))
+  let raise = code => {
+    raise(Exception({code, path: []}))
   }
 
   module UnsupportedOptionalItem = {
-    let raise = (~path=?, struct) => {
-      raise(~path?, UnsupportedOptionalItem(struct->S.name))
+    let raise = struct => {
+      raise(UnsupportedOptionalItem(struct->S.name))
     }
   }
 
   module UnsupportedStruct = {
-    let raise = (~path=?, struct) => {
-      raise(~path?, UnsupportedStruct(struct->S.name))
+    let raise = struct => {
+      raise(UnsupportedStruct(struct->S.name))
     }
   }
 
@@ -171,11 +171,15 @@ let rec makeStructSchema:
     | S.Tuple(childStructs) =>
       Schema.tuple(
         childStructs->Js.Array2.mapi((childStruct, idx) => {
-          if childStruct->isOptionalStruct {
-            Error.UnsupportedOptionalItem.raise(~path=[idx->Js.Int.toString], struct)
-          } else {
-            // FIXME: Add path on failure
-            Definition.schema(makeStructSchema(childStruct))
+          try {
+            if childStruct->isOptionalStruct {
+              Error.UnsupportedOptionalItem.raise(struct)
+            } else {
+              Definition.schema(makeStructSchema(childStruct))
+            }
+          } catch {
+          | Error.Exception(error) =>
+            raise(Error.Exception(error->Error.prependLocation(idx->Js.Int.toString)))
           }
         }),
       )

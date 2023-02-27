@@ -657,6 +657,11 @@ test("Fails to create schema for structs with optional items", t => {
     Error(`[ReScript JSON Schema] Failed converting at ["0"]. Reason: Optional struct is not supported as Tuple item`),
     (),
   )
+  t->Assert.deepEqual(
+    JSONSchema.make(S.tuple1(. S.array(S.option(S.string())))),
+    Error(`[ReScript JSON Schema] Failed converting at ["0"]. Reason: Optional struct is not supported as Array item`),
+    (),
+  )
 })
 
 module Example = {

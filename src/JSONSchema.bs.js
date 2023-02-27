@@ -10,30 +10,15 @@ var Caml_js_exceptions = require("rescript/lib/js/caml_js_exceptions.js");
 
 var Exception = /* @__PURE__ */Caml_exceptions.create("JSONSchema.Error.Exception");
 
-function raise(pathOpt, code) {
-  var path = pathOpt !== undefined ? pathOpt : [];
+function raise(code) {
   throw {
         RE_EXN_ID: Exception,
         _1: {
           code: code,
-          path: path
+          path: []
         },
         Error: new Error()
       };
-}
-
-function raise$1(path, struct) {
-  return raise(path, {
-              TAG: /* UnsupportedOptionalItem */0,
-              _0: S$ReScriptStruct.name(struct)
-            });
-}
-
-function raise$2(path, struct) {
-  return raise(path, {
-              TAG: /* UnsupportedStruct */1,
-              _0: S$ReScriptStruct.name(struct)
-            });
 }
 
 function pathToText(path) {
@@ -266,7 +251,10 @@ function makeStructSchema(struct) {
                   break;
               case /* EmptyOption */1 :
               case /* NaN */2 :
-                  schema = raise$2(undefined, struct);
+                  schema = raise({
+                        TAG: /* UnsupportedStruct */1,
+                        _0: S$ReScriptStruct.name(struct)
+                      });
                   break;
               
             }
@@ -290,14 +278,17 @@ function makeStructSchema(struct) {
           break;
       case /* Option */1 :
           var childStruct$1 = childStruct._0;
-          schema = isOptionalStruct(childStruct$1) ? raise(undefined, /* UnsupportedNestedOptional */0) : makeStructSchema(childStruct$1);
+          schema = isOptionalStruct(childStruct$1) ? raise(/* UnsupportedNestedOptional */0) : makeStructSchema(childStruct$1);
           break;
       case /* Null */2 :
           schema = $$null(makeStructSchema(childStruct._0));
           break;
       case /* Array */3 :
           var childStruct$2 = childStruct._0;
-          schema = isOptionalStruct(childStruct$2) ? raise$1(undefined, struct) : array(makeStructSchema(childStruct$2));
+          schema = isOptionalStruct(childStruct$2) ? raise({
+                  TAG: /* UnsupportedOptionalItem */0,
+                  _0: S$ReScriptStruct.name(struct)
+                }) : array(makeStructSchema(childStruct$2));
           break;
       case /* Object */4 :
           var fields = childStruct.fields;
@@ -330,17 +321,36 @@ function makeStructSchema(struct) {
           break;
       case /* Tuple */5 :
           schema = tuple(childStruct._0.map(function (childStruct, idx) {
-                    if (isOptionalStruct(childStruct)) {
-                      return raise$1([idx.toString()], struct);
-                    } else {
-                      return makeStructSchema(childStruct);
+                    try {
+                      if (isOptionalStruct(childStruct)) {
+                        return raise({
+                                    TAG: /* UnsupportedOptionalItem */0,
+                                    _0: S$ReScriptStruct.name(struct)
+                                  });
+                      } else {
+                        return makeStructSchema(childStruct);
+                      }
+                    }
+                    catch (raw_error){
+                      var error = Caml_js_exceptions.internalToOCamlException(raw_error);
+                      if (error.RE_EXN_ID === Exception) {
+                        throw {
+                              RE_EXN_ID: Exception,
+                              _1: prependLocation(error._1, idx.toString()),
+                              Error: new Error()
+                            };
+                      }
+                      throw error;
                     }
                   }));
           break;
       case /* Union */6 :
           schema = union(childStruct._0.map(function (childStruct) {
                     if (isOptionalStruct(childStruct)) {
-                      return raise$1(undefined, struct);
+                      return raise({
+                                  TAG: /* UnsupportedOptionalItem */0,
+                                  _0: S$ReScriptStruct.name(struct)
+                                });
                     } else {
                       return makeStructSchema(childStruct);
                     }
@@ -348,7 +358,10 @@ function makeStructSchema(struct) {
           break;
       case /* Dict */7 :
           var childStruct$3 = childStruct._0;
-          schema = isOptionalStruct(childStruct$3) ? raise$1(undefined, struct) : dict(makeStructSchema(childStruct$3));
+          schema = isOptionalStruct(childStruct$3) ? raise({
+                  TAG: /* UnsupportedOptionalItem */0,
+                  _0: S$ReScriptStruct.name(struct)
+                }) : dict(makeStructSchema(childStruct$3));
           break;
       
     }
@@ -369,7 +382,7 @@ function makeStructSchema(struct) {
     if (destructingError.TAG === /* Ok */0) {
       Object.assign(schema, $$default(destructingError._0));
     } else {
-      raise(undefined, {
+      raise({
             TAG: /* DefaultDestructingFailed */2,
             destructingErrorMessage: S$ReScriptStruct.$$Error.toString(destructingError._0)
           });
@@ -385,7 +398,7 @@ function makeStructSchema(struct) {
 function make(struct) {
   try {
     if (isOptionalStruct(struct)) {
-      return raise(undefined, /* UnsupportedRootOptional */1);
+      return raise(/* UnsupportedRootOptional */1);
     }
     var schema = makeStructSchema(struct);
     Object.assign(schema, schemaDialect(undefined));
