@@ -6,7 +6,8 @@
 
 Typesafe JSON Schema for ReScript
 
-**rescript-json-schema** is a library that generates type-safe JSON schemas using [**rescript-struct**](https://github.com/DZakh/rescript-struct). This ensures that your schemas are always in sync with your ReScript code and are fully type-checked and valid.
+- Provides ReScript types to work with [JSON schema](https://json-schema.org/)
+- Converts [**rescript-struct**](https://github.com/DZakh/rescript-struct) into JSON schemas
 
 ## Install
 
@@ -57,7 +58,7 @@ let authorStruct = S.object(o => {
 You can use it to generate JSON Schema for the value it describes:
 
 ```rescript
-JsonSchema.make(authorStruct)
+JSONSchema.make(authorStruct)
 ```
 
 ```json
