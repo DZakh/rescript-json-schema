@@ -52,154 +52,320 @@ module Error = {
   }
 }
 
-type t
+module Arrayable = {
+  type t<'item>
+  type tagged<'item> = Single('item) | Array(array<'item>)
 
-external unsafeToJsonSchema: 'a => t = "%identity"
+  external array: array<'item> => t<'item> = "%identity"
+  external single: 'item => t<'item> = "%identity"
 
-module Raw = {
-  type t
+  let classify = (arrayable: t<'item>): tagged<'item> => {
+    if arrayable->Js.Array2.isArray {
+      Array(arrayable->(Obj.magic: t<'item> => array<'item>))
+    } else {
+      Single(arrayable->(Obj.magic: t<'item> => 'item))
+    }
+  }
+}
 
-  external make: 'a => t = "%identity"
+/**
+ * Primitive type
+ * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-6.1.1
+ */
+type typeName = [
+  | #string
+  | #number
+  | #integer
+  | #boolean
+  | #object
+  | #array
+  | #null
+]
 
-  let merge: (t, t) => t = %raw("(s1, s2) => Object.assign({}, s1, s2)")
+/**
+ * Meta schema
+ *
+ * Recommended values:
+ * - 'http://json-schema.org/schema#'
+ * - 'http://json-schema.org/hyper-schema#'
+ * - 'http://json-schema.org/draft-07/schema#'
+ * - 'http://json-schema.org/draft-07/hyper-schema#'
+ *
+ * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-5
+ */
+type version = string
 
-  let mixin: (t, t) => t = %raw("(s1, s2) => Object.assign(s1, s2)")
+/**
+ * JSON Schema v7
+ * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01
+ */
+type rec t = {
+  @as("$id")
+  id?: string,
+  @as("$ref")
+  ref?: string,
+  @as("$schema")
+  schema?: version,
+  /**
+   * @see https://datatracker.ietf.org/doc/html/draft-bhutton-json-schema-00#section-8.2.4
+   * @see https://datatracker.ietf.org/doc/html/draft-bhutton-json-schema-validation-00#appendix-A
+   */
+  @as("$defs")
+  defs?: Js.Dict.t<definition>,
+  /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-6.1
+   */
+  @as("type")
+  type_?: Arrayable.t<typeName>,
+  enum?: array<Js.Json.t>,
+  const?: Js.Json.t,
+  /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-6.2
+   */
+  multipleOf?: float,
+  maximum?: float,
+  exclusiveMaximum?: float,
+  minimum?: float,
+  exclusiveMinimum?: float,
+  /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-6.3
+   */
+  maxLength?: int,
+  minLength?: int,
+  pattern?: string,
+  /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-6.4
+   */
+  items?: Arrayable.t<definition>,
+  additionalItems?: definition,
+  maxItems?: int,
+  minItems?: int,
+  uniqueItems?: bool,
+  contains?: t,
+  /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-6.5
+   */
+  maxProperties?: int,
+  minProperties?: int,
+  required?: array<string>,
+  properties?: Js.Dict.t<definition>,
+  patternProperties?: Js.Dict.t<definition>,
+  additionalProperties?: definition,
+  dependencies?: Js.Dict.t<dependency>,
+  propertyNames?: definition,
+  /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-6.6
+   */
+  @as("if")
+  if_?: definition,
+  then?: definition,
+  @as("else")
+  else_?: definition,
+  /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-6.7
+   */
+  allOf?: array<definition>,
+  anyOf?: array<definition>,
+  oneOf?: array<definition>,
+  not?: definition,
+  /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-7
+   */
+  format?: string,
+  /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-8
+   */
+  contentMediaType?: string,
+  contentEncoding?: string,
+  /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-9
+   */
+  definitions?: Js.Dict.t<definition>,
+  /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-10
+   */
+  title?: string,
+  description?: string,
+  default?: Js.Json.t,
+  readOnly?: bool,
+  writeOnly?: bool,
+  examples?: Js.Json.t,
+}
+and definition
+and dependency
 
-  let description = value => make({"description": value})
+module Definition = {
+  type tagged = Schema(t) | Boolean(bool)
 
-  let default = value => make({"default": value})
+  external schema: t => definition = "%identity"
+  external boolean: bool => definition = "%identity"
 
-  let schemaDialect = () => make({"$schema": "http://json-schema.org/draft-07/schema#"})
+  let classify = definition => {
+    if definition->Js.typeof === "boolean" {
+      Boolean(definition->(Obj.magic: definition => bool))
+    } else {
+      Schema(definition->(Obj.magic: definition => t))
+    }
+  }
+}
 
-  let empty = () => make(Js.Dict.empty())
+module Dependency = {
+  type tagged = Schema(t) | Required(array<string>)
 
-  let string = () => make({"type": "string"})
-  let integer = () => make({"type": "integer"})
-  let number = () => make({"type": "number"})
-  let boolean = () => make({"type": "boolean"})
-  let null = (innerSchema: t) => {
-    make({
-      "anyOf": [
-        innerSchema,
-        make({
-          "type": "null",
+  external required: array<string> => dependency = "%identity"
+  external schema: t => dependency = "%identity"
+
+  let classify = dependency => {
+    if dependency->Js.Array2.isArray {
+      Required(dependency->(Obj.magic: dependency => array<string>))
+    } else {
+      Schema(dependency->(Obj.magic: dependency => t))
+    }
+  }
+}
+
+module Schema = {
+  @val
+  external merge: (@as(json`{}`) _, t, t) => t = "Object.assign"
+  @val
+  external mixin: (t, t) => t = "Object.assign"
+
+  let empty = (): t => {}
+  let description = value => {description: value}
+  let default = value => {default: value}
+  let schemaDialect = () => {schema: "http://json-schema.org/draft-07/schema#"}
+  let string = () => {type_: Arrayable.single(#string)}
+  let integer = () => {type_: Arrayable.single(#integer)}
+  let number = () => {type_: Arrayable.single(#number)}
+  let boolean = () => {type_: Arrayable.single(#boolean)}
+  let null = childSchema => {
+    {
+      anyOf: [
+        Definition.schema(childSchema),
+        Definition.schema({
+          type_: Arrayable.single(#null),
         }),
       ],
-    })
+    }
   }
-  let never = () => make({"not": Js.Dict.empty()})
+  let never = () => {not: Definition.schema({})}
 
-  let array = (innerSchema: t) => {
-    make({
-      "items": innerSchema,
-      "type": "array",
-    })
-  }
-
-  let tuple = items => {
-    make({
-      "items": items,
-      "type": "array",
-      "minItems": items->Js.Array2.length,
-      "maxItems": items->Js.Array2.length,
-    })
-  }
-
-  let union = items => {
-    make({
-      "anyOf": items,
-    })
-  }
-
-  let dict = (innerSchema: t) => {
-    make({
-      "type": "object",
-      "additionalProperties": innerSchema,
-    })
-  }
-
-  let record = (
-    ~properties: Js.Dict.t<t>,
-    ~additionalProperties: bool,
-    ~required: array<string>,
-  ) => {
-    let schema = make({
-      "type": "object",
-      "properties": properties,
-      "additionalProperties": additionalProperties,
-    })
-    switch required {
-    | [] => schema
-    | required => mixin(schema, make({"required": required}))
+  let array = childSchema => {
+    {
+      items: Arrayable.single(Definition.schema(childSchema)),
+      type_: Arrayable.single(#array),
     }
   }
 
-  let deprecated = () => make({"deprecated": true})
-  let deprecatedWithMessage = message => make({"deprecated": true, "description": message})
-
-  module Literal = {
-    let string = value => make({"type": "string", "const": value})
-    let integer = value => make({"type": "integer", "const": value})
-    let number = value => make({"type": "number", "const": value})
-    let boolean = value => make({"type": "boolean", "const": value})
-    let null = () => make({"type": "null"})
+  let tuple = items => {
+    let itemsNumber = items->Js.Array2.length
+    {
+      items: Arrayable.array(items),
+      type_: Arrayable.single(#array),
+      minItems: itemsNumber,
+      maxItems: itemsNumber,
+    }
   }
 
-  let metadataId: S.Metadata.Id.t<t> = S.Metadata.Id.make(
-    ~namespace="rescript-json-schema",
-    ~name="raw",
-  )
+  let union = items => {
+    {
+      anyOf: items,
+    }
+  }
+
+  let dict = childSchema => {
+    {
+      type_: Arrayable.single(#object),
+      additionalProperties: Definition.schema(childSchema),
+    }
+  }
+
+  let record = (~properties, ~additionalProperties: bool, ~required: array<string>) => {
+    let schema = {
+      type_: Arrayable.single(#object),
+      properties,
+      additionalProperties: Definition.boolean(additionalProperties),
+    }
+    switch required {
+    | [] => ()
+    | required =>
+      (
+        schema->(Obj.magic: t => {"required#=": Js_OO.Meth.arity1<array<string> => unit>})
+      )["required"] = required
+    }
+    schema
+  }
+
+  let deprecated = () => {"deprecated": true}->(Obj.magic: 'a => t)
+  let deprecatedWithMessage = message =>
+    {"deprecated": true, "description": message}->(Obj.magic: 'a => t)
+
+  module Literal = {
+    let string = value => {type_: Arrayable.single(#string), const: Js.Json.string(value)}
+    let integer = value => {
+      type_: Arrayable.single(#integer),
+      const: Js.Json.number(value->Js.Int.toFloat),
+    }
+    let number = value => {type_: Arrayable.single(#number), const: Js.Json.number(value)}
+    let boolean = value => {type_: Arrayable.single(#boolean), const: Js.Json.boolean(value)}
+    let null = () => {type_: Arrayable.single(#null)}
+  }
 }
 
-type node = {rawSchema: Raw.t, isRequired: bool}
+let rawMetadataId: S.Metadata.Id.t<t> = S.Metadata.Id.make(
+  ~namespace="rescript-json-schema",
+  ~name="raw",
+)
+
+type node = {schema: t, isRequired: bool}
 
 let rec makeNode:
   type value. S.t<value> => node =
   struct => {
-    let maybeMetadataRawSchema = struct->S.Metadata.get(~id=Raw.metadataId)
+    let maybeMetadataRawSchema = struct->S.Metadata.get(~id=rawMetadataId)
 
     switch struct->S.classify {
-    | S.String => {rawSchema: Raw.string(), isRequired: true}
-    | S.Int => {rawSchema: Raw.integer(), isRequired: true}
-    | S.Bool => {rawSchema: Raw.boolean(), isRequired: true}
-    | S.Float => {rawSchema: Raw.number(), isRequired: true}
-    | S.Array(innerStruct) => {
-        let innerNode = makeNode(innerStruct)
-        if innerNode.isRequired {
-          {rawSchema: Raw.array(innerNode.rawSchema), isRequired: true}
+    | S.String => {schema: Schema.string(), isRequired: true}
+    | S.Int => {schema: Schema.integer(), isRequired: true}
+    | S.Bool => {schema: Schema.boolean(), isRequired: true}
+    | S.Float => {schema: Schema.number(), isRequired: true}
+    | S.Array(childStruct) => {
+        let childNode = makeNode(childStruct)
+        if childNode.isRequired {
+          {schema: Schema.array(childNode.schema), isRequired: true}
         } else {
           Error.UnsupportedOptionalItem.raise(struct)
         }
       }
 
-    | S.Tuple(innerStructs) => {
-        let items = innerStructs->Js.Array2.mapi((innerStruct, idx) => {
-          let innerNode = makeNode(innerStruct)
-          if innerNode.isRequired {
-            innerNode.rawSchema
+    | S.Tuple(childStructs) => {
+        let items = childStructs->Js.Array2.mapi((childStruct, idx) => {
+          let childNode = makeNode(childStruct)
+          if childNode.isRequired {
+            Definition.schema(childNode.schema)
           } else {
             Error.UnsupportedOptionalItem.raise(~path=[idx->Js.Int.toString], struct)
           }
         })
-        {rawSchema: Raw.tuple(items), isRequired: true}
+        {schema: Schema.tuple(items), isRequired: true}
       }
 
-    | S.Union(innerStructs) => {
-        let items = innerStructs->Js.Array2.map(innerStruct => {
-          let innerNode = makeNode(innerStruct)
-          if innerNode.isRequired {
-            innerNode.rawSchema
+    | S.Union(childStructs) => {
+        let items = childStructs->Js.Array2.map(childStruct => {
+          let childNode = makeNode(childStruct)
+          if childNode.isRequired {
+            Definition.schema(childNode.schema)
           } else {
             Error.UnsupportedOptionalItem.raise(struct)
           }
         })
-        {rawSchema: Raw.union(items), isRequired: true}
+        {schema: Schema.union(items), isRequired: true}
       }
 
-    | S.Option(innerStruct) => {
-        let innerNode = makeNode(innerStruct)
-        if innerNode.isRequired {
-          {rawSchema: innerNode.rawSchema, isRequired: false}
+    | S.Option(childStruct) => {
+        let childNode = makeNode(childStruct)
+        if childNode.isRequired {
+          {schema: childNode.schema, isRequired: false}
         } else {
           Error.raise(UnsupportedNestedOptional)
         }
@@ -215,7 +381,7 @@ let rec makeNode:
             raise(Error.Exception(error->Error.prependLocation(fieldName)))
           }
         })
-        let rawSchema = {
+        let schema = {
           let properties = Js.Dict.empty()
           let required = []
           fieldNodes->Js.Array2.forEachi((fieldNode, idx) => {
@@ -223,9 +389,9 @@ let rec makeNode:
             if fieldNode.isRequired {
               required->Js.Array2.push(fieldName)->ignore
             }
-            properties->Js.Dict.set(fieldName, fieldNode.rawSchema)
+            properties->Js.Dict.set(fieldName, Definition.schema(fieldNode.schema))
           })
-          Raw.record(
+          Schema.record(
             ~additionalProperties=switch struct->S.Object.UnknownKeys.classify {
             | Strict => false
             | Strip => true
@@ -235,46 +401,46 @@ let rec makeNode:
           )
         }
         {
-          rawSchema,
+          schema,
           isRequired: true,
         }
       }
 
-    | S.Unknown => {rawSchema: Raw.empty(), isRequired: true}
-    | S.Null(innerStruct) => {
-        let innerNode = makeNode(innerStruct)
-        if innerNode.isRequired {
-          {rawSchema: Raw.null(innerNode.rawSchema), isRequired: true}
+    | S.Unknown => {schema: Schema.empty(), isRequired: true}
+    | S.Null(childStruct) => {
+        let childNode = makeNode(childStruct)
+        if childNode.isRequired {
+          {schema: Schema.null(childNode.schema), isRequired: true}
         } else {
           Error.UnsupportedOptionalItem.raise(struct)
         }
       }
 
-    | S.Never => {rawSchema: Raw.never(), isRequired: true}
-    | S.Literal(Bool(value)) => {rawSchema: Raw.Literal.boolean(value), isRequired: true}
-    | S.Literal(Int(value)) => {rawSchema: Raw.Literal.integer(value), isRequired: true}
-    | S.Literal(Float(value)) => {rawSchema: Raw.Literal.number(value), isRequired: true}
-    | S.Literal(String(value)) => {rawSchema: Raw.Literal.string(value), isRequired: true}
-    | S.Literal(EmptyNull) => {rawSchema: Raw.Literal.null(), isRequired: true}
+    | S.Never => {schema: Schema.never(), isRequired: true}
+    | S.Literal(Bool(value)) => {schema: Schema.Literal.boolean(value), isRequired: true}
+    | S.Literal(Int(value)) => {schema: Schema.Literal.integer(value), isRequired: true}
+    | S.Literal(Float(value)) => {schema: Schema.Literal.number(value), isRequired: true}
+    | S.Literal(String(value)) => {schema: Schema.Literal.string(value), isRequired: true}
+    | S.Literal(EmptyNull) => {schema: Schema.Literal.null(), isRequired: true}
     | S.Literal(EmptyOption) => Error.UnsupportedStruct.raise(struct)
     | S.Literal(NaN) => Error.UnsupportedStruct.raise(struct)
-    | S.Dict(innerStruct) => {
-        let innerNode = makeNode(innerStruct)
-        if innerNode.isRequired {
-          {rawSchema: Raw.dict(innerNode.rawSchema), isRequired: true}
+    | S.Dict(childStruct) => {
+        let childNode = makeNode(childStruct)
+        if childNode.isRequired {
+          {schema: Schema.dict(childNode.schema), isRequired: true}
         } else {
           Error.UnsupportedOptionalItem.raise(struct)
         }
       }
     }->(
       node => {
-        let rawSchema = switch struct->S.Deprecated.classify {
-        | Some(WithoutMessage) => Raw.mixin(node.rawSchema, Raw.deprecated())
+        let schema = switch struct->S.Deprecated.classify {
+        | Some(WithoutMessage) => Schema.mixin(node.schema, Schema.deprecated())
         | Some(WithMessage(message)) =>
-          Raw.mixin(node.rawSchema, Raw.deprecatedWithMessage(message))
-        | None => node.rawSchema
+          Schema.mixin(node.schema, Schema.deprecatedWithMessage(message))
+        | None => node.schema
         }
-        let node = {...node, rawSchema}
+        let node = {...node, schema}
         let node = switch struct->S.Defaulted.classify {
         | Some(WithDefaultValue(defaultValue)) =>
           switch Some(defaultValue)
@@ -287,17 +453,20 @@ let rec makeNode:
               }),
             )
           | Ok(destructedValue) => {
-              rawSchema: Raw.mixin(node.rawSchema, Raw.default(destructedValue)),
+              schema: Schema.mixin(
+                node.schema,
+                Schema.default(destructedValue->(Obj.magic: unknown => Js.Json.t)),
+              ),
               isRequired: false,
             }
           }
         | None => node
         }
-        let rawSchema = switch maybeMetadataRawSchema {
-        | Some(metadataRawSchema) => Raw.mixin(node.rawSchema, metadataRawSchema)
-        | None => node.rawSchema
+        let schema = switch maybeMetadataRawSchema {
+        | Some(metadataRawSchema) => Schema.mixin(node.schema, metadataRawSchema)
+        | None => node.schema
         }
-        {...node, rawSchema}
+        {...node, schema}
       }
     )
   }
@@ -306,7 +475,7 @@ let make = struct => {
   try {
     let node = makeNode(struct)
     if node.isRequired {
-      Ok(Raw.mixin(node.rawSchema, Raw.schemaDialect())->unsafeToJsonSchema)
+      Ok(Schema.mixin(node.schema, Schema.schemaDialect()))
     } else {
       Error.raise(UnsupportedRootOptional)
     }
@@ -316,13 +485,14 @@ let make = struct => {
 }
 
 let raw = (struct, providedRawSchema) => {
-  let rawSchema = switch struct->S.Metadata.get(~id=Raw.metadataId) {
-  | Some(existingRawSchema) => Raw.merge(existingRawSchema, providedRawSchema->Raw.make)
-  | None => providedRawSchema->Raw.make
+  let providedRawSchema = providedRawSchema->(Obj.magic: 'a => t)
+  let schema = switch struct->S.Metadata.get(~id=rawMetadataId) {
+  | Some(existingRawSchema) => Schema.merge(existingRawSchema, providedRawSchema)
+  | None => providedRawSchema
   }
-  struct->S.Metadata.set(~id=Raw.metadataId, ~metadata=rawSchema)
+  struct->S.Metadata.set(~id=rawMetadataId, ~metadata=schema)
 }
 
 let description = (struct, value) => {
-  struct->raw(Raw.description(value))
+  struct->raw(Schema.description(value))
 }
