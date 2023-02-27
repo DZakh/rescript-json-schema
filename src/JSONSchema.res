@@ -58,7 +58,7 @@ module Schema = {
   @val
   external merge: (@as(json`{}`) _, t, t) => t = "Object.assign"
   @val
-  external mixin: (t, t) => t = "Object.assign"
+  external mixin: (t, t) => unit = "Object.assign"
 
   let empty = (): t => {}
   let description = value => {description: value}
@@ -142,9 +142,9 @@ module Schema = {
   }
 }
 
-let rawMetadataId: S.Metadata.Id.t<t> = S.Metadata.Id.make(
+let schemaExtendMetadataId: S.Metadata.Id.t<t> = S.Metadata.Id.make(
   ~namespace="rescript-json-schema",
-  ~name="raw",
+  ~name="schemaExtend",
 )
 
 type node = {schema: t, isRequired: bool}
@@ -152,7 +152,7 @@ type node = {schema: t, isRequired: bool}
 let rec makeNode:
   type value. S.t<value> => node =
   struct => {
-    let maybeMetadataRawSchema = struct->S.Metadata.get(~id=rawMetadataId)
+    let maybeSchemaExtend = struct->S.Metadata.get(~id=schemaExtendMetadataId)
 
     switch struct->S.classify {
     | S.String => {schema: Schema.string(), isRequired: true}
@@ -264,13 +264,13 @@ let rec makeNode:
       }
     }->(
       node => {
-        let schema = switch struct->S.Deprecated.classify {
+        switch struct->S.Deprecated.classify {
         | Some(WithoutMessage) => Schema.mixin(node.schema, Schema.deprecated())
         | Some(WithMessage(message)) =>
           Schema.mixin(node.schema, Schema.deprecatedWithMessage(message))
-        | None => node.schema
+        | None => ()
         }
-        let node = {...node, schema}
+
         let node = switch struct->S.Defaulted.classify {
         | Some(WithDefaultValue(defaultValue)) =>
           switch Some(defaultValue)
@@ -283,20 +283,25 @@ let rec makeNode:
               }),
             )
           | Ok(destructedValue) => {
-              schema: Schema.mixin(
-                node.schema,
-                Schema.default(destructedValue->(Obj.magic: unknown => Js.Json.t)),
-              ),
+              schema: {
+                Schema.mixin(
+                  node.schema,
+                  Schema.default(destructedValue->(Obj.magic: unknown => Js.Json.t)),
+                )
+                node.schema
+              },
               isRequired: false,
             }
           }
         | None => node
         }
-        let schema = switch maybeMetadataRawSchema {
-        | Some(metadataRawSchema) => Schema.mixin(node.schema, metadataRawSchema)
-        | None => node.schema
+
+        switch maybeSchemaExtend {
+        | Some(metadataRawSchema) => Schema.mixin(node.schema, metadataRawSchema)->ignore
+        | None => ()
         }
-        {...node, schema}
+
+        node
       }
     )
   }
@@ -305,7 +310,8 @@ let make = struct => {
   try {
     let node = makeNode(struct)
     if node.isRequired {
-      Ok(Schema.mixin(node.schema, Schema.schemaDialect()))
+      Schema.mixin(node.schema, Schema.schemaDialect())
+      Ok(node.schema)
     } else {
       Error.raise(UnsupportedRootOptional)
     }
@@ -314,15 +320,16 @@ let make = struct => {
   }
 }
 
-let raw = (struct, providedRawSchema) => {
-  let providedRawSchema = providedRawSchema->(Obj.magic: 'a => t)
-  let schema = switch struct->S.Metadata.get(~id=rawMetadataId) {
-  | Some(existingRawSchema) => Schema.merge(existingRawSchema, providedRawSchema)
-  | None => providedRawSchema
-  }
-  struct->S.Metadata.set(~id=rawMetadataId, ~metadata=schema)
+let extend = (struct, schema) => {
+  struct->S.Metadata.set(
+    ~id=schemaExtendMetadataId,
+    ~metadata=switch struct->S.Metadata.get(~id=schemaExtendMetadataId) {
+    | Some(existingSchemaExtend) => Schema.merge(existingSchemaExtend, schema)
+    | None => schema
+    },
+  )
 }
 
 let description = (struct, value) => {
-  struct->raw(Schema.description(value))
+  struct->extend(Schema.description(value))
 }

@@ -219,10 +219,10 @@ function $$null$1(param) {
         };
 }
 
-var rawMetadataId = Curry._2(S$ReScriptStruct.Metadata.Id.make, "rescript-json-schema", "raw");
+var schemaExtendMetadataId = Curry._2(S$ReScriptStruct.Metadata.Id.make, "rescript-json-schema", "schemaExtend");
 
 function makeNode(struct) {
-  var maybeMetadataRawSchema = S$ReScriptStruct.Metadata.get(struct, rawMetadataId);
+  var maybeSchemaExtend = S$ReScriptStruct.Metadata.get(struct, schemaExtendMetadataId);
   var childStruct = S$ReScriptStruct.classify(struct);
   var node;
   if (typeof childStruct === "number") {
@@ -409,44 +409,43 @@ function makeNode(struct) {
     }
   }
   var match$1 = S$ReScriptStruct.Deprecated.classify(struct);
-  var schema$1 = match$1 !== undefined ? (
-      match$1 ? Object.assign(node.schema, deprecatedWithMessage(match$1._0)) : Object.assign(node.schema, {
-              deprecated: true
-            })
-    ) : node.schema;
-  var node_isRequired = node.isRequired;
-  var node$1 = {
-    schema: schema$1,
-    isRequired: node_isRequired
-  };
+  if (match$1 !== undefined) {
+    if (match$1) {
+      Object.assign(node.schema, deprecatedWithMessage(match$1._0));
+    } else {
+      Object.assign(node.schema, {
+            deprecated: true
+          });
+    }
+  }
   var match$2 = S$ReScriptStruct.Defaulted.classify(struct);
-  var node$2;
+  var node$1;
   if (match$2 !== undefined) {
     var destructingError = S$ReScriptStruct.serializeWith(Caml_option.some(match$2._0), struct);
-    node$2 = destructingError.TAG === /* Ok */0 ? ({
-          schema: Object.assign(schema$1, $$default(destructingError._0)),
+    node$1 = destructingError.TAG === /* Ok */0 ? ({
+          schema: (Object.assign(node.schema, $$default(destructingError._0)), node.schema),
           isRequired: false
         }) : raise(undefined, {
             TAG: /* DefaultDestructingFailed */2,
             destructingErrorMessage: S$ReScriptStruct.$$Error.toString(destructingError._0)
           });
   } else {
-    node$2 = node$1;
+    node$1 = node;
   }
-  var schema$2 = maybeMetadataRawSchema !== undefined ? Object.assign(node$2.schema, maybeMetadataRawSchema) : node$2.schema;
-  return {
-          schema: schema$2,
-          isRequired: node$2.isRequired
-        };
+  if (maybeSchemaExtend !== undefined) {
+    Object.assign(node$1.schema, maybeSchemaExtend);
+  }
+  return node$1;
 }
 
 function make(struct) {
   try {
     var node = makeNode(struct);
     if (node.isRequired) {
+      Object.assign(node.schema, schemaDialect(undefined));
       return {
               TAG: /* Ok */0,
-              _0: Object.assign(node.schema, schemaDialect(undefined))
+              _0: node.schema
             };
     } else {
       return raise(undefined, /* UnsupportedRootOptional */1);
@@ -464,14 +463,13 @@ function make(struct) {
   }
 }
 
-function raw(struct, providedRawSchema) {
-  var existingRawSchema = S$ReScriptStruct.Metadata.get(struct, rawMetadataId);
-  var schema = existingRawSchema !== undefined ? Object.assign({}, existingRawSchema, providedRawSchema) : providedRawSchema;
-  return S$ReScriptStruct.Metadata.set(struct, rawMetadataId, schema);
+function extend(struct, schema) {
+  var existingSchemaExtend = S$ReScriptStruct.Metadata.get(struct, schemaExtendMetadataId);
+  return S$ReScriptStruct.Metadata.set(struct, schemaExtendMetadataId, existingSchemaExtend !== undefined ? Object.assign({}, existingSchemaExtend, schema) : schema);
 }
 
 function description$1(struct, value) {
-  return raw(struct, description(value));
+  return extend(struct, description(value));
 }
 
 var Arrayable = JSONSchema7.Arrayable;
@@ -484,6 +482,6 @@ exports.Arrayable = Arrayable;
 exports.Definition = Definition;
 exports.Dependency = Dependency;
 exports.make = make;
-exports.raw = raw;
+exports.extend = extend;
 exports.description = description$1;
-/* rawMetadataId Not a pure module */
+/* schemaExtendMetadataId Not a pure module */

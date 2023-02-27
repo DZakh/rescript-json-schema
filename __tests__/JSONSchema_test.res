@@ -557,7 +557,7 @@ test("Transformed struct schema uses default with correct type", t => {
 })
 
 test("Primitive struct schema with additional raw schema", t => {
-  let struct = S.bool()->JSONSchema.raw({"nullable": true})
+  let struct = S.bool()->JSONSchema.extend({description: "foo"})
 
   t->Assert.deepEqual(
     JSONSchema.make(struct),
@@ -565,7 +565,7 @@ test("Primitive struct schema with additional raw schema", t => {
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "boolean",
-        "nullable": true,
+        "description": "foo",
       }`),
     ),
     (),
@@ -573,7 +573,10 @@ test("Primitive struct schema with additional raw schema", t => {
 })
 
 test("Multiple additional raw schemas are merged together", t => {
-  let struct = S.bool()->JSONSchema.raw({"nullable": true})->JSONSchema.raw({"deprecated": true})
+  let struct =
+    S.bool()
+    ->JSONSchema.extend({"nullable": true}->Obj.magic)
+    ->JSONSchema.extend({"deprecated": true}->Obj.magic)
 
   t->Assert.deepEqual(
     JSONSchema.make(struct),
@@ -591,7 +594,10 @@ test("Multiple additional raw schemas are merged together", t => {
 
 test("Additional raw schema works with optional fields", t => {
   let struct = S.object(o =>
-    o->S.field("optionalField", S.option(S.string())->JSONSchema.raw({"nullable": true}))
+    o->S.field(
+      "optionalField",
+      S.option(S.string())->JSONSchema.extend({"nullable": true}->Obj.magic),
+    )
   )
 
   t->Assert.deepEqual(
