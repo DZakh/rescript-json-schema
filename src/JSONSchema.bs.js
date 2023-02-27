@@ -221,47 +221,37 @@ function $$null$1(param) {
 
 var schemaExtendMetadataId = Curry._2(S$ReScriptStruct.Metadata.Id.make, "rescript-json-schema", "schemaExtend");
 
-function makeNode(struct) {
-  var maybeSchemaExtend = S$ReScriptStruct.Metadata.get(struct, schemaExtendMetadataId);
+function isOptionalStruct(struct) {
+  var match = S$ReScriptStruct.classify(struct);
+  if (typeof match === "number" || match.TAG !== /* Option */1) {
+    return false;
+  } else {
+    return true;
+  }
+}
+
+function makeStructSchema(struct) {
   var childStruct = S$ReScriptStruct.classify(struct);
-  var node;
+  var schema;
   if (typeof childStruct === "number") {
     switch (childStruct) {
       case /* Never */0 :
-          node = {
-            schema: never(undefined),
-            isRequired: true
-          };
+          schema = never(undefined);
           break;
       case /* Unknown */1 :
-          node = {
-            schema: {},
-            isRequired: true
-          };
+          schema = {};
           break;
       case /* String */2 :
-          node = {
-            schema: string(undefined),
-            isRequired: true
-          };
+          schema = string(undefined);
           break;
       case /* Int */3 :
-          node = {
-            schema: integer(undefined),
-            isRequired: true
-          };
+          schema = integer(undefined);
           break;
       case /* Float */4 :
-          node = {
-            schema: number(undefined),
-            isRequired: true
-          };
+          schema = number(undefined);
           break;
       case /* Bool */5 :
-          node = {
-            schema: $$boolean(undefined),
-            isRequired: true
-          };
+          schema = $$boolean(undefined);
           break;
       
     }
@@ -272,75 +262,52 @@ function makeNode(struct) {
           if (typeof value === "number") {
             switch (value) {
               case /* EmptyNull */0 :
-                  node = {
-                    schema: $$null$1(undefined),
-                    isRequired: true
-                  };
+                  schema = $$null$1(undefined);
                   break;
               case /* EmptyOption */1 :
               case /* NaN */2 :
-                  node = raise$2(undefined, struct);
+                  schema = raise$2(undefined, struct);
                   break;
               
             }
           } else {
             switch (value.TAG | 0) {
               case /* String */0 :
-                  node = {
-                    schema: string$1(value._0),
-                    isRequired: true
-                  };
+                  schema = string$1(value._0);
                   break;
               case /* Int */1 :
-                  node = {
-                    schema: integer$1(value._0),
-                    isRequired: true
-                  };
+                  schema = integer$1(value._0);
                   break;
               case /* Float */2 :
-                  node = {
-                    schema: number$1(value._0),
-                    isRequired: true
-                  };
+                  schema = number$1(value._0);
                   break;
               case /* Bool */3 :
-                  node = {
-                    schema: $$boolean$1(value._0),
-                    isRequired: true
-                  };
+                  schema = $$boolean$1(value._0);
                   break;
               
             }
           }
           break;
       case /* Option */1 :
-          var childNode = makeNode(childStruct._0);
-          node = childNode.isRequired ? ({
-                schema: childNode.schema,
-                isRequired: false
-              }) : raise(undefined, /* UnsupportedNestedOptional */0);
+          var childStruct$1 = childStruct._0;
+          schema = isOptionalStruct(childStruct$1) ? raise(undefined, /* UnsupportedNestedOptional */0) : makeStructSchema(childStruct$1);
           break;
       case /* Null */2 :
-          var childNode$1 = makeNode(childStruct._0);
-          node = childNode$1.isRequired ? ({
-                schema: $$null(childNode$1.schema),
-                isRequired: true
-              }) : raise$1(undefined, struct);
+          schema = $$null(makeStructSchema(childStruct._0));
           break;
       case /* Array */3 :
-          var childNode$2 = makeNode(childStruct._0);
-          node = childNode$2.isRequired ? ({
-                schema: array(childNode$2.schema),
-                isRequired: true
-              }) : raise$1(undefined, struct);
+          var childStruct$2 = childStruct._0;
+          schema = isOptionalStruct(childStruct$2) ? raise$1(undefined, struct) : array(makeStructSchema(childStruct$2));
           break;
       case /* Object */4 :
-          var fieldNames = childStruct.fieldNames;
           var fields = childStruct.fields;
-          var fieldNodes = fieldNames.map(function (fieldName) {
+          var properties = {};
+          var required = [];
+          childStruct.fieldNames.forEach(function (fieldName) {
                 var fieldStruct = fields[fieldName];
+                var fieldSchema;
                 try {
-                  return makeNode(fieldStruct);
+                  fieldSchema = makeStructSchema(fieldStruct);
                 }
                 catch (raw_error){
                   var error = Caml_js_exceptions.internalToOCamlException(raw_error);
@@ -353,57 +320,35 @@ function makeNode(struct) {
                   }
                   throw error;
                 }
-              });
-          var properties = {};
-          var required = [];
-          fieldNodes.forEach(function (fieldNode, idx) {
-                var fieldName = fieldNames[idx];
-                if (fieldNode.isRequired) {
+                if (!isOptionalStruct(fieldStruct)) {
                   required.push(fieldName);
                 }
-                properties[fieldName] = fieldNode.schema;
+                properties[fieldName] = fieldSchema;
               });
           var match = Curry._1(S$ReScriptStruct.$$Object.UnknownKeys.classify, struct);
-          var schema = record(properties, match ? true : false, required);
-          node = {
-            schema: schema,
-            isRequired: true
-          };
+          schema = record(properties, match ? true : false, required);
           break;
       case /* Tuple */5 :
-          var items = childStruct._0.map(function (childStruct, idx) {
-                var childNode = makeNode(childStruct);
-                if (childNode.isRequired) {
-                  return childNode.schema;
-                } else {
-                  return raise$1([idx.toString()], struct);
-                }
-              });
-          node = {
-            schema: tuple(items),
-            isRequired: true
-          };
+          schema = tuple(childStruct._0.map(function (childStruct, idx) {
+                    if (isOptionalStruct(childStruct)) {
+                      return raise$1([idx.toString()], struct);
+                    } else {
+                      return makeStructSchema(childStruct);
+                    }
+                  }));
           break;
       case /* Union */6 :
-          var items$1 = childStruct._0.map(function (childStruct) {
-                var childNode = makeNode(childStruct);
-                if (childNode.isRequired) {
-                  return childNode.schema;
-                } else {
-                  return raise$1(undefined, struct);
-                }
-              });
-          node = {
-            schema: union(items$1),
-            isRequired: true
-          };
+          schema = union(childStruct._0.map(function (childStruct) {
+                    if (isOptionalStruct(childStruct)) {
+                      return raise$1(undefined, struct);
+                    } else {
+                      return makeStructSchema(childStruct);
+                    }
+                  }));
           break;
       case /* Dict */7 :
-          var childNode$3 = makeNode(childStruct._0);
-          node = childNode$3.isRequired ? ({
-                schema: dict(childNode$3.schema),
-                isRequired: true
-              }) : raise$1(undefined, struct);
+          var childStruct$3 = childStruct._0;
+          schema = isOptionalStruct(childStruct$3) ? raise$1(undefined, struct) : dict(makeStructSchema(childStruct$3));
           break;
       
     }
@@ -411,45 +356,43 @@ function makeNode(struct) {
   var match$1 = S$ReScriptStruct.Deprecated.classify(struct);
   if (match$1 !== undefined) {
     if (match$1) {
-      Object.assign(node.schema, deprecatedWithMessage(match$1._0));
+      Object.assign(schema, deprecatedWithMessage(match$1._0));
     } else {
-      Object.assign(node.schema, {
+      Object.assign(schema, {
             deprecated: true
           });
     }
   }
   var match$2 = S$ReScriptStruct.Defaulted.classify(struct);
-  var node$1;
   if (match$2 !== undefined) {
     var destructingError = S$ReScriptStruct.serializeWith(Caml_option.some(match$2._0), struct);
-    node$1 = destructingError.TAG === /* Ok */0 ? ({
-          schema: (Object.assign(node.schema, $$default(destructingError._0)), node.schema),
-          isRequired: false
-        }) : raise(undefined, {
+    if (destructingError.TAG === /* Ok */0) {
+      Object.assign(schema, $$default(destructingError._0));
+    } else {
+      raise(undefined, {
             TAG: /* DefaultDestructingFailed */2,
             destructingErrorMessage: S$ReScriptStruct.$$Error.toString(destructingError._0)
           });
-  } else {
-    node$1 = node;
+    }
   }
-  if (maybeSchemaExtend !== undefined) {
-    Object.assign(node$1.schema, maybeSchemaExtend);
+  var metadataRawSchema = S$ReScriptStruct.Metadata.get(struct, schemaExtendMetadataId);
+  if (metadataRawSchema !== undefined) {
+    Object.assign(schema, metadataRawSchema);
   }
-  return node$1;
+  return schema;
 }
 
 function make(struct) {
   try {
-    var node = makeNode(struct);
-    if (node.isRequired) {
-      Object.assign(node.schema, schemaDialect(undefined));
-      return {
-              TAG: /* Ok */0,
-              _0: node.schema
-            };
-    } else {
+    if (isOptionalStruct(struct)) {
       return raise(undefined, /* UnsupportedRootOptional */1);
     }
+    var schema = makeStructSchema(struct);
+    Object.assign(schema, schemaDialect(undefined));
+    return {
+            TAG: /* Ok */0,
+            _0: schema
+          };
   }
   catch (raw_error){
     var error = Caml_js_exceptions.internalToOCamlException(raw_error);

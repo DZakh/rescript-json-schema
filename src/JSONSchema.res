@@ -147,173 +147,138 @@ let schemaExtendMetadataId: S.Metadata.Id.t<t> = S.Metadata.Id.make(
   ~name="schemaExtend",
 )
 
-type node = {schema: t, isRequired: bool}
+let isOptionalStruct = struct =>
+  switch struct->S.classify {
+  | Option(_) => true
+  | _ => false
+  }
 
-let rec makeNode:
-  type value. S.t<value> => node =
+let rec makeStructSchema:
+  type value. S.t<value> => t =
   struct => {
-    let maybeSchemaExtend = struct->S.Metadata.get(~id=schemaExtendMetadataId)
-
-    switch struct->S.classify {
-    | S.String => {schema: Schema.string(), isRequired: true}
-    | S.Int => {schema: Schema.integer(), isRequired: true}
-    | S.Bool => {schema: Schema.boolean(), isRequired: true}
-    | S.Float => {schema: Schema.number(), isRequired: true}
-    | S.Array(childStruct) => {
-        let childNode = makeNode(childStruct)
-        if childNode.isRequired {
-          {schema: Schema.array(childNode.schema), isRequired: true}
-        } else {
-          Error.UnsupportedOptionalItem.raise(struct)
-        }
+    let schema = switch struct->S.classify {
+    | S.String => Schema.string()
+    | S.Int => Schema.integer()
+    | S.Bool => Schema.boolean()
+    | S.Float => Schema.number()
+    | S.Array(childStruct) =>
+      if childStruct->isOptionalStruct {
+        Error.UnsupportedOptionalItem.raise(struct)
+      } else {
+        Schema.array(makeStructSchema(childStruct))
       }
 
-    | S.Tuple(childStructs) => {
-        let items = childStructs->Js.Array2.mapi((childStruct, idx) => {
-          let childNode = makeNode(childStruct)
-          if childNode.isRequired {
-            Definition.schema(childNode.schema)
-          } else {
+    | S.Tuple(childStructs) =>
+      Schema.tuple(
+        childStructs->Js.Array2.mapi((childStruct, idx) => {
+          if childStruct->isOptionalStruct {
             Error.UnsupportedOptionalItem.raise(~path=[idx->Js.Int.toString], struct)
-          }
-        })
-        {schema: Schema.tuple(items), isRequired: true}
-      }
-
-    | S.Union(childStructs) => {
-        let items = childStructs->Js.Array2.map(childStruct => {
-          let childNode = makeNode(childStruct)
-          if childNode.isRequired {
-            Definition.schema(childNode.schema)
           } else {
-            Error.UnsupportedOptionalItem.raise(struct)
+            // FIXME: Add path on failure
+            Definition.schema(makeStructSchema(childStruct))
           }
-        })
-        {schema: Schema.union(items), isRequired: true}
-      }
+        }),
+      )
 
-    | S.Option(childStruct) => {
-        let childNode = makeNode(childStruct)
-        if childNode.isRequired {
-          {schema: childNode.schema, isRequired: false}
-        } else {
-          Error.raise(UnsupportedNestedOptional)
-        }
+    | S.Union(childStructs) =>
+      Schema.union(
+        childStructs->Js.Array2.map(childStruct => {
+          if childStruct->isOptionalStruct {
+            Error.UnsupportedOptionalItem.raise(struct)
+          } else {
+            Definition.schema(makeStructSchema(childStruct))
+          }
+        }),
+      )
+
+    | S.Option(childStruct) =>
+      if childStruct->isOptionalStruct {
+        Error.raise(UnsupportedNestedOptional)
+      } else {
+        makeStructSchema(childStruct)
       }
 
     | S.Object({fields, fieldNames}) => {
-        let fieldNodes = fieldNames->Js.Array2.map(fieldName => {
+        let properties = Js.Dict.empty()
+        let required = []
+        fieldNames->Js.Array2.forEach(fieldName => {
           let fieldStruct = fields->Js.Dict.unsafeGet(fieldName)
-          try {
-            makeNode(fieldStruct)
+          let fieldSchema = try {
+            makeStructSchema(fieldStruct)
           } catch {
           | Error.Exception(error) =>
             raise(Error.Exception(error->Error.prependLocation(fieldName)))
           }
+          if fieldStruct->isOptionalStruct->not {
+            required->Js.Array2.push(fieldName)->ignore
+          }
+          properties->Js.Dict.set(fieldName, Definition.schema(fieldSchema))
         })
-        let schema = {
-          let properties = Js.Dict.empty()
-          let required = []
-          fieldNodes->Js.Array2.forEachi((fieldNode, idx) => {
-            let fieldName = fieldNames->Js.Array2.unsafe_get(idx)
-            if fieldNode.isRequired {
-              required->Js.Array2.push(fieldName)->ignore
-            }
-            properties->Js.Dict.set(fieldName, Definition.schema(fieldNode.schema))
-          })
-          Schema.record(
-            ~additionalProperties=switch struct->S.Object.UnknownKeys.classify {
-            | Strict => false
-            | Strip => true
-            },
-            ~properties,
-            ~required,
-          )
-        }
-        {
-          schema,
-          isRequired: true,
-        }
+        Schema.record(
+          ~additionalProperties=switch struct->S.Object.UnknownKeys.classify {
+          | Strict => false
+          | Strip => true
+          },
+          ~properties,
+          ~required,
+        )
       }
 
-    | S.Unknown => {schema: Schema.empty(), isRequired: true}
-    | S.Null(childStruct) => {
-        let childNode = makeNode(childStruct)
-        if childNode.isRequired {
-          {schema: Schema.null(childNode.schema), isRequired: true}
-        } else {
-          Error.UnsupportedOptionalItem.raise(struct)
-        }
-      }
-
-    | S.Never => {schema: Schema.never(), isRequired: true}
-    | S.Literal(Bool(value)) => {schema: Schema.Literal.boolean(value), isRequired: true}
-    | S.Literal(Int(value)) => {schema: Schema.Literal.integer(value), isRequired: true}
-    | S.Literal(Float(value)) => {schema: Schema.Literal.number(value), isRequired: true}
-    | S.Literal(String(value)) => {schema: Schema.Literal.string(value), isRequired: true}
-    | S.Literal(EmptyNull) => {schema: Schema.Literal.null(), isRequired: true}
+    | S.Unknown => Schema.empty()
+    | S.Null(childStruct) => Schema.null(makeStructSchema(childStruct))
+    | S.Never => Schema.never()
+    | S.Literal(Bool(value)) => Schema.Literal.boolean(value)
+    | S.Literal(Int(value)) => Schema.Literal.integer(value)
+    | S.Literal(Float(value)) => Schema.Literal.number(value)
+    | S.Literal(String(value)) => Schema.Literal.string(value)
+    | S.Literal(EmptyNull) => Schema.Literal.null()
     | S.Literal(EmptyOption) => Error.UnsupportedStruct.raise(struct)
     | S.Literal(NaN) => Error.UnsupportedStruct.raise(struct)
-    | S.Dict(childStruct) => {
-        let childNode = makeNode(childStruct)
-        if childNode.isRequired {
-          {schema: Schema.dict(childNode.schema), isRequired: true}
-        } else {
-          Error.UnsupportedOptionalItem.raise(struct)
-        }
+    | S.Dict(childStruct) =>
+      if childStruct->isOptionalStruct {
+        Error.UnsupportedOptionalItem.raise(struct)
+      } else {
+        Schema.dict(makeStructSchema(childStruct))
       }
-    }->(
-      node => {
-        switch struct->S.Deprecated.classify {
-        | Some(WithoutMessage) => Schema.mixin(node.schema, Schema.deprecated())
-        | Some(WithMessage(message)) =>
-          Schema.mixin(node.schema, Schema.deprecatedWithMessage(message))
-        | None => ()
-        }
+    }
 
-        let node = switch struct->S.Defaulted.classify {
-        | Some(WithDefaultValue(defaultValue)) =>
-          switch Some(defaultValue)
-          ->(Obj.magic: option<unknown> => value)
-          ->S.serializeWith(struct) {
-          | Error(destructingError) =>
-            Error.raise(
-              DefaultDestructingFailed({
-                destructingErrorMessage: destructingError->S.Error.toString,
-              }),
-            )
-          | Ok(destructedValue) => {
-              schema: {
-                Schema.mixin(
-                  node.schema,
-                  Schema.default(destructedValue->(Obj.magic: unknown => Js.Json.t)),
-                )
-                node.schema
-              },
-              isRequired: false,
-            }
-          }
-        | None => node
-        }
+    switch struct->S.Deprecated.classify {
+    | Some(WithoutMessage) => schema->Schema.mixin(Schema.deprecated())
+    | Some(WithMessage(message)) => schema->Schema.mixin(Schema.deprecatedWithMessage(message))
+    | None => ()
+    }
 
-        switch maybeSchemaExtend {
-        | Some(metadataRawSchema) => Schema.mixin(node.schema, metadataRawSchema)->ignore
-        | None => ()
-        }
-
-        node
+    switch struct->S.Defaulted.classify {
+    | Some(WithDefaultValue(defaultValue)) =>
+      switch Some(defaultValue)->(Obj.magic: option<unknown> => value)->S.serializeWith(struct) {
+      | Error(destructingError) =>
+        Error.raise(
+          DefaultDestructingFailed({
+            destructingErrorMessage: destructingError->S.Error.toString,
+          }),
+        )
+      | Ok(destructedValue) =>
+        schema->Schema.mixin(Schema.default(destructedValue->(Obj.magic: unknown => Js.Json.t)))
       }
-    )
+    | None => ()
+    }
+
+    switch struct->S.Metadata.get(~id=schemaExtendMetadataId) {
+    | Some(metadataRawSchema) => schema->Schema.mixin(metadataRawSchema)
+    | None => ()
+    }
+
+    schema
   }
 
 let make = struct => {
   try {
-    let node = makeNode(struct)
-    if node.isRequired {
-      Schema.mixin(node.schema, Schema.schemaDialect())
-      Ok(node.schema)
-    } else {
+    if struct->isOptionalStruct {
       Error.raise(UnsupportedRootOptional)
+    } else {
+      let schema = makeStructSchema(struct)
+      schema->Schema.mixin(Schema.schemaDialect())
+      Ok(schema)
     }
   } catch {
   | Error.Exception(error) => Error(error->Error.toString)
