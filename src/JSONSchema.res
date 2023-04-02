@@ -252,6 +252,11 @@ let rec makeStructSchema:
     | None => ()
     }
 
+    switch struct->S.description {
+    | Some(m) => schema->Schema.mixin(Schema.description(m))
+    | None => ()
+    }
+
     switch struct->S.Defaulted.classify {
     | Some(WithDefaultValue(defaultValue)) =>
       switch Some(defaultValue)->(Obj.magic: option<unknown> => value)->S.serializeWith(struct) {
@@ -297,8 +302,4 @@ let extend = (struct, schema) => {
     | None => schema
     },
   )
-}
-
-let description = (struct, value) => {
-  struct->extend(Schema.description(value))
 }

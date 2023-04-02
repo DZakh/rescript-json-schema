@@ -376,6 +376,10 @@ function makeStructSchema(struct) {
           });
     }
   }
+  var m = S$RescriptStruct.description(struct);
+  if (m !== undefined) {
+    Object.assign(schema, description(m));
+  }
   var match$2 = S$RescriptStruct.Defaulted.classify(struct);
   if (match$2 !== undefined) {
     var destructingError = S$RescriptStruct.serializeWith(Caml_option.some(match$2._0), struct);
@@ -424,10 +428,6 @@ function extend(struct, schema) {
   return S$RescriptStruct.Metadata.set(struct, schemaExtendMetadataId, existingSchemaExtend !== undefined ? Object.assign({}, existingSchemaExtend, schema) : schema);
 }
 
-function description$1(struct, value) {
-  return extend(struct, description(value));
-}
-
 var Arrayable = JSONSchema7.Arrayable;
 
 var Definition = JSONSchema7.Definition;
@@ -439,5 +439,4 @@ exports.Definition = Definition;
 exports.Dependency = Dependency;
 exports.make = make;
 exports.extend = extend;
-exports.description = description$1;
 /* schemaExtendMetadataId Not a pure module */

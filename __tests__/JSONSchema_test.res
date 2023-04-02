@@ -384,7 +384,7 @@ test("Deprecated message overrides previous description", t => {
     o->S.field(
       "optionalField",
       S.string()
-      ->JSONSchema.description("Previous description")
+      ->S.describe("Previous description")
       ->S.deprecated(~message="Use another field", ()),
     )
   )
@@ -481,7 +481,7 @@ test("Make JSONSchema throws error with object field wrapped in option multiple 
 })
 
 test("Primitive struct schema with description", t => {
-  let struct = S.bool()->JSONSchema.description("A primitive struct")
+  let struct = S.bool()->S.describe("A primitive struct")
 
   t->Assert.deepEqual(
     JSONSchema.make(struct),
