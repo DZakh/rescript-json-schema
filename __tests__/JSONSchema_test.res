@@ -265,7 +265,10 @@ test("Schema of object struct with one string field", t => {
 })
 
 test("Schema of object struct with one string discriminant", t => {
-  let struct = S.object(o => o->S.discriminant("field", S.string()))
+  let struct = S.object(o => {
+    ignore(o->S.field("field", S.string()))
+    ()
+  })
 
   t->Assert.deepEqual(
     JSONSchema.make(struct),

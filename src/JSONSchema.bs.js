@@ -5,7 +5,7 @@ var Curry = require("rescript/lib/js/curry.js");
 var Caml_option = require("rescript/lib/js/caml_option.js");
 var JSONSchema7 = require("./JSONSchema7.bs.js");
 var Caml_exceptions = require("rescript/lib/js/caml_exceptions.js");
-var S$ReScriptStruct = require("rescript-struct/src/S.bs.js");
+var S$RescriptStruct = require("rescript-struct/src/S.bs.js");
 var Caml_js_exceptions = require("rescript/lib/js/caml_js_exceptions.js");
 
 var Exception = /* @__PURE__ */Caml_exceptions.create("JSONSchema.Error.Exception");
@@ -204,10 +204,10 @@ function $$null$1(param) {
         };
 }
 
-var schemaExtendMetadataId = Curry._2(S$ReScriptStruct.Metadata.Id.make, "rescript-json-schema", "schemaExtend");
+var schemaExtendMetadataId = Curry._2(S$RescriptStruct.Metadata.Id.make, "rescript-json-schema", "schemaExtend");
 
 function isOptionalStruct(struct) {
-  var match = S$ReScriptStruct.classify(struct);
+  var match = S$RescriptStruct.classify(struct);
   if (typeof match === "number" || match.TAG !== /* Option */1) {
     return false;
   } else {
@@ -216,7 +216,7 @@ function isOptionalStruct(struct) {
 }
 
 function makeStructSchema(struct) {
-  var childStruct = S$ReScriptStruct.classify(struct);
+  var childStruct = S$RescriptStruct.classify(struct);
   var schema;
   if (typeof childStruct === "number") {
     switch (childStruct) {
@@ -253,7 +253,7 @@ function makeStructSchema(struct) {
               case /* NaN */2 :
                   schema = raise({
                         TAG: /* UnsupportedStruct */1,
-                        _0: S$ReScriptStruct.name(struct)
+                        _0: S$RescriptStruct.name(struct)
                       });
                   break;
               
@@ -287,7 +287,7 @@ function makeStructSchema(struct) {
           var childStruct$2 = childStruct._0;
           schema = isOptionalStruct(childStruct$2) ? raise({
                   TAG: /* UnsupportedOptionalItem */0,
-                  _0: S$ReScriptStruct.name(struct)
+                  _0: S$RescriptStruct.name(struct)
                 }) : array(makeStructSchema(childStruct$2));
           break;
       case /* Object */4 :
@@ -316,7 +316,7 @@ function makeStructSchema(struct) {
                 }
                 properties[fieldName] = fieldSchema;
               });
-          var match = Curry._1(S$ReScriptStruct.$$Object.UnknownKeys.classify, struct);
+          var match = Curry._1(S$RescriptStruct.$$Object.UnknownKeys.classify, struct);
           schema = record(properties, match ? true : false, required);
           break;
       case /* Tuple */5 :
@@ -325,7 +325,7 @@ function makeStructSchema(struct) {
                       if (isOptionalStruct(childStruct)) {
                         return raise({
                                     TAG: /* UnsupportedOptionalItem */0,
-                                    _0: S$ReScriptStruct.name(struct)
+                                    _0: S$RescriptStruct.name(struct)
                                   });
                       } else {
                         return makeStructSchema(childStruct);
@@ -349,7 +349,7 @@ function makeStructSchema(struct) {
                     if (isOptionalStruct(childStruct)) {
                       return raise({
                                   TAG: /* UnsupportedOptionalItem */0,
-                                  _0: S$ReScriptStruct.name(struct)
+                                  _0: S$RescriptStruct.name(struct)
                                 });
                     } else {
                       return makeStructSchema(childStruct);
@@ -360,13 +360,13 @@ function makeStructSchema(struct) {
           var childStruct$3 = childStruct._0;
           schema = isOptionalStruct(childStruct$3) ? raise({
                   TAG: /* UnsupportedOptionalItem */0,
-                  _0: S$ReScriptStruct.name(struct)
+                  _0: S$RescriptStruct.name(struct)
                 }) : dict(makeStructSchema(childStruct$3));
           break;
       
     }
   }
-  var match$1 = S$ReScriptStruct.Deprecated.classify(struct);
+  var match$1 = S$RescriptStruct.Deprecated.classify(struct);
   if (match$1 !== undefined) {
     if (match$1) {
       Object.assign(schema, deprecatedWithMessage(match$1._0));
@@ -376,19 +376,19 @@ function makeStructSchema(struct) {
           });
     }
   }
-  var match$2 = S$ReScriptStruct.Defaulted.classify(struct);
+  var match$2 = S$RescriptStruct.Defaulted.classify(struct);
   if (match$2 !== undefined) {
-    var destructingError = S$ReScriptStruct.serializeWith(Caml_option.some(match$2._0), struct);
+    var destructingError = S$RescriptStruct.serializeWith(Caml_option.some(match$2._0), struct);
     if (destructingError.TAG === /* Ok */0) {
       Object.assign(schema, $$default(destructingError._0));
     } else {
       raise({
             TAG: /* DefaultDestructingFailed */2,
-            destructingErrorMessage: S$ReScriptStruct.$$Error.toString(destructingError._0)
+            destructingErrorMessage: S$RescriptStruct.$$Error.toString(destructingError._0)
           });
     }
   }
-  var metadataRawSchema = S$ReScriptStruct.Metadata.get(struct, schemaExtendMetadataId);
+  var metadataRawSchema = S$RescriptStruct.Metadata.get(struct, schemaExtendMetadataId);
   if (metadataRawSchema !== undefined) {
     Object.assign(schema, metadataRawSchema);
   }
@@ -420,8 +420,8 @@ function make(struct) {
 }
 
 function extend(struct, schema) {
-  var existingSchemaExtend = S$ReScriptStruct.Metadata.get(struct, schemaExtendMetadataId);
-  return S$ReScriptStruct.Metadata.set(struct, schemaExtendMetadataId, existingSchemaExtend !== undefined ? Object.assign({}, existingSchemaExtend, schema) : schema);
+  var existingSchemaExtend = S$RescriptStruct.Metadata.get(struct, schemaExtendMetadataId);
+  return S$RescriptStruct.Metadata.set(struct, schemaExtendMetadataId, existingSchemaExtend !== undefined ? Object.assign({}, existingSchemaExtend, schema) : schema);
 }
 
 function description$1(struct, value) {

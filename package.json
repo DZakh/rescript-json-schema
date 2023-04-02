@@ -44,7 +44,7 @@
     "ava": "5.1.0",
     "c8": "7.13.0",
     "rescript": "10.1.2",
-    "rescript-struct": "3.1.0"
+    "rescript-struct": "github:DZakh/rescript-struct#5ec65540f6880cbee9407c445ff9f7a7020c2488"
   },
   "peerDependencies": {
     "rescript": "10.1.x",

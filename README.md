@@ -21,7 +21,7 @@ Then add `rescript-json-schema` and `rescript-struct` to `bs-dependencies` in yo
 {
   ...
 + "bs-dependencies": ["rescript-json-schema", "rescript-struct"]
-+ "bsc-flags": ["-open ReScriptStruct"],
++ "bsc-flags": ["-open RescriptStruct"],
 }
 ```
 

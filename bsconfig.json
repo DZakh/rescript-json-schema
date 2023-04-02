@@ -1,7 +1,7 @@
 {
   "name": "rescript-json-schema",
   "namespace": false,
-  "bsc-flags": ["-open ReScriptStruct"],
+  "bsc-flags": ["-open RescriptStruct"],
   "bs-dev-dependencies": ["@dzakh/rescript-ava"],
   "bs-dependencies": ["rescript-struct"],
   "suffix": ".bs.js",
