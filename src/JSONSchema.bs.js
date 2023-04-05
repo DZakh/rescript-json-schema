@@ -278,7 +278,24 @@ function makeStructSchema(struct) {
           break;
       case /* Option */1 :
           var childStruct$1 = childStruct._0;
-          schema = isOptionalStruct(childStruct$1) ? raise(/* UnsupportedNestedOptional */0) : makeStructSchema(childStruct$1);
+          if (isOptionalStruct(childStruct$1)) {
+            schema = raise(/* UnsupportedNestedOptional */0);
+          } else {
+            var schema$1 = makeStructSchema(childStruct$1);
+            var defaultValue = S$RescriptStruct.Default.classify(struct);
+            if (defaultValue !== undefined) {
+              var destructingError = S$RescriptStruct.serializeWith(Caml_option.some(Caml_option.valFromOption(defaultValue)), childStruct$1);
+              if (destructingError.TAG === /* Ok */0) {
+                Object.assign(schema$1, $$default(destructingError._0));
+              } else {
+                raise({
+                      TAG: /* DefaultDestructingFailed */2,
+                      destructingErrorMessage: S$RescriptStruct.$$Error.toString(destructingError._0)
+                    });
+              }
+            }
+            schema = schema$1;
+          }
           break;
       case /* Null */2 :
           schema = $$null(makeStructSchema(childStruct._0));
@@ -366,31 +383,13 @@ function makeStructSchema(struct) {
       
     }
   }
-  var match$1 = S$RescriptStruct.Deprecated.classify(struct);
-  if (match$1 !== undefined) {
-    if (match$1) {
-      Object.assign(schema, deprecatedWithMessage(match$1._0));
-    } else {
-      Object.assign(schema, {
-            deprecated: true
-          });
-    }
+  var message = S$RescriptStruct.deprecation(struct);
+  if (message !== undefined) {
+    Object.assign(schema, deprecatedWithMessage(message));
   }
   var m = S$RescriptStruct.description(struct);
   if (m !== undefined) {
     Object.assign(schema, description(m));
-  }
-  var match$2 = S$RescriptStruct.Defaulted.classify(struct);
-  if (match$2 !== undefined) {
-    var destructingError = S$RescriptStruct.serializeWith(Caml_option.some(match$2._0), struct);
-    if (destructingError.TAG === /* Ok */0) {
-      Object.assign(schema, $$default(destructingError._0));
-    } else {
-      raise({
-            TAG: /* DefaultDestructingFailed */2,
-            destructingErrorMessage: S$RescriptStruct.$$Error.toString(destructingError._0)
-          });
-    }
   }
   var metadataRawSchema = S$RescriptStruct.Metadata.get(struct, schemaExtendMetadataId);
   if (metadataRawSchema !== undefined) {

@@ -126,7 +126,6 @@ module Schema = {
     schema
   }
 
-  let deprecated = () => {"deprecated": true}->(Obj.magic: 'a => t)
   let deprecatedWithMessage = message =>
     {"deprecated": true, "description": message}->(Obj.magic: 'a => t)
 
@@ -199,7 +198,25 @@ let rec makeStructSchema:
       if childStruct->isOptionalStruct {
         Error.raise(UnsupportedNestedOptional)
       } else {
-        makeStructSchema(childStruct)
+        let schema = makeStructSchema(childStruct)
+
+        switch struct->S.Default.classify {
+        | Some(defaultValue) =>
+          switch Some(defaultValue)
+          ->(Obj.magic: option<unknown> => unknown)
+          ->S.serializeWith(childStruct) {
+          | Error(destructingError) =>
+            Error.raise(
+              DefaultDestructingFailed({
+                destructingErrorMessage: destructingError->S.Error.toString,
+              }),
+            )
+          | Ok(destructedValue) => schema->Schema.mixin(Schema.default(destructedValue))
+          }
+        | None => ()
+        }
+
+        schema
       }
 
     | S.Object({fields, fieldNames}) => {
@@ -246,29 +263,13 @@ let rec makeStructSchema:
       }
     }
 
-    switch struct->S.Deprecated.classify {
-    | Some(WithoutMessage) => schema->Schema.mixin(Schema.deprecated())
-    | Some(WithMessage(message)) => schema->Schema.mixin(Schema.deprecatedWithMessage(message))
+    switch struct->S.deprecation {
+    | Some(message) => schema->Schema.mixin(Schema.deprecatedWithMessage(message))
     | None => ()
     }
 
     switch struct->S.description {
     | Some(m) => schema->Schema.mixin(Schema.description(m))
-    | None => ()
-    }
-
-    switch struct->S.Defaulted.classify {
-    | Some(WithDefaultValue(defaultValue)) =>
-      switch Some(defaultValue)->(Obj.magic: option<unknown> => value)->S.serializeWith(struct) {
-      | Error(destructingError) =>
-        Error.raise(
-          DefaultDestructingFailed({
-            destructingErrorMessage: destructingError->S.Error.toString,
-          }),
-        )
-      | Ok(destructedValue) =>
-        schema->Schema.mixin(Schema.default(destructedValue->(Obj.magic: unknown => Js.Json.t)))
-      }
     | None => ()
     }
 
