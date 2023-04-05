@@ -21,7 +21,7 @@ Then add `rescript-json-schema` and `rescript-struct` to `bs-dependencies` in yo
 {
   ...
 + "bs-dependencies": ["rescript-json-schema", "rescript-struct"]
-+ "bsc-flags": ["-open ReScriptStruct"],
++ "bsc-flags": ["-open RescriptStruct"],
 }
 ```
 
@@ -43,15 +43,12 @@ type author = {
 
 let authorStruct = S.object(o => {
   id: o->S.field("Id", S.float()),
-  tags: o->S.field("Tags", S.option(S.array(S.string()))->S.defaulted([])),
+  tags: o->S.field("Tags", S.option(S.array(S.string()))->S.default(() => [])),
   isAproved: o->S.field(
     "IsApproved",
     S.union([S.literalVariant(String("Yes"), true), S.literalVariant(String("No"), false)]),
   ),
-  deprecatedAge: o->S.field(
-    "Age",
-    S.int()->S.deprecated(~message="Will be removed in APIv2", ()),
-  ),
+  deprecatedAge: o->S.field("Age", S.int()->S.deprecate("Will be removed in APIv2")),
 })
 ```
 

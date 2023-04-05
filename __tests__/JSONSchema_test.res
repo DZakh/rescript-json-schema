@@ -265,7 +265,10 @@ test("Schema of object struct with one string field", t => {
 })
 
 test("Schema of object struct with one string discriminant", t => {
-  let struct = S.object(o => o->S.discriminant("field", S.string()))
+  let struct = S.object(o => {
+    ignore(o->S.field("field", S.string()))
+    ()
+  })
 
   t->Assert.deepEqual(
     JSONSchema.make(struct),
@@ -339,25 +342,8 @@ test("Schema of object struct with one optional string field", t => {
 })
 
 test("Schema of object struct with one deprecated string field", t => {
-  let struct = S.object(o => o->S.field("optionalField", S.string()->S.deprecated()))
-
-  t->Assert.deepEqual(
-    JSONSchema.make(struct),
-    Ok(
-      %raw(`{
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {"optionalField": {"type": "string", "deprecated": true}},
-        "additionalProperties": true,
-      }`),
-    ),
-    (),
-  )
-})
-
-test("Schema of object struct with one deprecated string field and message", t => {
   let struct = S.object(o =>
-    o->S.field("optionalField", S.string()->S.deprecated(~message="Use another field", ()))
+    o->S.field("optionalField", S.string()->S.deprecate("Use another field"))
   )
 
   t->Assert.deepEqual(
@@ -380,9 +366,7 @@ test("Deprecated message overrides previous description", t => {
   let struct = S.object(o =>
     o->S.field(
       "optionalField",
-      S.string()
-      ->JSONSchema.description("Previous description")
-      ->S.deprecated(~message="Use another field", ()),
+      S.string()->S.describe("Previous description")->S.deprecate("Use another field"),
     )
   )
 
@@ -478,7 +462,7 @@ test("Make JSONSchema throws error with object field wrapped in option multiple 
 })
 
 test("Primitive struct schema with description", t => {
-  let struct = S.bool()->JSONSchema.description("A primitive struct")
+  let struct = S.bool()->S.describe("A primitive struct")
 
   t->Assert.deepEqual(
     JSONSchema.make(struct),
@@ -507,7 +491,7 @@ test("Transformed struct schema with default fails when destruction failed", t =
           },
           (),
         ),
-      )->S.defaulted("true"),
+      )->S.default(() => "true"),
     )
   )
 
@@ -538,7 +522,7 @@ test("Transformed struct schema uses default with correct type", t => {
           },
           (),
         ),
-      )->S.defaulted("true"),
+      )->S.default(() => "true"),
     )
   )
 
@@ -671,15 +655,12 @@ module Example = {
   test("Example", t => {
     let authorStruct = S.object(o => {
       id: o->S.field("Id", S.float()),
-      tags: o->S.field("Tags", S.option(S.array(S.string()))->S.defaulted([])),
+      tags: o->S.field("Tags", S.option(S.array(S.string()))->S.default(() => [])),
       isAproved: o->S.field(
         "IsApproved",
         S.union([S.literalVariant(String("Yes"), true), S.literalVariant(String("No"), false)]),
       ),
-      deprecatedAge: o->S.field(
-        "Age",
-        S.int()->S.deprecated(~message="Will be removed in APIv2", ()),
-      ),
+      deprecatedAge: o->S.field("Age", S.int()->S.deprecate("Will be removed in APIv2")),
     })
 
     t->Assert.deepEqual(
