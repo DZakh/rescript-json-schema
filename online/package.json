@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "res:build": "rescript -with-deps",
+    "res:build": "rescript build -with-deps",
     "res:clean": "rescript clean",
     "res:dev": "rescript build -w -with-deps",
     "dev": "vite",
