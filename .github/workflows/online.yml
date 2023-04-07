@@ -58,6 +58,8 @@ jobs:
         uses: actions/configure-pages@v3
       - name: Install dependencies
         run: npm ci
+      - name: Vendor current version of rescript-json-schema
+        run: npm run vendor
       - name: Build ReScript
         run: npm run res:build
       - name: Build app

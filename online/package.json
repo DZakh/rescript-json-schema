@@ -6,6 +6,7 @@
     "res:build": "rescript build -with-deps",
     "res:clean": "rescript clean",
     "res:dev": "rescript build -w -with-deps",
+    "vendor": "rsync -av --exclude='node_modules' --exclude='lib' --exclude='coverage' --exclude='__tests__' --exclude='.git' --exclude='online' ../ ./vendor/rescript-json-schema",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
@@ -20,7 +21,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "rescript": "10.1",
-    "rescript-json-schema": "../",
+    "rescript-json-schema": "./vendor/rescript-json-schema",
     "rescript-struct": "4.0.0"
   },
   "devDependencies": {
