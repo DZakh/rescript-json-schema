@@ -8,8 +8,7 @@
     "res:dev": "rescript build -w -with-deps",
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "deploy": "gh-pages --branch=online -d dist"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^9.1.0",
@@ -21,15 +20,13 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "rescript": "10.1",
-    "rescript-json-schema": "github:DZakh/rescript-json-schema#57ca5b0435629f4363bb8d4ea0d85d0248b8a4ac",
+    "rescript-json-schema": "../",
     "rescript-struct": "4.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^3.1.0",
     "autoprefixer": "^10.4.13",
     "postcss": "^8.4.21",
-    "vite": "^4.1.0",
-    "gh-pages": "^5.0.0"
-  },
-  "homepage": "https://dzakh.github.io/rescript-json-schema/"
+    "vite": "^4.1.0"
+  }
 }
