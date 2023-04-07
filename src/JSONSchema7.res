@@ -5,8 +5,10 @@ module Arrayable = {
   external array: array<'item> => t<'item> = "%identity"
   external single: 'item => t<'item> = "%identity"
 
+  let isArray: t<'item> => bool = Js.Array2.isArray
+
   let classify = (arrayable: t<'item>): tagged<'item> => {
-    if arrayable->Js.Array2.isArray {
+    if arrayable->isArray {
       Array(arrayable->(Obj.magic: t<'item> => array<'item>))
     } else {
       Single(arrayable->(Obj.magic: t<'item> => 'item))

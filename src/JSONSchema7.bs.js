@@ -2,6 +2,10 @@
 'use strict';
 
 
+function isArray(prim) {
+  return Array.isArray(prim);
+}
+
 function classify(arrayable) {
   if (Array.isArray(arrayable)) {
     return {
@@ -17,6 +21,7 @@ function classify(arrayable) {
 }
 
 var Arrayable = {
+  isArray: isArray,
   classify: classify
 };
 
