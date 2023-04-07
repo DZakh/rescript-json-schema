@@ -1,0 +1,27 @@
+{
+  "name": "rescript-json-schema-online",
+  "sources": [
+    {
+      "dir": "src",
+      "subdirs": true
+    }
+  ],
+  "package-specs": [
+    {
+      "module": "es6",
+      "in-source": true
+    }
+  ],
+  "suffix": ".bs.mjs",
+  "bs-dependencies": [
+    "@rescript/react",
+    "@rescript/core",
+    "rescript-struct",
+    "rescript-json-schema"
+  ],
+  "jsx": {
+    "version": 4,
+    "mode": "automatic"
+  },
+  "bsc-flags": ["-open RescriptCore", "-open RescriptStruct"]
+}
