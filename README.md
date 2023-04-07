@@ -8,6 +8,7 @@ Typesafe JSON Schema for ReScript
 
 - Provides ReScript types to work with [JSON schema](https://json-schema.org/)
 - Converts [**rescript-struct**](https://github.com/DZakh/rescript-struct) into JSON schemas
+- Converts JSON schemas to [**rescript-struct**](https://github.com/DZakh/rescript-struct)
 
 ## Install
 
@@ -25,9 +26,7 @@ Then add `rescript-json-schema` and `rescript-struct` to `bs-dependencies` in yo
 }
 ```
 
-> 🧠 You need to have rescript >10.1.0
-
-## Basic usage
+## Create JSON schemas with type safety
 
 One of the library's main features is the **rescript-struct**, which provides a way to describe the structure of a value. This structure contains meta information used for parsing, serializing, and generating JSON Schema. When working with the library, you will mostly interact with **rescript-struct** to define the structure of the values you are working with.
 
@@ -90,3 +89,9 @@ JSONSchema.make(authorStruct)
   "additionalProperties": true
 }
 ```
+
+## Create **rescript-struct** from JSON schema
+
+### Online
+
+[Just paste your JSON schemas here!](https://dzakh.github.io/rescript-json-schema/)
