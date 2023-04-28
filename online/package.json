@@ -20,9 +20,9 @@
     "node-fetch": "^3.3.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "rescript": "10.1",
+    "rescript": "10.1.4",
     "rescript-json-schema": "./vendor/rescript-json-schema",
-    "rescript-struct": "4.0.0"
+    "rescript-struct": "4.1.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^3.1.0",

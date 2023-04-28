@@ -25,6 +25,8 @@ var Arrayable = {
   classify: classify
 };
 
+var Mutable = {};
+
 function classify$1(definition) {
   if (typeof definition === "boolean") {
     return {
@@ -62,6 +64,7 @@ var Dependency = {
 };
 
 exports.Arrayable = Arrayable;
+exports.Mutable = Mutable;
 exports.Definition = Definition;
 exports.Dependency = Dependency;
 /* No side effect */

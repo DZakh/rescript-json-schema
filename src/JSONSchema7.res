@@ -142,6 +142,108 @@ type rec t = {
 and definition
 and dependency
 
+module Mutable = {
+  type readOnly = t
+  type t = {
+    @as("$id")
+    mutable id?: string,
+    @as("$ref")
+    mutable ref?: string,
+    @as("$schema")
+    mutable schema?: version,
+    /**
+   * @see https://datatracker.ietf.org/doc/html/draft-bhutton-json-schema-00#section-8.2.4
+   * @see https://datatracker.ietf.org/doc/html/draft-bhutton-json-schema-validation-00#appendix-A
+   */
+    @as("$defs")
+    mutable defs?: Js.Dict.t<definition>,
+    /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-6.1
+   */
+    @as("type")
+    mutable type_?: Arrayable.t<typeName>,
+    mutable enum?: array<Js.Json.t>,
+    mutable const?: Js.Json.t,
+    /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-6.2
+   */
+    mutable multipleOf?: float,
+    mutable maximum?: float,
+    mutable exclusiveMaximum?: float,
+    mutable minimum?: float,
+    mutable exclusiveMinimum?: float,
+    /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-6.3
+   */
+    mutable maxLength?: int,
+    mutable minLength?: int,
+    mutable pattern?: string,
+    /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-6.4
+   */
+    mutable items?: Arrayable.t<definition>,
+    mutable additionalItems?: definition,
+    mutable maxItems?: int,
+    mutable minItems?: int,
+    mutable uniqueItems?: bool,
+    mutable contains?: t,
+    /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-6.5
+   */
+    mutable maxProperties?: int,
+    mutable minProperties?: int,
+    mutable required?: array<string>,
+    mutable properties?: Js.Dict.t<definition>,
+    mutable patternProperties?: Js.Dict.t<definition>,
+    mutable additionalProperties?: definition,
+    mutable dependencies?: Js.Dict.t<dependency>,
+    mutable propertyNames?: definition,
+    /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-6.6
+   */
+    @as("if")
+    mutable if_?: definition,
+    mutable then?: definition,
+    @as("else")
+    mutable else_?: definition,
+    /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-6.7
+   */
+    mutable allOf?: array<definition>,
+    mutable anyOf?: array<definition>,
+    mutable oneOf?: array<definition>,
+    mutable not?: definition,
+    /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-7
+   */
+    mutable format?: string,
+    /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-8
+   */
+    mutable contentMediaType?: string,
+    mutable contentEncoding?: string,
+    /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-9
+   */
+    mutable definitions?: Js.Dict.t<definition>,
+    /**
+   * @see https://tools.ietf.org/html/draft-handrews-json-schema-validation-01#section-10
+   */
+    mutable title?: string,
+    mutable description?: string,
+    mutable default?: Js.Json.t,
+    mutable readOnly?: bool,
+    mutable writeOnly?: bool,
+    mutable examples?: Js.Json.t,
+  }
+
+  external fromReadOnly: readOnly => t = "%identity"
+  external toReadOnly: t => readOnly = "%identity"
+
+  @val
+  external mixin: (t, readOnly) => unit = "Object.assign"
+}
+
 module Definition = {
   type tagged = Schema(t) | Boolean(bool)
 

@@ -4,6 +4,6 @@ let make: S.t<'value> => result<t, string>
 
 let extend: (S.t<'value>, t) => S.t<'value>
 
-let toStruct: t => S.t<unknown>
+let toStruct: t => S.t<Js.Json.t>
 
 let validate: (t, Js.Json.t) => result<unit, S.Error.t>

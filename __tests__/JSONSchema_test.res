@@ -20,6 +20,183 @@ test("Schema of string struct", t => {
   )
 })
 
+test("Schema of string struct with Email refinement", t => {
+  let struct = S.string()->S.String.email()
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "format": "email"
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of string struct with Url refinement", t => {
+  let struct = S.string()->S.String.url()
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "format": "uri"
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of string struct with Datetime refinement", t => {
+  let struct = S.string()->S.String.datetime()
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "format": "date-time"
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of string struct uses the last refinement for format", t => {
+  let struct = S.string()->S.String.email()->S.String.datetime()
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "format": "date-time"
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of string struct with Cuid refinement", t => {
+  let struct = S.string()->S.String.cuid()
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string"
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of string struct with Uuid refinement", t => {
+  let struct = S.string()->S.String.uuid()
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "format": "uuid"
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of string struct with Pattern refinement", t => {
+  let struct = S.string()->S.String.pattern(%re("/abc/g"))
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "pattern": "/abc/g"
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of string struct with Min refinement", t => {
+  let struct = S.string()->S.String.min(1)
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "minLength": 1
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of string struct with Max refinement", t => {
+  let struct = S.string()->S.String.max(1)
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "maxLength": 1
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of string struct with Length refinement", t => {
+  let struct = S.string()->S.String.length(1)
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of string struct with both Min and Max refinements", t => {
+  let struct = S.string()->S.String.min(1)->S.String.max(4)
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4
+      }`),
+    ),
+    (),
+  )
+})
+
 test("Schema of int struct", t => {
   let struct = S.int()
 
@@ -30,12 +207,91 @@ test("Schema of int struct", t => {
   )
 })
 
+test("Schema of int struct with Min refinement", t => {
+  let struct = S.int()->S.Int.min(1)
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "integer",
+        "minimum": 1
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of int struct with Max refinement", t => {
+  let struct = S.int()->S.Int.max(1)
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "integer",
+        "maximum": 1
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of int struct with Port refinement", t => {
+  let struct = S.int()->S.Int.port()
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "integer"
+      }`),
+    ),
+    (),
+  )
+})
+
 test("Schema of float struct", t => {
   let struct = S.float()
 
   t->Assert.deepEqual(
     JSONSchema.make(struct),
     Ok(%raw(`{"$schema": "http://json-schema.org/draft-07/schema#", "type": "number"}`)),
+    (),
+  )
+})
+
+test("Schema of float struct with Min refinement", t => {
+  let struct = S.float()->S.Float.min(1.)
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "minimum": 1
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of float struct with Max refinement", t => {
+  let struct = S.float()->S.Float.max(1.)
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "number",
+        "maximum": 1
+      }`),
+    ),
     (),
   )
 })
@@ -224,6 +480,58 @@ test("Schema of strings array struct", t => {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "array",
         "items": {"type": "string"},
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of array struct with Min refinement", t => {
+  let struct = S.array(S.string())->S.Array.min(1)
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": {"type": "string"},
+        "minItems": 1
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of array struct with Max refinement", t => {
+  let struct = S.array(S.string())->S.Array.max(1)
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": {"type": "string"},
+        "maxItems": 1
+      }`),
+    ),
+    (),
+  )
+})
+
+test("Schema of array struct with Length refinement", t => {
+  let struct = S.array(S.string())->S.Array.length(1)
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "array",
+        "items": {"type": "string"},
+        "minItems": 1,
+        "maxItems": 1
       }`),
     ),
     (),
@@ -602,6 +910,20 @@ test("Additional raw schema works with optional fields", t => {
 
 test("Unknown struct doesn't affect final schema", t => {
   let struct = S.unknown()
+
+  t->Assert.deepEqual(
+    JSONSchema.make(struct),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+      }`),
+    ),
+    (),
+  )
+})
+
+test("JSON struct doesn't affect final schema", t => {
+  let struct = S.jsonable()
 
   t->Assert.deepEqual(
     JSONSchema.make(struct),

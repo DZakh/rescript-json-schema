@@ -94,4 +94,6 @@ JSONSchema.make(authorStruct)
 
 ### Online
 
+![ReScript JSON Schema Online](assets/online-preview.png)
+
 [Just paste your JSON schemas here!](https://dzakh.github.io/rescript-json-schema/)

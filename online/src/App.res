@@ -9,7 +9,38 @@ external copy: string => unit = "default"
 
 @react.component
 let make = () => {
-  let (json, setJson) = React.useState(() => "{}")
+  let (json, setJson) = React.useState(() =>
+    `{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "Age": {
+      "deprecated": true,
+      "description": "Will be removed in APIv2",
+      "type": "integer"
+    },
+    "Id": { "type": "number" },
+    "IsApproved": {
+      "anyOf": [
+        {
+          "const": "Yes",
+          "type": "string"
+        },
+        {
+          "const": "No",
+          "type": "string"
+        }
+      ]
+    },
+    "Tags": {
+      "items": { "type": "string" },
+      "type": "array"
+    }
+  },
+  "required": ["Id", "IsApproved"],
+  "additionalProperties": true
+}`
+  )
   let (inlinedStruct, setInlineStruct) = React.useState(() => "")
   let (errors, setErrors) = React.useState(() => "")
 
@@ -54,7 +85,7 @@ let make = () => {
 
   <>
     <h1> {React.string("ReScript JSON Schema Online")} </h1>
-    <div style={{display: "flex"}}>
+    <div style={{display: "flex", justifyContent: "flex-grow"}}>
       <div
         style={
           display: "flex",
@@ -62,10 +93,11 @@ let make = () => {
           margin: "10px",
           padding: "10px",
           border: "1px solid grey",
+          flexGrow: "1",
         }>
         <b> {React.string("Json Schema")} </b>
         <textarea
-          style={width: "400px", height: "400px"}
+          style={width: "auto", height: "400px"}
           value={json}
           onChange={e => setJson((e->ReactEvent.Synthetic.target)["value"])}
         />
@@ -80,11 +112,12 @@ let make = () => {
           margin: "10px",
           padding: "10px",
           border: "1px solid grey",
+          flexGrow: "1",
         }}>
         <b> {React.string("Result")} </b>
         <textarea
           style={
-            width: "400px",
+            width: "auto",
             height: "476px",
             color: errors === "" ? "black" : "red",
           }

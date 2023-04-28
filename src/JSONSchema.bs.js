@@ -61,151 +61,6 @@ function toString(error) {
   return "[ReScript JSON Schema] Failed converting at " + pathText + ". Reason: " + reason + "";
 }
 
-function description(value) {
-  return {
-          description: value
-        };
-}
-
-function $$default(value) {
-  return {
-          default: Caml_option.some(value)
-        };
-}
-
-function schemaDialect(param) {
-  return {
-          $schema: "http://json-schema.org/draft-07/schema#"
-        };
-}
-
-function string(param) {
-  return {
-          type: "string"
-        };
-}
-
-function integer(param) {
-  return {
-          type: "integer"
-        };
-}
-
-function number(param) {
-  return {
-          type: "number"
-        };
-}
-
-function $$boolean(param) {
-  return {
-          type: "boolean"
-        };
-}
-
-function $$null(childSchema) {
-  return {
-          anyOf: [
-            childSchema,
-            {
-              type: "null"
-            }
-          ]
-        };
-}
-
-function never(param) {
-  return {
-          not: {}
-        };
-}
-
-function array(childSchema) {
-  return {
-          type: "array",
-          items: Caml_option.some(childSchema)
-        };
-}
-
-function tuple(items) {
-  var itemsNumber = items.length;
-  return {
-          type: "array",
-          items: Caml_option.some(items),
-          maxItems: itemsNumber,
-          minItems: itemsNumber
-        };
-}
-
-function union(items) {
-  return {
-          anyOf: items
-        };
-}
-
-function dict(childSchema) {
-  return {
-          type: "object",
-          additionalProperties: Caml_option.some(childSchema)
-        };
-}
-
-function record(properties, additionalProperties, required) {
-  var schema_type = "object";
-  var schema_properties = Caml_option.some(properties);
-  var schema_additionalProperties = Caml_option.some(additionalProperties);
-  var schema = {
-    type: schema_type,
-    properties: schema_properties,
-    additionalProperties: schema_additionalProperties
-  };
-  if (required.length !== 0) {
-    schema.required = required;
-  }
-  return schema;
-}
-
-function deprecatedWithMessage(message) {
-  return {
-          deprecated: true,
-          description: message
-        };
-}
-
-function string$1(value) {
-  return {
-          type: "string",
-          const: Caml_option.some(value)
-        };
-}
-
-function integer$1(value) {
-  return {
-          type: "integer",
-          const: Caml_option.some(value)
-        };
-}
-
-function number$1(value) {
-  return {
-          type: "number",
-          const: Caml_option.some(value)
-        };
-}
-
-function $$boolean$1(value) {
-  return {
-          type: "boolean",
-          const: Caml_option.some(value)
-        };
-}
-
-function $$null$1(param) {
-  return {
-          type: "null"
-        };
-}
-
 var schemaExtendMetadataId = Curry._2(S$RescriptStruct.Metadata.Id.make, "rescript-json-schema", "schemaExtend");
 
 function isOptionalStruct(struct) {
@@ -218,27 +73,88 @@ function isOptionalStruct(struct) {
 }
 
 function makeStructSchema(struct) {
+  var schema = {};
   var childStruct = S$RescriptStruct.classify(struct);
-  var schema;
   if (typeof childStruct === "number") {
     switch (childStruct) {
       case /* Never */0 :
-          schema = never(undefined);
-          break;
-      case /* Unknown */1 :
-          schema = {};
+          schema.not = {};
           break;
       case /* String */2 :
-          schema = string(undefined);
+          schema.type = "string";
+          S$RescriptStruct.$$String.refinements(struct).forEach(function (refinement) {
+                var match = refinement.kind;
+                if (typeof match === "number") {
+                  switch (match) {
+                    case /* Email */0 :
+                        schema.format = "email";
+                        return ;
+                    case /* Uuid */1 :
+                        schema.format = "uuid";
+                        return ;
+                    case /* Cuid */2 :
+                        return ;
+                    case /* Url */3 :
+                        schema.format = "uri";
+                        return ;
+                    case /* Datetime */4 :
+                        schema.format = "date-time";
+                        return ;
+                    
+                  }
+                } else {
+                  switch (match.TAG | 0) {
+                    case /* Min */0 :
+                        schema.minLength = match.length;
+                        return ;
+                    case /* Max */1 :
+                        schema.maxLength = match.length;
+                        return ;
+                    case /* Length */2 :
+                        var length = match.length;
+                        schema.minLength = length;
+                        schema.maxLength = length;
+                        return ;
+                    case /* Pattern */3 :
+                        schema.pattern = String(match.re);
+                        return ;
+                    
+                  }
+                }
+              });
           break;
       case /* Int */3 :
-          schema = integer(undefined);
+          schema.type = "integer";
+          S$RescriptStruct.Int.refinements(struct).forEach(function (refinement) {
+                var match = refinement.kind;
+                if (typeof match === "number") {
+                  return ;
+                } else {
+                  if (match.TAG === /* Min */0) {
+                    schema.minimum = match.value;
+                  } else {
+                    schema.maximum = match.value;
+                  }
+                  return ;
+                }
+              });
           break;
       case /* Float */4 :
-          schema = number(undefined);
+          schema.type = "number";
+          S$RescriptStruct.Float.refinements(struct).forEach(function (refinement) {
+                var match = refinement.kind;
+                if (match.TAG === /* Min */0) {
+                  schema.minimum = match.value;
+                } else {
+                  schema.maximum = match.value;
+                }
+              });
           break;
       case /* Bool */5 :
-          schema = $$boolean(undefined);
+          schema.type = "boolean";
+          break;
+      case /* Unknown */1 :
+      case /* JSON */6 :
           break;
       
     }
@@ -249,11 +165,11 @@ function makeStructSchema(struct) {
           if (typeof value === "number") {
             switch (value) {
               case /* EmptyNull */0 :
-                  schema = $$null$1(undefined);
+                  schema.type = "null";
                   break;
               case /* EmptyOption */1 :
               case /* NaN */2 :
-                  schema = raise({
+                  raise({
                         TAG: /* UnsupportedStruct */1,
                         _0: S$RescriptStruct.name(struct)
                       });
@@ -263,16 +179,20 @@ function makeStructSchema(struct) {
           } else {
             switch (value.TAG | 0) {
               case /* String */0 :
-                  schema = string$1(value._0);
+                  schema.type = "string";
+                  schema.const = Caml_option.some(value._0);
                   break;
               case /* Int */1 :
-                  schema = integer$1(value._0);
+                  schema.type = "integer";
+                  schema.const = Caml_option.some(value._0);
                   break;
               case /* Float */2 :
-                  schema = number$1(value._0);
+                  schema.type = "number";
+                  schema.const = Caml_option.some(value._0);
                   break;
               case /* Bool */3 :
-                  schema = $$boolean$1(value._0);
+                  schema.type = "boolean";
+                  schema.const = Caml_option.some(value._0);
                   break;
               
             }
@@ -281,33 +201,58 @@ function makeStructSchema(struct) {
       case /* Option */1 :
           var childStruct$1 = childStruct._0;
           if (isOptionalStruct(childStruct$1)) {
-            schema = raise(/* UnsupportedNestedOptional */0);
-          } else {
-            var schema$1 = makeStructSchema(childStruct$1);
-            var defaultValue = S$RescriptStruct.Default.classify(struct);
-            if (defaultValue !== undefined) {
-              var destructingError = S$RescriptStruct.serializeWith(Caml_option.some(Caml_option.valFromOption(defaultValue)), childStruct$1);
-              if (destructingError.TAG === /* Ok */0) {
-                Object.assign(schema$1, $$default(destructingError._0));
-              } else {
-                raise({
-                      TAG: /* DefaultDestructingFailed */2,
-                      destructingErrorMessage: S$RescriptStruct.$$Error.toString(destructingError._0)
-                    });
-              }
+            raise(/* UnsupportedNestedOptional */0);
+          }
+          var childSchema = makeStructSchema(childStruct$1);
+          Object.assign(schema, childSchema);
+          var defaultValue = S$RescriptStruct.Default.classify(struct);
+          if (defaultValue !== undefined) {
+            var destructingError = S$RescriptStruct.serializeWith(Caml_option.some(Caml_option.valFromOption(defaultValue)), childStruct$1);
+            if (destructingError.TAG === /* Ok */0) {
+              schema.default = Caml_option.some(destructingError._0);
+            } else {
+              raise({
+                    TAG: /* DefaultDestructingFailed */2,
+                    destructingErrorMessage: S$RescriptStruct.$$Error.toString(destructingError._0)
+                  });
             }
-            schema = schema$1;
           }
           break;
       case /* Null */2 :
-          schema = $$null(makeStructSchema(childStruct._0));
+          schema.anyOf = [
+            makeStructSchema(childStruct._0),
+            {
+              type: "null"
+            }
+          ];
           break;
       case /* Array */3 :
           var childStruct$2 = childStruct._0;
-          schema = isOptionalStruct(childStruct$2) ? raise({
+          if (isOptionalStruct(childStruct$2)) {
+            raise({
                   TAG: /* UnsupportedOptionalItem */0,
                   _0: S$RescriptStruct.name(struct)
-                }) : array(makeStructSchema(childStruct$2));
+                });
+          }
+          schema.items = Caml_option.some(makeStructSchema(childStruct$2));
+          schema.type = "array";
+          S$RescriptStruct.$$Array.refinements(struct).forEach(function (refinement) {
+                var match = refinement.kind;
+                switch (match.TAG | 0) {
+                  case /* Min */0 :
+                      schema.minItems = match.length;
+                      return ;
+                  case /* Max */1 :
+                      schema.maxItems = match.length;
+                      return ;
+                  case /* Length */2 :
+                      var length = match.length;
+                      schema.maxItems = length;
+                      schema.minItems = length;
+                      return ;
+                  
+                }
+              });
           break;
       case /* Object */4 :
           var fields = childStruct.fields;
@@ -336,62 +281,81 @@ function makeStructSchema(struct) {
                 properties[fieldName] = fieldSchema;
               });
           var match = Curry._1(S$RescriptStruct.$$Object.UnknownKeys.classify, struct);
-          schema = record(properties, match ? true : false, required);
+          var additionalProperties = match ? true : false;
+          schema.type = "object";
+          schema.properties = Caml_option.some(properties);
+          schema.additionalProperties = Caml_option.some(additionalProperties);
+          if (required.length !== 0) {
+            schema.required = required;
+          }
           break;
       case /* Tuple */5 :
-          schema = tuple(childStruct._0.map(function (childStruct, idx) {
-                    try {
-                      if (isOptionalStruct(childStruct)) {
-                        return raise({
-                                    TAG: /* UnsupportedOptionalItem */0,
-                                    _0: S$RescriptStruct.name(struct)
-                                  });
-                      } else {
-                        return makeStructSchema(childStruct);
-                      }
-                    }
-                    catch (raw_error){
-                      var error = Caml_js_exceptions.internalToOCamlException(raw_error);
-                      if (error.RE_EXN_ID === Exception) {
-                        throw {
-                              RE_EXN_ID: Exception,
-                              _1: prependLocation(error._1, idx.toString()),
-                              Error: new Error()
-                            };
-                      }
-                      throw error;
-                    }
-                  }));
+          var items = childStruct._0.map(function (childStruct, idx) {
+                try {
+                  if (isOptionalStruct(childStruct)) {
+                    return raise({
+                                TAG: /* UnsupportedOptionalItem */0,
+                                _0: S$RescriptStruct.name(struct)
+                              });
+                  } else {
+                    return makeStructSchema(childStruct);
+                  }
+                }
+                catch (raw_error){
+                  var error = Caml_js_exceptions.internalToOCamlException(raw_error);
+                  if (error.RE_EXN_ID === Exception) {
+                    throw {
+                          RE_EXN_ID: Exception,
+                          _1: prependLocation(error._1, idx.toString()),
+                          Error: new Error()
+                        };
+                  }
+                  throw error;
+                }
+              });
+          var itemsNumber = items.length;
+          schema.items = Caml_option.some(items);
+          schema.type = "array";
+          schema.minItems = itemsNumber;
+          schema.maxItems = itemsNumber;
           break;
       case /* Union */6 :
-          schema = union(childStruct._0.map(function (childStruct) {
-                    if (isOptionalStruct(childStruct)) {
-                      return raise({
-                                  TAG: /* UnsupportedOptionalItem */0,
-                                  _0: S$RescriptStruct.name(struct)
-                                });
-                    } else {
-                      return makeStructSchema(childStruct);
-                    }
-                  }));
+          var items$1 = childStruct._0.map(function (childStruct) {
+                if (isOptionalStruct(childStruct)) {
+                  return raise({
+                              TAG: /* UnsupportedOptionalItem */0,
+                              _0: S$RescriptStruct.name(struct)
+                            });
+                } else {
+                  return makeStructSchema(childStruct);
+                }
+              });
+          schema.anyOf = items$1;
           break;
       case /* Dict */7 :
           var childStruct$3 = childStruct._0;
-          schema = isOptionalStruct(childStruct$3) ? raise({
+          if (isOptionalStruct(childStruct$3)) {
+            raise({
                   TAG: /* UnsupportedOptionalItem */0,
                   _0: S$RescriptStruct.name(struct)
-                }) : dict(makeStructSchema(childStruct$3));
+                });
+          }
+          schema.type = "object";
+          schema.additionalProperties = Caml_option.some(makeStructSchema(childStruct$3));
           break;
       
     }
   }
   var message = S$RescriptStruct.deprecation(struct);
   if (message !== undefined) {
-    Object.assign(schema, deprecatedWithMessage(message));
+    Object.assign(schema, {
+          deprecated: true,
+          description: message
+        });
   }
   var m = S$RescriptStruct.description(struct);
   if (m !== undefined) {
-    Object.assign(schema, description(m));
+    schema.description = m;
   }
   var metadataRawSchema = S$RescriptStruct.Metadata.get(struct, schemaExtendMetadataId);
   if (metadataRawSchema !== undefined) {
@@ -406,7 +370,7 @@ function make(struct) {
       return raise(/* UnsupportedRootOptional */1);
     }
     var schema = makeStructSchema(struct);
-    Object.assign(schema, schemaDialect(undefined));
+    schema.$schema = "http://json-schema.org/draft-07/schema#";
     return {
             TAG: /* Ok */0,
             _0: schema
@@ -513,7 +477,7 @@ function toStruct(schema) {
     if (s.TAG === /* Schema */0) {
       return toStruct(s._0);
     } else {
-      return S$RescriptStruct.unknown(undefined);
+      return S$RescriptStruct.jsonable(undefined);
     }
   };
   var type_ = schema.type;
@@ -549,7 +513,7 @@ function toStruct(schema) {
         if (additionalProperties$1 !== undefined) {
           var s = JSONSchema7.Definition.classify(Caml_option.valFromOption(additionalProperties$1));
           struct = s.TAG === /* Schema */0 ? S$RescriptStruct.dict(toStruct(s._0)) : (
-              s._0 ? S$RescriptStruct.dict(S$RescriptStruct.unknown(undefined)) : S$RescriptStruct.$$Object.strict(S$RescriptStruct.object(function (param) {
+              s._0 ? S$RescriptStruct.dict(S$RescriptStruct.jsonable(undefined)) : S$RescriptStruct.$$Object.strict(S$RescriptStruct.object(function (param) {
                           
                         }))
             );
@@ -566,7 +530,7 @@ function toStruct(schema) {
         var single = JSONSchema7.Arrayable.classify(Caml_option.valFromOption(items));
         struct$2 = single.TAG === /* Single */0 ? S$RescriptStruct.array(definitionToStruct(single._0)) : S$RescriptStruct.Tuple.factory(single._0.map(definitionToStruct));
       } else {
-        struct$2 = S$RescriptStruct.array(S$RescriptStruct.unknown(undefined));
+        struct$2 = S$RescriptStruct.array(S$RescriptStruct.jsonable(undefined));
       }
       var min = schema.minItems;
       var struct$3 = min !== undefined ? S$RescriptStruct.$$Array.min(struct$2, undefined, min) : struct$2;
@@ -585,7 +549,7 @@ function toStruct(schema) {
     if (definitions$1 !== undefined) {
       var len = definitions$1.length;
       struct = len !== 1 ? (
-          len !== 0 ? S$RescriptStruct.union(definitions$1.map(definitionToStruct)) : S$RescriptStruct.unknown(undefined)
+          len !== 0 ? S$RescriptStruct.union(definitions$1.map(definitionToStruct)) : S$RescriptStruct.jsonable(undefined)
         ) : definitionToStruct(definitions$1[0]);
     } else if (definitions !== undefined) {
       var len$1 = definitions.length;
@@ -593,7 +557,7 @@ function toStruct(schema) {
         if (len$1 !== 0) {
           var refiner = function (data) {
             definitions.forEach(function (d) {
-                  var match = S$RescriptStruct.parseAnyWith(data, definitionToStruct(d));
+                  var match = S$RescriptStruct.parseWith(data, definitionToStruct(d));
                   if (match.TAG === /* Ok */0) {
                     return ;
                   } else {
@@ -601,9 +565,9 @@ function toStruct(schema) {
                   }
                 });
           };
-          struct = S$RescriptStruct.refine(S$RescriptStruct.unknown(undefined), refiner, undefined, refiner, undefined);
+          struct = S$RescriptStruct.refine(S$RescriptStruct.jsonable(undefined), refiner, undefined, refiner, undefined);
         } else {
-          struct = S$RescriptStruct.unknown(undefined);
+          struct = S$RescriptStruct.jsonable(undefined);
         }
       } else {
         struct = definitionToStruct(definitions[0]);
@@ -619,7 +583,7 @@ function toStruct(schema) {
                 contents: false
               };
               definitions$2.forEach(function (d) {
-                    var match = S$RescriptStruct.parseAnyWith(data, definitionToStruct(d));
+                    var match = S$RescriptStruct.parseWith(data, definitionToStruct(d));
                     if (match.TAG === /* Ok */0) {
                       if (hasOneValidRef.contents) {
                         return S$RescriptStruct.fail(undefined, "Should pass single schema according to the oneOf property.");
@@ -635,9 +599,9 @@ function toStruct(schema) {
               }
               
             };
-            struct = S$RescriptStruct.refine(S$RescriptStruct.unknown(undefined), refiner$1, undefined, refiner$1, undefined);
+            struct = S$RescriptStruct.refine(S$RescriptStruct.jsonable(undefined), refiner$1, undefined, refiner$1, undefined);
           } else {
-            struct = S$RescriptStruct.unknown(undefined);
+            struct = S$RescriptStruct.jsonable(undefined);
           }
         } else {
           struct = definitionToStruct(definitions$2[0]);
@@ -647,17 +611,17 @@ function toStruct(schema) {
         if (not !== undefined) {
           var not$1 = Caml_option.valFromOption(not);
           var refiner$2 = function (data) {
-            var match = S$RescriptStruct.parseAnyWith(data, definitionToStruct(not$1));
+            var match = S$RescriptStruct.parseWith(data, definitionToStruct(not$1));
             if (match.TAG === /* Ok */0) {
               return S$RescriptStruct.fail(undefined, "Should NOT be valid against schema in the not property.");
             }
             
           };
-          struct = S$RescriptStruct.refine(S$RescriptStruct.unknown(undefined), refiner$2, undefined, refiner$2, undefined);
+          struct = S$RescriptStruct.refine(S$RescriptStruct.jsonable(undefined), refiner$2, undefined, refiner$2, undefined);
         } else if (primitives !== undefined) {
           var len$3 = primitives.length;
           struct = len$3 !== 1 ? (
-              len$3 !== 0 ? S$RescriptStruct.union(primitives.map(primitiveToStruct)) : S$RescriptStruct.unknown(undefined)
+              len$3 !== 0 ? S$RescriptStruct.union(primitives.map(primitiveToStruct)) : S$RescriptStruct.jsonable(undefined)
             ) : primitiveToStruct(primitives[0]);
         } else {
           var $$const = schema.const;
@@ -679,29 +643,31 @@ function toStruct(schema) {
               var struct$4 = S$RescriptStruct.string(undefined);
               var pattern = schema.pattern;
               var struct$5 = pattern !== undefined ? S$RescriptStruct.$$String.pattern(struct$4, undefined, new RegExp(pattern)) : struct$4;
+              var minLength = schema.minLength;
+              var struct$6 = minLength !== undefined ? S$RescriptStruct.$$String.min(struct$5, undefined, minLength) : struct$5;
+              var maxLength = schema.maxLength;
+              var struct$7 = maxLength !== undefined ? S$RescriptStruct.$$String.max(struct$6, undefined, maxLength) : struct$6;
               var match$2 = schema.format;
-              var struct$6;
               if (match$2 !== undefined) {
                 switch (match$2) {
+                  case "date-time" :
+                      struct = S$RescriptStruct.$$String.datetime(struct$7, undefined, undefined);
+                      break;
                   case "email" :
-                      struct$6 = S$RescriptStruct.$$String.email(struct$5, undefined, undefined);
+                      struct = S$RescriptStruct.$$String.email(struct$7, undefined, undefined);
                       break;
                   case "uri" :
-                      struct$6 = S$RescriptStruct.$$String.url(struct$5, undefined, undefined);
+                      struct = S$RescriptStruct.$$String.url(struct$7, undefined, undefined);
                       break;
                   case "uuid" :
-                      struct$6 = S$RescriptStruct.$$String.uuid(struct$5, undefined, undefined);
+                      struct = S$RescriptStruct.$$String.uuid(struct$7, undefined, undefined);
                       break;
                   default:
-                    struct$6 = struct$5;
+                    struct = struct$7;
                 }
               } else {
-                struct$6 = struct$5;
+                struct = struct$7;
               }
-              var minLength = schema.minLength;
-              var struct$7 = minLength !== undefined ? S$RescriptStruct.$$String.min(struct$6, undefined, minLength) : struct$6;
-              var maxLength = schema.maxLength;
-              struct = maxLength !== undefined ? S$RescriptStruct.$$String.min(struct$7, undefined, maxLength) : struct$7;
             } else if (type_$2 === "integer" || match$1 !== undefined && match$1 === "int64" && type_$2 === "number") {
               struct = toIntStruct(schema);
             } else {
@@ -759,24 +725,24 @@ function toStruct(schema) {
           var thenStruct = definitionToStruct(Caml_option.valFromOption(then));
           var elseStruct = definitionToStruct(Caml_option.valFromOption(else_));
           var refiner$3 = function (data) {
-            var match = S$RescriptStruct.parseAnyWith(data, ifStruct);
+            var match = S$RescriptStruct.parseWith(data, ifStruct);
             var result;
-            result = match.TAG === /* Ok */0 ? S$RescriptStruct.parseAnyWith(data, thenStruct) : S$RescriptStruct.parseAnyWith(data, elseStruct);
+            result = match.TAG === /* Ok */0 ? S$RescriptStruct.parseWith(data, thenStruct) : S$RescriptStruct.parseWith(data, elseStruct);
             if (result.TAG === /* Ok */0) {
               return ;
             } else {
               return S$RescriptStruct.advancedFail(result._0);
             }
           };
-          struct = S$RescriptStruct.refine(S$RescriptStruct.unknown(undefined), refiner$3, undefined, refiner$3, undefined);
+          struct = S$RescriptStruct.refine(S$RescriptStruct.jsonable(undefined), refiner$3, undefined, refiner$3, undefined);
         } else {
-          struct = S$RescriptStruct.unknown(undefined);
+          struct = S$RescriptStruct.jsonable(undefined);
         }
       } else {
-        struct = S$RescriptStruct.unknown(undefined);
+        struct = S$RescriptStruct.jsonable(undefined);
       }
     } else {
-      struct = S$RescriptStruct.unknown(undefined);
+      struct = S$RescriptStruct.jsonable(undefined);
     }
   }
   var description = schema.description;
@@ -810,11 +776,14 @@ function validate(schema) {
 
 var Arrayable = JSONSchema7.Arrayable;
 
+var Mutable = JSONSchema7.Mutable;
+
 var Definition = JSONSchema7.Definition;
 
 var Dependency = JSONSchema7.Dependency;
 
 exports.Arrayable = Arrayable;
+exports.Mutable = Mutable;
 exports.Definition = Definition;
 exports.Dependency = Dependency;
 exports.make = make;

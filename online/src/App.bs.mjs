@@ -12,7 +12,7 @@ import * as Caml_js_exceptions from "rescript/lib/es6/caml_js_exceptions.js";
 
 function App(props) {
   var match = React.useState(function () {
-        return "{}";
+        return "{\n  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n  \"type\": \"object\",\n  \"properties\": {\n    \"Age\": {\n      \"deprecated\": true,\n      \"description\": \"Will be removed in APIv2\",\n      \"type\": \"integer\"\n    },\n    \"Id\": { \"type\": \"number\" },\n    \"IsApproved\": {\n      \"anyOf\": [\n        {\n          \"const\": \"Yes\",\n          \"type\": \"string\"\n        },\n        {\n          \"const\": \"No\",\n          \"type\": \"string\"\n        }\n      ]\n    },\n    \"Tags\": {\n      \"items\": { \"type\": \"string\" },\n      \"type\": \"array\"\n    }\n  },\n  \"required\": [\"Id\", \"IsApproved\"],\n  \"additionalProperties\": true\n}";
       });
   var setJson = match[1];
   var json = match[0];
@@ -64,7 +64,7 @@ function App(props) {
                                 JsxRuntime.jsx("textarea", {
                                       style: {
                                         height: "400px",
-                                        width: "400px"
+                                        width: "auto"
                                       },
                                       value: json,
                                       onChange: (function (e) {
@@ -99,7 +99,8 @@ function App(props) {
                                 display: "flex",
                                 margin: "10px",
                                 padding: "10px",
-                                flexDirection: "column"
+                                flexDirection: "column",
+                                flexGrow: "1"
                               }
                             }),
                         JsxRuntime.jsxs("div", {
@@ -111,7 +112,7 @@ function App(props) {
                                       style: {
                                         color: errors === "" ? "black" : "red",
                                         height: "476px",
-                                        width: "400px"
+                                        width: "auto"
                                       },
                                       readOnly: true,
                                       value: tmp
@@ -132,12 +133,14 @@ function App(props) {
                                 display: "flex",
                                 margin: "10px",
                                 padding: "10px",
-                                flexDirection: "column"
+                                flexDirection: "column",
+                                flexGrow: "1"
                               }
                             })
                       ],
                       style: {
-                        display: "flex"
+                        display: "flex",
+                        justifyContent: "flex-grow"
                       }
                     }),
                 JsxRuntime.jsx("a", {
