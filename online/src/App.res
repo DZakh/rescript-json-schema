@@ -1,3 +1,5 @@
+%%private(external magic: 'a => 'b = "%identity")
+
 @module("json5") @scope("default")
 external parseJson5: string => Js.Json.t = "parse"
 
@@ -14,31 +16,25 @@ let make = () => {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
-    "Age": {
-      "deprecated": true,
-      "description": "Will be removed in APIv2",
-      "type": "integer"
-    },
     "Id": { "type": "number" },
-    "IsApproved": {
+    "Title": { "type": "string" },
+    "Tags": { "items": { "type": "string" }, "type": "array", "default": [] },
+    "Rating": {
       "anyOf": [
-        {
-          "const": "Yes",
-          "type": "string"
-        },
-        {
-          "const": "No",
-          "type": "string"
-        }
+        { "type": "string", "const": "G" },
+        { "type": "string", "const": "PG" },
+        { "type": "string", "const": "PG13" },
+        { "type": "string", "const": "R" }
       ]
     },
-    "Tags": {
-      "items": { "type": "string" },
-      "type": "array"
+    "Age": {
+      "type": "integer",
+      "deprecated": true,
+      "description": "Use rating instead"
     }
   },
-  "required": ["Id", "IsApproved"],
-  "additionalProperties": true
+  "additionalProperties": true,
+  "required": ["Id", "Title", "Rating"]
 }`
   )
   let (inlinedStruct, setInlineStruct) = React.useState(() => "")
@@ -51,15 +47,15 @@ let make = () => {
           let parsed = parseJson5(json)
           setErrors(_ => "")
           // TODO: Fix refs resolver in the browser environment
-          // let schema = await parsed->(Obj.magic: Js.Json.t => JSONSchema.t)->resolveRefs
-          let schema = parsed->(Obj.magic: Js.Json.t => JSONSchema.t)
+          // let schema = await parsed->(magic: Js.Json.t => JSONSchema.t)->resolveRefs
+          let schema = parsed->(magic: Js.Json.t => JSONSchema.t)
           setInlineStruct(_ => schema->JSONSchema.toStruct->S.inline)->ignore
         } catch {
         | exn =>
           setErrors(_ =>
             `Errors:\n${exn
               ->Exn.asJsExn
-              ->Option.flatMap(Exn.message)
+              ->Option.flatMap(exn => exn->Exn.message)
               ->Option.getWithDefault("Unknown error")}`
           )
         }
@@ -77,7 +73,7 @@ let make = () => {
       setErrors(_ =>
         `Errors:\n${exn
           ->Exn.asJsExn
-          ->Option.flatMap(Exn.message)
+          ->Option.flatMap(exn => exn->Exn.message)
           ->Option.getWithDefault("Unknown error")}`
       )
     }

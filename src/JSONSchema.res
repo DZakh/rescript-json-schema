@@ -1,3 +1,7 @@
+@@uncurried
+
+%%private(external magic: 'a => 'b = "%identity")
+
 module Error = {
   type rec t = {code: code, mutable path: array<string>}
   and code =
@@ -177,15 +181,19 @@ let rec makeStructSchema:
         let childSchema = makeStructSchema(childStruct)
         schema->Mutable.mixin(childSchema)
 
-        switch struct->S.Default.classify {
-        | Some(defaultValue) =>
+        switch struct->S.Option.default {
+        | Some(default) =>
+          let defaultValue = switch default {
+          | Value(v) => v
+          | Callback(cb) => cb()
+          }
           switch Some(defaultValue)
-          ->(Obj.magic: option<unknown> => unknown)
+          ->(magic: option<unknown> => unknown)
           ->S.serializeWith(childStruct) {
           | Error(destructingError) =>
             Error.raise(
               DefaultDestructingFailed({
-                destructingErrorMessage: destructingError->S.Error.toString,
+                destructingErrorMessage: destructingError->S.Error.message,
               }),
             )
           | Ok(destructedValue) => schema.default = Some(destructedValue)
@@ -193,7 +201,7 @@ let rec makeStructSchema:
         | None => ()
         }
       }
-    | S.Object({fields, fieldNames}) => {
+    | S.Object({fields, fieldNames, unknownKeys}) => {
         let properties = Js.Dict.empty()
         let required = []
         fieldNames->Js.Array2.forEach(fieldName => {
@@ -209,7 +217,7 @@ let rec makeStructSchema:
           }
           properties->Js.Dict.set(fieldName, Definition.schema(fieldSchema))
         })
-        let additionalProperties = switch struct->S.Object.UnknownKeys.classify {
+        let additionalProperties = switch unknownKeys {
         | Strict => false
         | Strip => true
         }
@@ -233,24 +241,27 @@ let rec makeStructSchema:
       ])
 
     | S.Never => schema.not = Some(Definition.schema({}))
-    | S.Literal(Bool(value)) => {
+    | S.Literal(Boolean(value)) => {
         schema.type_ = Some(Arrayable.single(#boolean))
         schema.const = Some(Js.Json.boolean(value))
       }
-    | S.Literal(Int(value)) => {
-        schema.type_ = Some(Arrayable.single(#integer))
-        schema.const = Some(Js.Json.number(value->Js.Int.toFloat))
-      }
-    | S.Literal(Float(value)) => {
-        schema.type_ = Some(Arrayable.single(#number))
+    | S.Literal(Number(value)) => {
+        let isInt = mod_float(value, 1.) === 0.
+        schema.type_ = Some(Arrayable.single(isInt ? #integer : #number))
         schema.const = Some(Js.Json.number(value))
       }
     | S.Literal(String(value)) => {
         schema.type_ = Some(Arrayable.single(#string))
         schema.const = Some(Js.Json.string(value))
       }
-    | S.Literal(EmptyNull) => schema.type_ = Some(Arrayable.single(#null))
-    | S.Literal(EmptyOption)
+    | S.Literal(Null) => schema.type_ = Some(Arrayable.single(#null))
+    | S.Literal(Undefined)
+    | S.Literal(BigInt(_))
+    | S.Literal(Function(_))
+    | S.Literal(Array(_))
+    | S.Literal(Dict(_))
+    | S.Literal(Symbol(_))
+    | S.Literal(Object(_))
     | S.Literal(NaN) =>
       Error.UnsupportedStruct.raise(struct)
     | S.Dict(childStruct) =>
@@ -262,14 +273,14 @@ let rec makeStructSchema:
       schema.additionalProperties = Some(Definition.schema(makeStructSchema(childStruct)))
     }
 
-    switch struct->S.deprecation {
-    | Some(message) =>
-      schema->Mutable.mixin({"deprecated": true, "description": message}->(Obj.magic: 'a => t))
+    switch struct->S.description {
+    | Some(m) => schema.description = Some(m)
     | None => ()
     }
 
-    switch struct->S.description {
-    | Some(m) => schema.description = Some(m)
+    switch struct->S.deprecation {
+    | Some(message) =>
+      schema->Mutable.mixin({"deprecated": true, "description": message}->(magic: 'a => t))
     | None => ()
     }
 
@@ -298,39 +309,22 @@ let make = struct => {
 let extend = (struct, schema) => {
   struct->S.Metadata.set(
     ~id=schemaExtendMetadataId,
-    ~metadata=switch struct->S.Metadata.get(~id=schemaExtendMetadataId) {
+    switch struct->S.Metadata.get(~id=schemaExtendMetadataId) {
     | Some(existingSchemaExtend) => merge(existingSchemaExtend, schema)
     | None => schema
     },
   )
 }
 
-let castAnyStructToJsonStruct = (Obj.magic: S.t<'any> => S.t<Js.Json.t>)
+let castAnyStructToJsonStruct = (magic: S.t<'any> => S.t<Js.Json.t>)
 
-let rec primitiveToStruct = primitive => {
-  switch primitive->Js.Json.classify {
-  | JSONTrue => S.literal(Bool(true))->castAnyStructToJsonStruct
-  | JSONFalse => S.literal(Bool(false))->castAnyStructToJsonStruct
-  | JSONNull => S.literal(EmptyNull)->castAnyStructToJsonStruct
-  | JSONString(s) => S.literal(String(s))->castAnyStructToJsonStruct
-  | JSONNumber(n) if n < 2147483648. && n > -2147483649. && mod_float(n, 1.) === 0. =>
-    S.literal(Int(n->(Obj.magic: float => int)))->castAnyStructToJsonStruct
-  | JSONNumber(n) => S.literal(Float(n))->castAnyStructToJsonStruct
-  | JSONObject(d) =>
-    S.object(o =>
-      d
-      ->Js.Dict.entries
-      ->Js.Array2.map(((key, value)) => {
-        (key, o->S.field(key, value->primitiveToStruct))
-      })
-      ->Js.Dict.fromArray
-    )->castAnyStructToJsonStruct
-  | JSONArray(a) => S.Tuple.factory(a->Js.Array2.map(primitiveToStruct))->castAnyStructToJsonStruct
-  }
+@inline
+let primitiveToStruct = primitive => {
+  S.literal(primitive)->castAnyStructToJsonStruct
 }
 
 let toIntStruct = (schema: t) => {
-  let struct = S.int()
+  let struct = S.int
   // TODO: Support schema.multipleOf when it's in rescript-struct
   // if (typeof schema.multipleOf === "number" && schema.multipleOf !== 1) {
   //  r += `.multipleOf(${schema.multipleOf})`;
@@ -348,31 +342,42 @@ let toIntStruct = (schema: t) => {
   struct->castAnyStructToJsonStruct
 }
 
+let definitionToDefaultValue = definition =>
+  switch definition->Definition.classify {
+  | Schema(s) => s.default
+  | Boolean(_) => None
+  }
+
 let rec toStruct = (schema: t) => {
   let definitionToStruct = definition =>
     switch definition->Definition.classify {
     | Schema(s) => s->toStruct
-    | Boolean(_) => S.jsonable()
+    | Boolean(_) => S.json
     }
 
   let struct = switch schema {
-  | _ if (schema->(Obj.magic: t => {..}))["nullable"] =>
+  | _ if (schema->(magic: t => {..}))["nullable"] =>
     S.null(
-      schema->merge({"nullable": false}->(Obj.magic: {..} => t))->toStruct,
+      schema->merge({"nullable": false}->(magic: {..} => t))->toStruct,
     )->castAnyStructToJsonStruct
   | {type_} if type_ === Arrayable.single(#object) =>
     let struct = switch schema.properties {
     | Some(properties) =>
-      let struct = S.object(o =>
+      let struct = S.object(s =>
         properties
         ->Js.Dict.entries
         ->Js.Array2.map(((key, property)) => {
           let propertyStruct = property->definitionToStruct
           let propertyStruct = switch schema.required {
           | Some(r) if r->Js.Array2.includes(key) => propertyStruct
-          | _ => propertyStruct->S.option->castAnyStructToJsonStruct
+          | _ =>
+            switch property->definitionToDefaultValue {
+            | Some(defaultValue) =>
+              propertyStruct->S.option->S.Option.getOr(defaultValue)->castAnyStructToJsonStruct
+            | None => propertyStruct->S.option->castAnyStructToJsonStruct
+            }
           }
-          (key, o->S.field(key, propertyStruct))
+          (key, s.field(key, propertyStruct))
         })
         ->Js.Dict.fromArray
       )
@@ -386,7 +391,7 @@ let rec toStruct = (schema: t) => {
       switch schema.additionalProperties {
       | Some(additionalProperties) =>
         switch additionalProperties->Definition.classify {
-        | Boolean(true) => S.dict(S.jsonable())->castAnyStructToJsonStruct
+        | Boolean(true) => S.dict(S.json)->castAnyStructToJsonStruct
         | Boolean(false) => S.object(_ => ())->S.Object.strict->castAnyStructToJsonStruct
         | Schema(s) => S.dict(s->toStruct)->castAnyStructToJsonStruct
         }
@@ -401,9 +406,10 @@ let rec toStruct = (schema: t) => {
       | Some(items) =>
         switch items->Arrayable.classify {
         | Single(single) => S.array(single->definitionToStruct)
-        | Array(array) => S.Tuple.factory(array->Js.Array2.map(definitionToStruct))
+        | Array(array) =>
+          S.tuple(s => array->Js.Array2.mapi((d, idx) => s.item(idx, d->definitionToStruct)))
         }
-      | None => S.array(S.jsonable())
+      | None => S.array(S.json)
       }
       let struct = switch schema.minItems {
       | Some(min) => struct->S.Array.min(min)
@@ -415,63 +421,58 @@ let rec toStruct = (schema: t) => {
       }
       struct->castAnyStructToJsonStruct
     }
-  | {anyOf: []} => S.jsonable()
+  | {anyOf: []} => S.json
   | {anyOf: [d]} => d->definitionToStruct
   | {anyOf: definitions} => S.union(definitions->Js.Array2.map(definitionToStruct))
-  | {allOf: []} => S.jsonable()
+  | {allOf: []} => S.json
   | {allOf: [d]} => d->definitionToStruct
-  | {allOf: definitions} => {
-      let refiner = data => {
-        definitions->Js.Array2.forEach(d => {
-          switch data->S.parseWith(d->definitionToStruct) {
-          | Ok(_) => ()
-          | Error(_) => S.fail("Should pass for all schemas of the allOf property.")
-          }
-        })
-      }
-      S.jsonable()->S.refine(~parser=refiner, ~serializer=refiner, ())
-    }
-  | {oneOf: []} => S.jsonable()
+  | {allOf: definitions} =>
+    S.json->S.refine(s => data => {
+      definitions->Js.Array2.forEach(d => {
+        switch data->S.parseWith(d->definitionToStruct) {
+        | Ok(_) => ()
+        | Error(_) => s.fail("Should pass for all schemas of the allOf property.")
+        }
+      })
+    })
+  | {oneOf: []} => S.json
   | {oneOf: [d]} => d->definitionToStruct
   | {oneOf: definitions} =>
-    let refiner = data => {
+    S.json->S.refine(s => data => {
       let hasOneValidRef = ref(false)
       definitions->Js.Array2.forEach(d => {
         switch data->S.parseWith(d->definitionToStruct) {
         | Ok(_) if hasOneValidRef.contents =>
-          S.fail("Should pass single schema according to the oneOf property.")
+          s.fail("Should pass single schema according to the oneOf property.")
         | Ok(_) => hasOneValidRef.contents = true
         | Error(_) => ()
         }
       })
       if hasOneValidRef.contents->not {
-        S.fail("Should pass at least one schema according to the oneOf property.")
+        s.fail("Should pass at least one schema according to the oneOf property.")
       }
-    }
-    S.jsonable()->S.refine(~parser=refiner, ~serializer=refiner, ())
-  | {not} => {
-      let refiner = data =>
-        switch data->S.parseWith(not->definitionToStruct) {
-        | Ok(_) => S.fail("Should NOT be valid against schema in the not property.")
-        | Error(_) => ()
-        }
-      S.jsonable()->S.refine(~parser=refiner, ~serializer=refiner, ())
-    }
+    })
+  | {not} =>
+    S.json->S.refine(s => data =>
+      switch data->S.parseWith(not->definitionToStruct) {
+      | Ok(_) => s.fail("Should NOT be valid against schema in the not property.")
+      | Error(_) => ()
+      })
   // needs to come before primitives
-  | {enum: []} => S.jsonable()
+  | {enum: []} => S.json
   | {enum: [p]} => p->primitiveToStruct
   | {enum: primitives} =>
     S.union(primitives->Js.Array2.map(primitiveToStruct))->castAnyStructToJsonStruct
   | {const} => const->primitiveToStruct
   | {type_} if type_->Arrayable.isArray =>
-    let types = type_->(Obj.magic: Arrayable.t<'a> => array<'a>)
+    let types = type_->(magic: Arrayable.t<'a> => array<'a>)
     S.union(
       types->Js.Array2.map(type_ => {
         schema->merge({type_: Arrayable.single(type_)})->toStruct
       }),
     )
   | {type_} if type_ === Arrayable.single(#string) =>
-    let struct = S.string()
+    let struct = S.string
     let struct = switch schema {
     | {pattern} => struct->S.String.pattern(Js.Re.fromString(pattern))
     | _ => struct
@@ -486,10 +487,10 @@ let rec toStruct = (schema: t) => {
     | _ => struct
     }
     switch schema {
-    | {format: "email"} => struct->S.String.email()->castAnyStructToJsonStruct
-    | {format: "uri"} => struct->S.String.url()->castAnyStructToJsonStruct
-    | {format: "uuid"} => struct->S.String.uuid()->castAnyStructToJsonStruct
-    | {format: "date-time"} => struct->S.String.datetime()->castAnyStructToJsonStruct
+    | {format: "email"} => struct->S.String.email->castAnyStructToJsonStruct
+    | {format: "uri"} => struct->S.String.url->castAnyStructToJsonStruct
+    | {format: "uuid"} => struct->S.String.uuid->castAnyStructToJsonStruct
+    | {format: "date-time"} => struct->S.String.datetime->castAnyStructToJsonStruct
     | _ => struct->castAnyStructToJsonStruct
     }
 
@@ -497,7 +498,7 @@ let rec toStruct = (schema: t) => {
   | {type_, format: "int64"} if type_ === Arrayable.single(#number) => schema->toIntStruct
   | {type_, multipleOf: 1.} if type_ === Arrayable.single(#number) => schema->toIntStruct
   | {type_} if type_ === Arrayable.single(#number) => {
-      let struct = S.float()
+      let struct = S.float
       let struct = switch schema {
       | {minimum} => struct->S.Float.min(minimum)
       | {exclusiveMinimum} => struct->S.Float.min(exclusiveMinimum +. 1.)
@@ -510,25 +511,25 @@ let rec toStruct = (schema: t) => {
       }
       struct->castAnyStructToJsonStruct
     }
-  | {type_} if type_ === Arrayable.single(#boolean) => S.bool()->castAnyStructToJsonStruct
-  | {type_} if type_ === Arrayable.single(#null) => S.literal(EmptyNull)->castAnyStructToJsonStruct
+  | {type_} if type_ === Arrayable.single(#boolean) => S.bool->castAnyStructToJsonStruct
+  | {type_} if type_ === Arrayable.single(#null) =>
+    S.literal(%raw(`null`))->castAnyStructToJsonStruct
   | {if_, then, else_} => {
       let ifStruct = if_->definitionToStruct
       let thenStruct = then->definitionToStruct
       let elseStruct = else_->definitionToStruct
-      let refiner = data => {
+      S.json->S.refine(s => data => {
         let result = switch data->S.parseWith(ifStruct) {
         | Ok(_) => data->S.parseWith(thenStruct)
         | Error(_) => data->S.parseWith(elseStruct)
         }
         switch result {
         | Ok(_) => ()
-        | Error(e) => S.advancedFail(e)
+        | Error(e) => s.failWithError(e)
         }
-      }
-      S.jsonable()->S.refine(~parser=refiner, ~serializer=refiner, ())
+      })
     }
-  | _ => S.jsonable()
+  | _ => S.json
   }
 
   let struct = switch schema {
@@ -538,23 +539,8 @@ let rec toStruct = (schema: t) => {
 
   let struct = switch schema {
   | {description} => struct->S.describe(description)
-  | _ => struct
-  }
-
-  let struct = switch schema {
-  | {default} =>
-    struct->(Obj.magic: S.t<Js.Json.t> => S.t<option<Js.Json.t>>)->S.default(() => default)
   | _ => struct
   }
 
   struct
-}
-
-let validate = schema => {
-  let struct = schema->toStruct
-  data =>
-    switch data->S.parseWith(struct) {
-    | Ok(_) => Ok()
-    | Error(_) as e => e
-    }
 }

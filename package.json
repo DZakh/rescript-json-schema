@@ -1,6 +1,6 @@
 {
   "name": "rescript-json-schema",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "Typesafe JSON Schema for ReScript",
   "keywords": [
     "rescript",
@@ -30,8 +30,8 @@
   ],
   "scripts": {
     "coverage": "c8 --reporter=lcov npm test",
-    "res:build": "rescript build -with-deps",
-    "res:dev": "rescript build -with-deps -w",
+    "res:build": "rescript build",
+    "res": "rescript build -w",
     "test": "ava"
   },
   "ava": {
@@ -40,14 +40,14 @@
     ]
   },
   "devDependencies": {
-    "@dzakh/rescript-ava": "2.1.0",
-    "ava": "5.1.0",
-    "c8": "7.13.0",
-    "rescript": "10.1.4",
-    "rescript-struct": "4.1.0"
+    "@dzakh/rescript-ava": "2.3.0",
+    "ava": "5.2.0",
+    "rescript": "11.0.0-rc.3",
+    "rescript-struct": "5.0.1",
+    "c8": "7.13.0"
   },
   "peerDependencies": {
-    "rescript": "10.1.x",
-    "rescript-struct": "4.1.x"
+    "rescript": "11.0.x || ~11.0.0-rc",
+    "rescript-struct": "5.0.x"
   }
 }

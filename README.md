@@ -33,28 +33,40 @@ One of the library's main features is the **rescript-struct**, which provides a 
 For example, if you have the following struct:
 
 ```rescript
-type author = {
+type rating =
+  | @as("G") GeneralAudiences
+  | @as("PG") ParentalGuidanceSuggested
+  | @as("PG13") ParentalStronglyCautioned
+  | @as("R") Restricted
+type film = {
   id: float,
+  title: string,
   tags: array<string>,
-  isAproved: bool,
-  deprecatedAge: option<int>,
+  rating: rating,
+  deprecatedAgeRestriction: option<int>,
 }
 
-let authorStruct = S.object(o => {
-  id: o->S.field("Id", S.float()),
-  tags: o->S.field("Tags", S.option(S.array(S.string()))->S.default(() => [])),
-  isAproved: o->S.field(
-    "IsApproved",
-    S.union([S.literalVariant(String("Yes"), true), S.literalVariant(String("No"), false)]),
+let filmStruct = S.object(s => {
+  id: s.field("Id", S.float),
+  title: s.field("Title", S.string),
+  tags: s.fieldOr("Tags", S.array(S.string), []),
+  rating: s.field(
+    "Rating",
+    S.union([
+      S.literal(GeneralAudiences),
+      S.literal(ParentalGuidanceSuggested),
+      S.literal(ParentalStronglyCautioned),
+      S.literal(Restricted),
+    ]),
   ),
-  deprecatedAge: o->S.field("Age", S.int()->S.deprecate("Will be removed in APIv2")),
+  deprecatedAgeRestriction: s.field("Age", S.option(S.int)->S.deprecate("Use rating instead")),
 })
 ```
 
 You can use it to generate JSON Schema for the value it describes:
 
 ```rescript
-JSONSchema.make(authorStruct)
+JSONSchema.make(filmStruct)
 ```
 
 ```json
@@ -62,31 +74,25 @@ JSONSchema.make(authorStruct)
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
-    "Age": {
-      "deprecated": true,
-      "description": "Will be removed in APIv2",
-      "type": "integer"
-    },
     "Id": { "type": "number" },
-    "IsApproved": {
+    "Title": { "type": "string" },
+    "Tags": { "items": { "type": "string" }, "type": "array", "default": [] },
+    "Rating": {
       "anyOf": [
-        {
-          "const": "Yes",
-          "type": "string"
-        },
-        {
-          "const": "No",
-          "type": "string"
-        }
+        { "type": "string", "const": "G" },
+        { "type": "string", "const": "PG" },
+        { "type": "string", "const": "PG13" },
+        { "type": "string", "const": "R" }
       ]
     },
-    "Tags": {
-      "items": { "type": "string" },
-      "type": "array"
+    "Age": {
+      "type": "integer",
+      "deprecated": true,
+      "description": "Use rating instead"
     }
   },
-  "required": ["Id", "IsApproved"],
-  "additionalProperties": true
+  "additionalProperties": true,
+  "required": ["Id", "Title", "Rating"]
 }
 ```
 

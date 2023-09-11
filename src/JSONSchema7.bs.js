@@ -2,26 +2,21 @@
 'use strict';
 
 
-function isArray(prim) {
-  return Array.isArray(prim);
-}
-
 function classify(arrayable) {
   if (Array.isArray(arrayable)) {
     return {
-            TAG: /* Array */1,
+            TAG: "Array",
             _0: arrayable
           };
   } else {
     return {
-            TAG: /* Single */0,
+            TAG: "Single",
             _0: arrayable
           };
   }
 }
 
 var Arrayable = {
-  isArray: isArray,
   classify: classify
 };
 
@@ -30,12 +25,12 @@ var Mutable = {};
 function classify$1(definition) {
   if (typeof definition === "boolean") {
     return {
-            TAG: /* Boolean */1,
+            TAG: "Boolean",
             _0: definition
           };
   } else {
     return {
-            TAG: /* Schema */0,
+            TAG: "Schema",
             _0: definition
           };
   }
@@ -45,23 +40,7 @@ var Definition = {
   classify: classify$1
 };
 
-function classify$2(dependency) {
-  if (Array.isArray(dependency)) {
-    return {
-            TAG: /* Required */1,
-            _0: dependency
-          };
-  } else {
-    return {
-            TAG: /* Schema */0,
-            _0: dependency
-          };
-  }
-}
-
-var Dependency = {
-  classify: classify$2
-};
+var Dependency = {};
 
 exports.Arrayable = Arrayable;
 exports.Mutable = Mutable;
