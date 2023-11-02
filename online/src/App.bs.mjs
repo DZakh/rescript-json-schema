@@ -45,7 +45,7 @@ function App(props) {
                                                 })), "Unknown error");
                               });
                   }
-                })(undefined));
+                })());
         }), [json]);
   var format = function () {
     try {
@@ -92,7 +92,7 @@ function App(props) {
                                       },
                                       disabled: errors !== "",
                                       onClick: (function (param) {
-                                          format(undefined);
+                                          format();
                                         })
                                     })
                               ],

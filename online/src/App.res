@@ -3,9 +3,6 @@
 @module("json5") @scope("default")
 external parseJson5: string => Js.Json.t = "parse"
 
-// @module("@apidevtools/json-schema-ref-parser") @val
-// external resolveRefs: JSONSchema.t => promise<JSONSchema.t> = "dereference"
-
 @module("copy-to-clipboard")
 external copy: string => unit = "default"
 

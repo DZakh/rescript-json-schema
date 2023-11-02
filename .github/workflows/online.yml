@@ -60,8 +60,6 @@ jobs:
         run: npm ci
       - name: Vendor current version of rescript-json-schema
         run: npm run vendor
-      - name: Build ReScript
-        run: npm run res:build
       - name: Build app
         run: npm run build
       - name: Upload artifact
