@@ -24,14 +24,14 @@ function raise(code) {
 function raise$1(struct) {
   return raise({
               TAG: "UnsupportedOptionalItem",
-              _0: S$RescriptStruct.name(struct)
+              _0: struct.n()
             });
 }
 
 function raise$2(struct) {
   return raise({
               TAG: "UnsupportedStruct",
-              _0: S$RescriptStruct.name(struct)
+              _0: struct.n()
             });
 }
 
@@ -211,7 +211,7 @@ function makeStructSchema(struct) {
           var $$default = S$RescriptStruct.$$Option.$$default(struct);
           if ($$default !== undefined) {
             var defaultValue;
-            defaultValue = $$default.TAG === "Value" ? $$default._0 : $$default._0(undefined);
+            defaultValue = $$default.TAG === "Value" ? $$default._0 : $$default._0();
             var destructingError = S$RescriptStruct.serializeWith(Caml_option.some(defaultValue), childStruct$1);
             if (destructingError.TAG === "Ok") {
               schema.default = destructingError._0;
