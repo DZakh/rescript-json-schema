@@ -1,3 +1,5 @@
+%%private(external magic: 'a => 'b = "%identity")
+
 module Error = {
   type rec t = {code: code, mutable path: array<string>}
   and code =
@@ -180,7 +182,7 @@ let rec makeStructSchema:
         switch struct->S.Default.classify {
         | Some(defaultValue) =>
           switch Some(defaultValue)
-          ->(Obj.magic: option<unknown> => unknown)
+          ->(magic: option<unknown> => unknown)
           ->S.serializeWith(childStruct) {
           | Error(destructingError) =>
             Error.raise(
@@ -264,7 +266,7 @@ let rec makeStructSchema:
 
     switch struct->S.deprecation {
     | Some(message) =>
-      schema->Mutable.mixin({"deprecated": true, "description": message}->(Obj.magic: 'a => t))
+      schema->Mutable.mixin({"deprecated": true, "description": message}->(magic: 'a => t))
     | None => ()
     }
 
@@ -305,7 +307,7 @@ let extend = (struct, schema) => {
   )
 }
 
-let castAnyStructToJsonStruct = (Obj.magic: S.t<'any> => S.t<Js.Json.t>)
+let castAnyStructToJsonStruct = (magic: S.t<'any> => S.t<Js.Json.t>)
 
 let rec primitiveToStruct = primitive => {
   switch primitive->Js.Json.classify {
@@ -314,7 +316,7 @@ let rec primitiveToStruct = primitive => {
   | JSONNull => S.literal(EmptyNull)->castAnyStructToJsonStruct
   | JSONString(s) => S.literal(String(s))->castAnyStructToJsonStruct
   | JSONNumber(n) if n < 2147483648. && n > -2147483649. && mod_float(n, 1.) === 0. =>
-    S.literal(Int(n->(Obj.magic: float => int)))->castAnyStructToJsonStruct
+    S.literal(Int(n->(magic: float => int)))->castAnyStructToJsonStruct
   | JSONNumber(n) => S.literal(Float(n))->castAnyStructToJsonStruct
   | JSONObject(d) =>
     S.object(o =>
@@ -356,9 +358,9 @@ let rec toStruct = (schema: t) => {
     }
 
   let struct = switch schema {
-  | _ if (schema->(Obj.magic: t => {..}))["nullable"] =>
+  | _ if (schema->(magic: t => {..}))["nullable"] =>
     S.null(
-      schema->merge({"nullable": false}->(Obj.magic: {..} => t))->toStruct,
+      schema->merge({"nullable": false}->(magic: {..} => t))->toStruct,
     )->castAnyStructToJsonStruct
   | {type_} if type_ === Arrayable.single(#object) =>
     let struct = switch schema.properties {
@@ -464,7 +466,7 @@ let rec toStruct = (schema: t) => {
     S.union(primitives->Js.Array2.map(primitiveToStruct))->castAnyStructToJsonStruct
   | {const} => const->primitiveToStruct
   | {type_} if type_->Arrayable.isArray =>
-    let types = type_->(Obj.magic: Arrayable.t<'a> => array<'a>)
+    let types = type_->(magic: Arrayable.t<'a> => array<'a>)
     S.union(
       types->Js.Array2.map(type_ => {
         schema->merge({type_: Arrayable.single(type_)})->toStruct
@@ -542,19 +544,17 @@ let rec toStruct = (schema: t) => {
   }
 
   let struct = switch schema {
-  | {default} =>
-    struct->(Obj.magic: S.t<Js.Json.t> => S.t<option<Js.Json.t>>)->S.default(() => default)
+  | {default} => struct->(magic: S.t<Js.Json.t> => S.t<option<Js.Json.t>>)->S.default(() => default)
   | _ => struct
   }
 
   struct
 }
 
-let validate = schema => {
+let validate = (schema, data) => {
   let struct = schema->toStruct
-  data =>
-    switch data->S.parseWith(struct) {
-    | Ok(_) => Ok()
-    | Error(_) as e => e
-    }
+  switch data->S.parseWith(struct) {
+  | Ok(_) => Ok()
+  | Error(_) as e => e
+  }
 }

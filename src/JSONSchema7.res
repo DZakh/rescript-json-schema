@@ -1,3 +1,5 @@
+%%private(external magic: 'a => 'b = "%identity")
+
 module Arrayable = {
   type t<'item>
   type tagged<'item> = Single('item) | Array(array<'item>)
@@ -5,13 +7,13 @@ module Arrayable = {
   external array: array<'item> => t<'item> = "%identity"
   external single: 'item => t<'item> = "%identity"
 
-  let isArray: t<'item> => bool = Js.Array2.isArray
+  external isArray: t<'item> => bool = "Array.isArray"
 
   let classify = (arrayable: t<'item>): tagged<'item> => {
     if arrayable->isArray {
-      Array(arrayable->(Obj.magic: t<'item> => array<'item>))
+      Array(arrayable->(magic: t<'item> => array<'item>))
     } else {
-      Single(arrayable->(Obj.magic: t<'item> => 'item))
+      Single(arrayable->(magic: t<'item> => 'item))
     }
   }
 }
@@ -252,9 +254,9 @@ module Definition = {
 
   let classify = definition => {
     if definition->Js.typeof === "boolean" {
-      Boolean(definition->(Obj.magic: definition => bool))
+      Boolean(definition->(magic: definition => bool))
     } else {
-      Schema(definition->(Obj.magic: definition => t))
+      Schema(definition->(magic: definition => t))
     }
   }
 }
@@ -267,9 +269,9 @@ module Dependency = {
 
   let classify = dependency => {
     if dependency->Js.Array2.isArray {
-      Required(dependency->(Obj.magic: dependency => array<string>))
+      Required(dependency->(magic: dependency => array<string>))
     } else {
-      Schema(dependency->(Obj.magic: dependency => t))
+      Schema(dependency->(magic: dependency => t))
     }
   }
 }

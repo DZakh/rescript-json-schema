@@ -17,5 +17,6 @@
       "dir": "__tests__",
       "type": "dev"
     }
-  ]
+  ],
+  "uncurried": false
 }
