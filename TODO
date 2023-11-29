@@ -1,0 +1,7 @@
+https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/json-schema/index.d.ts
+
+- Clean up errors
+
+  - Return Error.t
+  - Provide helpers
+  - Remove [rescript-json-schema] prefix (the same logic as rescript-struct)
