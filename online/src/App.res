@@ -34,7 +34,7 @@ let make = () => {
   "required": ["Id", "Title", "Rating"]
 }`
   )
-  let (inlinedStruct, setInlineStruct) = React.useState(() => "")
+  let (inlinedRescriptSchema, setInlinedRescriptSchema) = React.useState(() => "")
   let (errors, setErrors) = React.useState(() => "")
 
   React.useEffect1(() => {
@@ -44,9 +44,9 @@ let make = () => {
           let parsed = parseJson5(json)
           setErrors(_ => "")
           // TODO: Fix refs resolver in the browser environment
-          // let schema = await parsed->(magic: Js.Json.t => JSONSchema.t)->resolveRefs
-          let schema = parsed->(magic: Js.Json.t => JSONSchema.t)
-          setInlineStruct(_ => schema->JSONSchema.toStruct->S.inline)->ignore
+          // let jsonSchema = await parsed->(magic: Js.Json.t => JSONSchema.t)->resolveRefs
+          let jsonSchema = parsed->(magic: Js.Json.t => JSONSchema.t)
+          setInlinedRescriptSchema(_ => jsonSchema->JSONSchema.toRescriptSchema->S.inline)->ignore
         } catch {
         | exn =>
           setErrors(_ =>
@@ -115,12 +115,15 @@ let make = () => {
             color: errors === "" ? "black" : "red",
           }
           value={switch errors {
-          | "" => inlinedStruct
+          | "" => inlinedRescriptSchema
           | _ => errors
           }}
           readOnly=true
         />
-        <button style={{width: "100%"}} disabled={errors !== ""} onClick={_ => copy(inlinedStruct)}>
+        <button
+          style={{width: "100%"}}
+          disabled={errors !== ""}
+          onClick={_ => copy(inlinedRescriptSchema)}>
           {React.string("Copy")}
         </button>
       </div>

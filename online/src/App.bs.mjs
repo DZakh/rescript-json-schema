@@ -18,8 +18,8 @@ function App(props) {
   var match$1 = React.useState(function () {
         return "";
       });
-  var setInlineStruct = match$1[1];
-  var inlinedStruct = match$1[0];
+  var setInlinedRescriptSchema = match$1[1];
+  var inlinedRescriptSchema = match$1[0];
   var match$2 = React.useState(function () {
         return "";
       });
@@ -32,8 +32,8 @@ function App(props) {
                     setErrors(function (param) {
                           return "";
                         });
-                    setInlineStruct(function (param) {
-                          return S$RescriptSchema.inline(JSONSchema.toStruct(parsed));
+                    setInlinedRescriptSchema(function (param) {
+                          return S$RescriptSchema.inline(JSONSchema.toRescriptSchema(parsed));
                         });
                     return ;
                   }
@@ -62,7 +62,7 @@ function App(props) {
                 });
     }
   };
-  var tmp = errors === "" ? inlinedStruct : errors;
+  var tmp = errors === "" ? inlinedRescriptSchema : errors;
   return JsxRuntime.jsxs(JsxRuntime.Fragment, {
               children: [
                 JsxRuntime.jsx("h1", {
@@ -126,7 +126,7 @@ function App(props) {
                                       },
                                       disabled: errors !== "",
                                       onClick: (function (param) {
-                                          CopyToClipboard(inlinedStruct);
+                                          CopyToClipboard(inlinedRescriptSchema);
                                         })
                                     })
                               ],
