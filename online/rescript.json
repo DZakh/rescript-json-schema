@@ -16,12 +16,12 @@
   "bs-dependencies": [
     "@rescript/react",
     "@rescript/core",
-    "rescript-struct",
+    "rescript-schema",
     "rescript-json-schema"
   ],
   "jsx": {
     "version": 4,
     "mode": "automatic"
   },
-  "bsc-flags": ["-open RescriptCore", "-open RescriptStruct"]
+  "bsc-flags": ["-open RescriptCore", "-open RescriptSchema"]
 }

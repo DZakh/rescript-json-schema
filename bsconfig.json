@@ -1,9 +1,9 @@
 {
   "name": "rescript-json-schema",
   "namespace": false,
-  "bsc-flags": ["-open RescriptStruct"],
+  "bsc-flags": ["-open RescriptSchema"],
   "bs-dev-dependencies": ["@dzakh/rescript-ava"],
-  "bs-dependencies": ["rescript-struct"],
+  "bs-dependencies": ["rescript-schema"],
   "suffix": ".bs.js",
   "package-specs": {
     "module": "commonjs",

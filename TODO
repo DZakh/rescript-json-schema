@@ -4,4 +4,4 @@ https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/json-schema
 
   - Return Error.t
   - Provide helpers
-  - Remove [rescript-json-schema] prefix (the same logic as rescript-struct)
+  - Remove [rescript-json-schema] prefix (the same logic as rescript-schema)

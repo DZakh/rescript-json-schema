@@ -4,11 +4,10 @@
   "description": "Typesafe JSON Schema for ReScript",
   "keywords": [
     "rescript",
-    "json-schema",
-    "rescript-struct",
+    "json",
+    "schema",
     "openapi",
     "swagger",
-    "json",
     "typesafe",
     "codegen",
     "ajv"
@@ -42,12 +41,12 @@
   "devDependencies": {
     "@dzakh/rescript-ava": "2.3.0",
     "ava": "5.2.0",
-    "rescript": "11.0.0-rc.5",
-    "rescript-struct": "5.1.0",
+    "rescript": "11.0.0-rc.7",
+    "rescript-schema": "6.3.0",
     "c8": "8.0.1"
   },
   "peerDependencies": {
     "rescript": "11.0.x || ~11.0.0-rc",
-    "rescript-struct": "5.0.x"
+    "rescript-schema": "6.x"
   }
 }

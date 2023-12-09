@@ -4,7 +4,7 @@ import * as Json5 from "json5";
 import * as React from "react";
 import * as JSONSchema from "rescript-json-schema/src/JSONSchema.bs.mjs";
 import * as Core__Option from "@rescript/core/src/Core__Option.bs.mjs";
-import * as S$RescriptStruct from "rescript-struct/src/S.bs.mjs";
+import * as S$RescriptSchema from "rescript-schema/src/S.bs.mjs";
 import CopyToClipboard from "copy-to-clipboard";
 import * as JsxRuntime from "react/jsx-runtime";
 import * as Caml_js_exceptions from "rescript/lib/es6/caml_js_exceptions.js";
@@ -33,7 +33,7 @@ function App(props) {
                           return "";
                         });
                     setInlineStruct(function (param) {
-                          return S$RescriptStruct.inline(JSONSchema.toStruct(parsed));
+                          return S$RescriptSchema.inline(JSONSchema.toStruct(parsed));
                         });
                     return ;
                   }

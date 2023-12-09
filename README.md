@@ -7,30 +7,30 @@
 Typesafe JSON Schema for ReScript
 
 - Provides ReScript types to work with [JSON schema](https://json-schema.org/)
-- Converts [**rescript-struct**](https://github.com/DZakh/rescript-struct) into JSON schemas
-- Converts JSON schemas to [**rescript-struct**](https://github.com/DZakh/rescript-struct)
+- Converts [**rescript-schema**](https://github.com/DZakh/rescript-schema) into JSON schemas
+- Converts JSON schemas to [**rescript-schema**](https://github.com/DZakh/rescript-schema)
 
 ## Install
 
 ```sh
-npm install rescript-json-schema rescript-struct
+npm install rescript-json-schema rescript-schema
 ```
 
-Then add `rescript-json-schema` and `rescript-struct` to `bs-dependencies` in your `bsconfig.json`:
+Then add `rescript-json-schema` and `rescript-schema` to `bs-dependencies` in your `rescript.json`:
 
 ```diff
 {
   ...
-+ "bs-dependencies": ["rescript-json-schema", "rescript-struct"]
-+ "bsc-flags": ["-open RescriptStruct"],
++ "bs-dependencies": ["rescript-json-schema", "rescript-schema"]
++ "bsc-flags": ["-open RescriptSchema"],
 }
 ```
 
 ## Create JSON schemas with type safety
 
-One of the library's main features is the **rescript-struct**, which provides a way to describe the structure of a value. This structure contains meta information used for parsing, serializing, and generating JSON Schema. When working with the library, you will mostly interact with **rescript-struct** to define the structure of the values you are working with.
+One of the library's main features is the **rescript-schema**, which provides a way to describe the schema of a value. This schema contains meta information used for parsing, serializing, and generating JSON Schema. When working with the library, you will mostly interact with **rescript-schema** to define the schema of the values you are working with.
 
-For example, if you have the following struct:
+For example, if you have the following schema:
 
 ```rescript
 type rating =
@@ -96,7 +96,7 @@ JSONSchema.make(filmStruct)
 }
 ```
 
-## Create **rescript-struct** from JSON schema
+## Create **rescript-schema** from JSON schema
 
 ### Online
 
