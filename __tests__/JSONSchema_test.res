@@ -1,30 +1,30 @@
 open Ava
 
-test("Schema of bool struct", t => {
-  let struct = S.bool
+test("Schema of bool schema", t => {
+  let schema = S.bool
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(%raw(`{"$schema": "http://json-schema.org/draft-07/schema#", "type": "boolean"}`)),
     (),
   )
 })
 
-test("Schema of string struct", t => {
-  let struct = S.string
+test("Schema of string schema", t => {
+  let schema = S.string
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(%raw(`{"$schema": "http://json-schema.org/draft-07/schema#", "type": "string"}`)),
     (),
   )
 })
 
-test("Schema of string struct with Email refinement", t => {
-  let struct = S.string->S.String.email
+test("Schema of string schema with Email refinement", t => {
+  let schema = S.string->S.String.email
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -36,11 +36,11 @@ test("Schema of string struct with Email refinement", t => {
   )
 })
 
-test("Schema of string struct with Url refinement", t => {
-  let struct = S.string->S.String.url
+test("Schema of string schema with Url refinement", t => {
+  let schema = S.string->S.String.url
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -52,11 +52,11 @@ test("Schema of string struct with Url refinement", t => {
   )
 })
 
-test("Schema of string struct with Datetime refinement", t => {
-  let struct = S.string->S.String.datetime
+test("Schema of string schema with Datetime refinement", t => {
+  let schema = S.string->S.String.datetime
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -68,11 +68,11 @@ test("Schema of string struct with Datetime refinement", t => {
   )
 })
 
-test("Schema of string struct uses the last refinement for format", t => {
-  let struct = S.string->S.String.email->S.String.datetime
+test("Schema of string schema uses the last refinement for format", t => {
+  let schema = S.string->S.String.email->S.String.datetime
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -84,11 +84,11 @@ test("Schema of string struct uses the last refinement for format", t => {
   )
 })
 
-test("Schema of string struct with Cuid refinement", t => {
-  let struct = S.string->S.String.cuid
+test("Schema of string schema with Cuid refinement", t => {
+  let schema = S.string->S.String.cuid
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -99,11 +99,11 @@ test("Schema of string struct with Cuid refinement", t => {
   )
 })
 
-test("Schema of string struct with Uuid refinement", t => {
-  let struct = S.string->S.String.uuid
+test("Schema of string schema with Uuid refinement", t => {
+  let schema = S.string->S.String.uuid
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -115,11 +115,11 @@ test("Schema of string struct with Uuid refinement", t => {
   )
 })
 
-test("Schema of string struct with Pattern refinement", t => {
-  let struct = S.string->S.String.pattern(%re("/abc/g"))
+test("Schema of string schema with Pattern refinement", t => {
+  let schema = S.string->S.String.pattern(%re("/abc/g"))
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -131,11 +131,11 @@ test("Schema of string struct with Pattern refinement", t => {
   )
 })
 
-test("Schema of string struct with Min refinement", t => {
-  let struct = S.string->S.String.min(1)
+test("Schema of string schema with Min refinement", t => {
+  let schema = S.string->S.String.min(1)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -147,11 +147,11 @@ test("Schema of string struct with Min refinement", t => {
   )
 })
 
-test("Schema of string struct with Max refinement", t => {
-  let struct = S.string->S.String.max(1)
+test("Schema of string schema with Max refinement", t => {
+  let schema = S.string->S.String.max(1)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -163,11 +163,11 @@ test("Schema of string struct with Max refinement", t => {
   )
 })
 
-test("Schema of string struct with Length refinement", t => {
-  let struct = S.string->S.String.length(1)
+test("Schema of string schema with Length refinement", t => {
+  let schema = S.string->S.String.length(1)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -180,11 +180,11 @@ test("Schema of string struct with Length refinement", t => {
   )
 })
 
-test("Schema of string struct with both Min and Max refinements", t => {
-  let struct = S.string->S.String.min(1)->S.String.max(4)
+test("Schema of string schema with both Min and Max refinements", t => {
+  let schema = S.string->S.String.min(1)->S.String.max(4)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -197,21 +197,21 @@ test("Schema of string struct with both Min and Max refinements", t => {
   )
 })
 
-test("Schema of int struct", t => {
-  let struct = S.int
+test("Schema of int schema", t => {
+  let schema = S.int
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(%raw(`{"$schema": "http://json-schema.org/draft-07/schema#", "type": "integer"}`)),
     (),
   )
 })
 
-test("Schema of int struct with Min refinement", t => {
-  let struct = S.int->S.Int.min(1)
+test("Schema of int schema with Min refinement", t => {
+  let schema = S.int->S.Int.min(1)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -223,11 +223,11 @@ test("Schema of int struct with Min refinement", t => {
   )
 })
 
-test("Schema of int struct with Max refinement", t => {
-  let struct = S.int->S.Int.max(1)
+test("Schema of int schema with Max refinement", t => {
+  let schema = S.int->S.Int.max(1)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -239,11 +239,11 @@ test("Schema of int struct with Max refinement", t => {
   )
 })
 
-test("Schema of int struct with Port refinement", t => {
-  let struct = S.int->S.Int.port
+test("Schema of int schema with Port refinement", t => {
+  let schema = S.int->S.Int.port
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -254,21 +254,21 @@ test("Schema of int struct with Port refinement", t => {
   )
 })
 
-test("Schema of float struct", t => {
-  let struct = S.float
+test("Schema of float schema", t => {
+  let schema = S.float
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(%raw(`{"$schema": "http://json-schema.org/draft-07/schema#", "type": "number"}`)),
     (),
   )
 })
 
-test("Schema of float struct with Min refinement", t => {
-  let struct = S.float->S.Float.min(1.)
+test("Schema of float schema with Min refinement", t => {
+  let schema = S.float->S.Float.min(1.)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -280,11 +280,11 @@ test("Schema of float struct with Min refinement", t => {
   )
 })
 
-test("Schema of float struct with Max refinement", t => {
-  let struct = S.float->S.Float.max(1.)
+test("Schema of float schema with Max refinement", t => {
+  let schema = S.float->S.Float.max(1.)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -296,11 +296,11 @@ test("Schema of float struct with Max refinement", t => {
   )
 })
 
-test("Schema of Null struct", t => {
-  let struct = S.null(S.float)
+test("Schema of Null schema", t => {
+  let schema = S.null(S.float)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -311,11 +311,11 @@ test("Schema of Null struct", t => {
   )
 })
 
-test("Schema of Never struct", t => {
-  let struct = S.never
+test("Schema of Never schema", t => {
+  let schema = S.never
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -326,11 +326,11 @@ test("Schema of Never struct", t => {
   )
 })
 
-test("Schema of Bool Literal struct", t => {
-  let struct = S.literal(false)
+test("Schema of Bool Literal schema", t => {
+  let schema = S.literal(false)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -342,11 +342,11 @@ test("Schema of Bool Literal struct", t => {
   )
 })
 
-test("Schema of String Literal struct", t => {
-  let struct = S.literal("Hello World!")
+test("Schema of String Literal schema", t => {
+  let schema = S.literal("Hello World!")
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -358,11 +358,11 @@ test("Schema of String Literal struct", t => {
   )
 })
 
-test("Schema of Int Literal struct", t => {
-  let struct = S.literal(123)
+test("Schema of Int Literal schema", t => {
+  let schema = S.literal(123)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -374,11 +374,11 @@ test("Schema of Int Literal struct", t => {
   )
 })
 
-test("Schema of Float Literal struct", t => {
-  let struct = S.literal(-123.456)
+test("Schema of Float Literal schema", t => {
+  let schema = S.literal(-123.456)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -390,11 +390,11 @@ test("Schema of Float Literal struct", t => {
   )
 })
 
-test("Schema of EmptyNull Literal struct", t => {
-  let struct = S.literal(%raw(`null`))
+test("Schema of EmptyNull Literal schema", t => {
+  let schema = S.literal(%raw(`null`))
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -405,31 +405,31 @@ test("Schema of EmptyNull Literal struct", t => {
   )
 })
 
-test("Schema of EmptyOption Literal struct isn't supported", t => {
-  let struct = S.literal(%raw(`undefined`))
+test("Schema of EmptyOption Literal schema isn't supported", t => {
+  let schema = S.literal(%raw(`undefined`))
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
-    Error(`[ReScript JSON Schema] Failed converting at root. Reason: The Literal(undefined) struct is not supported`),
+    JSONSchema.make(schema),
+    Error(`[ReScript JSON Schema] Failed converting at root. Reason: The Literal(undefined) schema is not supported`),
     (),
   )
 })
 
-test("Schema of NaN Literal struct isn't supported", t => {
-  let struct = S.literal(%raw(`NaN`))
+test("Schema of NaN Literal schema isn't supported", t => {
+  let schema = S.literal(%raw(`NaN`))
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
-    Error(`[ReScript JSON Schema] Failed converting at root. Reason: The Literal(NaN) struct is not supported`),
+    JSONSchema.make(schema),
+    Error(`[ReScript JSON Schema] Failed converting at root. Reason: The Literal(NaN) schema is not supported`),
     (),
   )
 })
 
-test("Schema of tuple struct", t => {
-  let struct = S.tuple2(S.string, S.bool)
+test("Schema of tuple schema", t => {
+  let schema = S.tuple2(S.string, S.bool)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -443,11 +443,11 @@ test("Schema of tuple struct", t => {
   )
 })
 
-test("Schema of union struct", t => {
-  let struct = S.union([S.literal("Yes"), S.literal("No")])
+test("Schema of union schema", t => {
+  let schema = S.union([S.literal("Yes"), S.literal("No")])
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -467,11 +467,11 @@ test("Schema of union struct", t => {
   )
 })
 
-test("Schema of strings array struct", t => {
-  let struct = S.array(S.string)
+test("Schema of strings array schema", t => {
+  let schema = S.array(S.string)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -483,11 +483,11 @@ test("Schema of strings array struct", t => {
   )
 })
 
-test("Schema of array struct with Min refinement", t => {
-  let struct = S.array(S.string)->S.Array.min(1)
+test("Schema of array schema with Min refinement", t => {
+  let schema = S.array(S.string)->S.Array.min(1)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -500,11 +500,11 @@ test("Schema of array struct with Min refinement", t => {
   )
 })
 
-test("Schema of array struct with Max refinement", t => {
-  let struct = S.array(S.string)->S.Array.max(1)
+test("Schema of array schema with Max refinement", t => {
+  let schema = S.array(S.string)->S.Array.max(1)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -517,11 +517,11 @@ test("Schema of array struct with Max refinement", t => {
   )
 })
 
-test("Schema of array struct with Length refinement", t => {
-  let struct = S.array(S.string)->S.Array.length(1)
+test("Schema of array schema with Length refinement", t => {
+  let schema = S.array(S.string)->S.Array.length(1)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -535,11 +535,11 @@ test("Schema of array struct with Length refinement", t => {
   )
 })
 
-test("Schema of strings dict struct", t => {
-  let struct = S.dict(S.string)
+test("Schema of strings dict schema", t => {
+  let schema = S.dict(S.string)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -551,11 +551,11 @@ test("Schema of strings dict struct", t => {
   )
 })
 
-test("Schema of object struct with one string field", t => {
-  let struct = S.object(s => s.field("field", S.string))
+test("Schema of object schema with one string field", t => {
+  let schema = S.object(s => s.field("field", S.string))
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -569,14 +569,14 @@ test("Schema of object struct with one string field", t => {
   )
 })
 
-test("Schema of object struct with one string discriminant", t => {
-  let struct = S.object(s => {
+test("Schema of object schema with one string discriminant", t => {
+  let schema = S.object(s => {
     ignore(s.field("field", S.string))
     ()
   })
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -590,11 +590,11 @@ test("Schema of object struct with one string discriminant", t => {
   )
 })
 
-test("Schema of object struct with Strip unknownKeys strategy allows additionalProperties", t => {
-  let struct = S.object(s => s.field("field", S.string))->S.Object.strip
+test("Schema of object schema with Strip unknownKeys strategy allows additionalProperties", t => {
+  let schema = S.object(s => s.field("field", S.string))->S.Object.strip
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -609,12 +609,12 @@ test("Schema of object struct with Strip unknownKeys strategy allows additionalP
 })
 
 test(
-  "Schema of object struct with Strict unknownKeys strategy disallows additionalProperties",
+  "Schema of object schema with Strict unknownKeys strategy disallows additionalProperties",
   t => {
-    let struct = S.object(s => s.field("field", S.string))->S.Object.strict
+    let schema = S.object(s => s.field("field", S.string))->S.Object.strict
 
     t->Assert.deepEqual(
-      JSONSchema.make(struct),
+      JSONSchema.make(schema),
       Ok(
         %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -629,11 +629,11 @@ test(
   },
 )
 
-test("Schema of object struct with one optional string field", t => {
-  let struct = S.object(s => s.field("optionalField", S.option(S.string)))
+test("Schema of object schema with one optional string field", t => {
+  let schema = S.object(s => s.field("optionalField", S.option(S.string)))
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -646,11 +646,11 @@ test("Schema of object struct with one optional string field", t => {
   )
 })
 
-test("Schema of object struct with one deprecated string field", t => {
-  let struct = S.object(s => s.field("field", S.string->S.deprecate("Use another field")))
+test("Schema of object schema with one deprecated string field", t => {
+  let schema = S.object(s => s.field("field", S.string->S.deprecate("Use another field")))
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -667,12 +667,12 @@ test("Schema of object struct with one deprecated string field", t => {
 })
 
 test("Deprecated message overrides previous description", t => {
-  let struct = S.object(s =>
+  let schema = S.object(s =>
     s.field("field", S.string->S.describe("Previous description")->S.deprecate("Use another field"))
   )
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -688,13 +688,13 @@ test("Deprecated message overrides previous description", t => {
   )
 })
 
-test("Schema of object struct with nested object", t => {
-  let struct = S.object(s =>
+test("Schema of object schema with nested object", t => {
+  let schema = S.object(s =>
     s.field("objectWithOneStringField", S.object(s => s.field("Field", S.string)))
   )
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -715,14 +715,14 @@ test("Schema of object struct with nested object", t => {
   )
 })
 
-test("Schema of object struct with one optional and one required string field", t => {
-  let struct = S.object(s => (
+test("Schema of object schema with one optional and one required string field", t => {
+  let schema = S.object(s => (
     s.field("field", S.string),
     s.field("optionalField", S.option(S.string)),
   ))
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -742,45 +742,45 @@ test("Schema of object struct with one optional and one required string field", 
 })
 
 test("Make JSONSchema throws error with optional root type", t => {
-  let struct = S.option(S.string)
+  let schema = S.option(S.string)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Error(
-      "[ReScript JSON Schema] Failed converting at root. Reason: Optional struct is not supported at root",
+      "[ReScript JSON Schema] Failed converting at root. Reason: Optional schema is not supported at root",
     ),
     (),
   )
 })
 
 test("Make JSONSchema throws error with object field wrapped in option multiple times", t => {
-  let struct = S.object(s => s.field("optionalOptionalField", S.option(S.option(S.string))))
+  let schema = S.object(s => s.field("optionalOptionalField", S.option(S.option(S.string))))
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
-    Error(`[ReScript JSON Schema] Failed converting at ["optionalOptionalField"]. Reason: Optional struct is not supported inside the Option struct`),
+    JSONSchema.make(schema),
+    Error(`[ReScript JSON Schema] Failed converting at ["optionalOptionalField"]. Reason: Optional schema is not supported inside the Option schema`),
     (),
   )
 })
 
-test("Primitive struct schema with description", t => {
-  let struct = S.bool->S.describe("A primitive struct")
+test("Primitive schema schema with description", t => {
+  let schema = S.bool->S.describe("A primitive schema")
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "boolean",
-        "description": "A primitive struct",
+        "description": "A primitive schema",
       }`),
     ),
     (),
   )
 })
 
-test("Transformed struct schema with default fails when destruction failed", t => {
-  let struct = S.object(s =>
+test("Transformed schema schema with default fails when destruction failed", t => {
+  let schema = S.object(s =>
     s.field(
       "field",
       S.option(
@@ -799,14 +799,14 @@ test("Transformed struct schema with default fails when destruction failed", t =
   )
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Error(`[ReScript JSON Schema] Failed converting at ["field"]. Reason: Couldn't destruct default value. Error: Failed serializing at root. Reason: The S.transform serializer is missing`),
     (),
   )
 })
 
-test("Transformed struct schema uses default with correct type", t => {
-  let struct = S.object(s =>
+test("Transformed schema schema uses default with correct type", t => {
+  let schema = S.object(s =>
     s.field(
       "field",
       S.option(
@@ -831,7 +831,7 @@ test("Transformed struct schema uses default with correct type", t => {
   )
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -844,11 +844,11 @@ test("Transformed struct schema uses default with correct type", t => {
   )
 })
 
-test("Primitive struct schema with additional raw schema", t => {
-  let struct = S.bool->JSONSchema.extend({description: "foo"})
+test("Primitive schema schema with additional raw schema", t => {
+  let schema = S.bool->JSONSchema.extend({description: "foo"})
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -861,13 +861,13 @@ test("Primitive struct schema with additional raw schema", t => {
 })
 
 test("Multiple additional raw schemas are merged together", t => {
-  let struct =
+  let schema =
     S.bool
     ->JSONSchema.extend({"nullable": true}->Obj.magic)
     ->JSONSchema.extend({"deprecated": true}->Obj.magic)
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -881,12 +881,12 @@ test("Multiple additional raw schemas are merged together", t => {
 })
 
 test("Additional raw schema works with optional fields", t => {
-  let struct = S.object(s =>
+  let schema = S.object(s =>
     s.field("optionalField", S.option(S.string)->JSONSchema.extend({"nullable": true}->Obj.magic))
   )
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -901,11 +901,11 @@ test("Additional raw schema works with optional fields", t => {
   )
 })
 
-test("Unknown struct doesn't affect final schema", t => {
-  let struct = S.unknown
+test("Unknown schema doesn't affect final schema", t => {
+  let schema = S.unknown
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -915,11 +915,11 @@ test("Unknown struct doesn't affect final schema", t => {
   )
 })
 
-test("JSON struct doesn't affect final schema", t => {
-  let struct = S.json
+test("JSON schema doesn't affect final schema", t => {
+  let schema = S.json
 
   t->Assert.deepEqual(
-    JSONSchema.make(struct),
+    JSONSchema.make(schema),
     Ok(
       %raw(`{
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -929,36 +929,36 @@ test("JSON struct doesn't affect final schema", t => {
   )
 })
 
-test("Fails to create schema for structs with optional items", t => {
+test("Fails to create schema for schemas with optional items", t => {
   t->Assert.deepEqual(
     JSONSchema.make(S.dict(S.option(S.string))),
     Error(
-      "[ReScript JSON Schema] Failed converting at root. Reason: Optional struct is not supported as Dict(Option(String)) item",
+      "[ReScript JSON Schema] Failed converting at root. Reason: Optional schema is not supported as Dict(Option(String)) item",
     ),
     (),
   )
   t->Assert.deepEqual(
     JSONSchema.make(S.array(S.option(S.string))),
     Error(
-      "[ReScript JSON Schema] Failed converting at root. Reason: Optional struct is not supported as Array(Option(String)) item",
+      "[ReScript JSON Schema] Failed converting at root. Reason: Optional schema is not supported as Array(Option(String)) item",
     ),
     (),
   )
   t->Assert.deepEqual(
     JSONSchema.make(S.union([S.option(S.string), S.null(S.string)])),
     Error(
-      "[ReScript JSON Schema] Failed converting at root. Reason: Optional struct is not supported as Union(Option(String), Null(String)) item",
+      "[ReScript JSON Schema] Failed converting at root. Reason: Optional schema is not supported as Union(Option(String), Null(String)) item",
     ),
     (),
   )
   t->Assert.deepEqual(
     JSONSchema.make(S.tuple1(S.option(S.string))),
-    Error(`[ReScript JSON Schema] Failed converting at ["0"]. Reason: Optional struct is not supported as Tuple(Option(String)) item`),
+    Error(`[ReScript JSON Schema] Failed converting at ["0"]. Reason: Optional schema is not supported as Tuple(Option(String)) item`),
     (),
   )
   t->Assert.deepEqual(
     JSONSchema.make(S.tuple1(S.array(S.option(S.string)))),
-    Error(`[ReScript JSON Schema] Failed converting at ["0"]. Reason: Optional struct is not supported as Array(Option(String)) item`),
+    Error(`[ReScript JSON Schema] Failed converting at ["0"]. Reason: Optional schema is not supported as Array(Option(String)) item`),
     (),
   )
 })
@@ -978,7 +978,7 @@ module Example = {
   }
 
   test("Example", t => {
-    let filmStruct = S.object(s => {
+    let filmSchema = S.object(s => {
       id: s.field("Id", S.float),
       title: s.field("Title", S.string),
       tags: s.fieldOr("Tags", S.array(S.string), []),
@@ -995,7 +995,7 @@ module Example = {
     })
 
     t->Assert.deepEqual(
-      JSONSchema.make(filmStruct),
+      JSONSchema.make(filmSchema),
       Ok(
         %raw(`{
           $schema: "http://json-schema.org/draft-07/schema#",

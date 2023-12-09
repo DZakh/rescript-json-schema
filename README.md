@@ -46,7 +46,7 @@ type film = {
   deprecatedAgeRestriction: option<int>,
 }
 
-let filmStruct = S.object(s => {
+let filmSchema = S.object(s => {
   id: s.field("Id", S.float),
   title: s.field("Title", S.string),
   tags: s.fieldOr("Tags", S.array(S.string), []),
@@ -66,7 +66,7 @@ let filmStruct = S.object(s => {
 You can use it to generate JSON Schema for the value it describes:
 
 ```rescript
-JSONSchema.make(filmStruct)
+JSONSchema.make(filmSchema)
 ```
 
 ```json

@@ -22,7 +22,7 @@ test("Regression test", t => {
   })
 
   t->Assert.deepEqual(
-    jsonSchema->JSONSchema.toStruct->S.inline,
+    jsonSchema->JSONSchema.toRescriptSchema->S.inline,
     `S.object(s =>
   {
     "page": s.field("page", S.option(S.float->S.Float.min(1., ~message="Number must be greater than or equal to 1"))->S.Option.getOr(%raw(\`1\`))),
