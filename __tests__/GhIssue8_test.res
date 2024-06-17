@@ -29,6 +29,5 @@ test("Regression test", t => {
     "limit": s.field("limit", S.option(S.float->S.Float.min(1., ~message="Number must be greater than or equal to 1"))->S.Option.getOr(%raw(\`100\`))),
   }
 )->S.Object.strict`,
-    (),
   )
 })

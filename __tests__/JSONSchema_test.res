@@ -6,7 +6,6 @@ test("Schema of bool schema", t => {
   t->Assert.deepEqual(
     JSONSchema.make(schema),
     Ok(%raw(`{"$schema": "http://json-schema.org/draft-07/schema#", "type": "boolean"}`)),
-    (),
   )
 })
 
@@ -16,7 +15,6 @@ test("Schema of string schema", t => {
   t->Assert.deepEqual(
     JSONSchema.make(schema),
     Ok(%raw(`{"$schema": "http://json-schema.org/draft-07/schema#", "type": "string"}`)),
-    (),
   )
 })
 
@@ -32,7 +30,6 @@ test("Schema of string schema with Email refinement", t => {
         "format": "email"
       }`),
     ),
-    (),
   )
 })
 
@@ -48,7 +45,6 @@ test("Schema of string schema with Url refinement", t => {
         "format": "uri"
       }`),
     ),
-    (),
   )
 })
 
@@ -64,7 +60,6 @@ test("Schema of string schema with Datetime refinement", t => {
         "format": "date-time"
       }`),
     ),
-    (),
   )
 })
 
@@ -80,7 +75,6 @@ test("Schema of string schema uses the last refinement for format", t => {
         "format": "date-time"
       }`),
     ),
-    (),
   )
 })
 
@@ -95,7 +89,6 @@ test("Schema of string schema with Cuid refinement", t => {
         "type": "string"
       }`),
     ),
-    (),
   )
 })
 
@@ -111,7 +104,6 @@ test("Schema of string schema with Uuid refinement", t => {
         "format": "uuid"
       }`),
     ),
-    (),
   )
 })
 
@@ -127,7 +119,6 @@ test("Schema of string schema with Pattern refinement", t => {
         "pattern": "/abc/g"
       }`),
     ),
-    (),
   )
 })
 
@@ -143,7 +134,6 @@ test("Schema of string schema with Min refinement", t => {
         "minLength": 1
       }`),
     ),
-    (),
   )
 })
 
@@ -159,7 +149,6 @@ test("Schema of string schema with Max refinement", t => {
         "maxLength": 1
       }`),
     ),
-    (),
   )
 })
 
@@ -176,7 +165,6 @@ test("Schema of string schema with Length refinement", t => {
         "maxLength": 1
       }`),
     ),
-    (),
   )
 })
 
@@ -193,7 +181,6 @@ test("Schema of string schema with both Min and Max refinements", t => {
         "maxLength": 4
       }`),
     ),
-    (),
   )
 })
 
@@ -203,7 +190,6 @@ test("Schema of int schema", t => {
   t->Assert.deepEqual(
     JSONSchema.make(schema),
     Ok(%raw(`{"$schema": "http://json-schema.org/draft-07/schema#", "type": "integer"}`)),
-    (),
   )
 })
 
@@ -219,7 +205,6 @@ test("Schema of int schema with Min refinement", t => {
         "minimum": 1
       }`),
     ),
-    (),
   )
 })
 
@@ -235,7 +220,6 @@ test("Schema of int schema with Max refinement", t => {
         "maximum": 1
       }`),
     ),
-    (),
   )
 })
 
@@ -250,7 +234,6 @@ test("Schema of int schema with Port refinement", t => {
         "type": "integer"
       }`),
     ),
-    (),
   )
 })
 
@@ -260,7 +243,6 @@ test("Schema of float schema", t => {
   t->Assert.deepEqual(
     JSONSchema.make(schema),
     Ok(%raw(`{"$schema": "http://json-schema.org/draft-07/schema#", "type": "number"}`)),
-    (),
   )
 })
 
@@ -276,7 +258,6 @@ test("Schema of float schema with Min refinement", t => {
         "minimum": 1
       }`),
     ),
-    (),
   )
 })
 
@@ -292,7 +273,6 @@ test("Schema of float schema with Max refinement", t => {
         "maximum": 1
       }`),
     ),
-    (),
   )
 })
 
@@ -307,7 +287,6 @@ test("Schema of Null schema", t => {
         "anyOf": [{"type": "number"}, {"type": "null"}]
       }`),
     ),
-    (),
   )
 })
 
@@ -322,7 +301,6 @@ test("Schema of Never schema", t => {
         "not": {}
       }`),
     ),
-    (),
   )
 })
 
@@ -338,7 +316,6 @@ test("Schema of Bool Literal schema", t => {
         "const": false
       }`),
     ),
-    (),
   )
 })
 
@@ -354,7 +331,6 @@ test("Schema of String Literal schema", t => {
         "const": "Hello World!"
       }`),
     ),
-    (),
   )
 })
 
@@ -370,7 +346,6 @@ test("Schema of Int Literal schema", t => {
         "const": 123
       }`),
     ),
-    (),
   )
 })
 
@@ -386,7 +361,6 @@ test("Schema of Float Literal schema", t => {
         "const": -123.456
       }`),
     ),
-    (),
   )
 })
 
@@ -401,7 +375,6 @@ test("Schema of EmptyNull Literal schema", t => {
         "type": "null",
       }`),
     ),
-    (),
   )
 })
 
@@ -411,7 +384,6 @@ test("Schema of EmptyOption Literal schema isn't supported", t => {
   t->Assert.deepEqual(
     JSONSchema.make(schema),
     Error(`[ReScript JSON Schema] Failed converting at root. Reason: The Literal(undefined) schema is not supported`),
-    (),
   )
 })
 
@@ -421,7 +393,6 @@ test("Schema of NaN Literal schema isn't supported", t => {
   t->Assert.deepEqual(
     JSONSchema.make(schema),
     Error(`[ReScript JSON Schema] Failed converting at root. Reason: The Literal(NaN) schema is not supported`),
-    (),
   )
 })
 
@@ -439,7 +410,6 @@ test("Schema of tuple schema", t => {
         "items": [{"type": "string"}, {"type": "boolean"}],
       }`),
     ),
-    (),
   )
 })
 
@@ -463,7 +433,6 @@ test("Schema of union schema", t => {
         ]
       }`),
     ),
-    (),
   )
 })
 
@@ -479,7 +448,6 @@ test("Schema of strings array schema", t => {
         "items": {"type": "string"},
       }`),
     ),
-    (),
   )
 })
 
@@ -496,7 +464,6 @@ test("Schema of array schema with Min refinement", t => {
         "minItems": 1
       }`),
     ),
-    (),
   )
 })
 
@@ -513,7 +480,6 @@ test("Schema of array schema with Max refinement", t => {
         "maxItems": 1
       }`),
     ),
-    (),
   )
 })
 
@@ -531,7 +497,6 @@ test("Schema of array schema with Length refinement", t => {
         "maxItems": 1
       }`),
     ),
-    (),
   )
 })
 
@@ -547,7 +512,6 @@ test("Schema of strings dict schema", t => {
         "additionalProperties": {"type": "string"},
       }`),
     ),
-    (),
   )
 })
 
@@ -565,7 +529,6 @@ test("Schema of object schema with one string field", t => {
         "additionalProperties": true,
       }`),
     ),
-    (),
   )
 })
 
@@ -586,7 +549,6 @@ test("Schema of object schema with one string discriminant", t => {
         "additionalProperties": true,
       }`),
     ),
-    (),
   )
 })
 
@@ -604,7 +566,6 @@ test("Schema of object schema with Strip unknownKeys strategy allows additionalP
         "additionalProperties": true,
       }`),
     ),
-    (),
   )
 })
 
@@ -624,7 +585,6 @@ test(
         "additionalProperties": false,
       }`),
       ),
-      (),
     )
   },
 )
@@ -642,7 +602,6 @@ test("Schema of object schema with one optional string field", t => {
         "additionalProperties": true,
       }`),
     ),
-    (),
   )
 })
 
@@ -662,7 +621,6 @@ test("Schema of object schema with one deprecated string field", t => {
         "additionalProperties": true,
       }`),
     ),
-    (),
   )
 })
 
@@ -684,7 +642,6 @@ test("Deprecated message overrides previous description", t => {
         "additionalProperties": true,
       }`),
     ),
-    (),
   )
 })
 
@@ -711,7 +668,6 @@ test("Schema of object schema with nested object", t => {
         "additionalProperties": true,
       }`),
     ),
-    (),
   )
 })
 
@@ -737,7 +693,6 @@ test("Schema of object schema with one optional and one required string field", 
         "additionalProperties": true,
       }`),
     ),
-    (),
   )
 })
 
@@ -749,7 +704,6 @@ test("Make JSONSchema throws error with optional root type", t => {
     Error(
       "[ReScript JSON Schema] Failed converting at root. Reason: Optional schema is not supported at root",
     ),
-    (),
   )
 })
 
@@ -759,7 +713,6 @@ test("Make JSONSchema throws error with object field wrapped in option multiple 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
     Error(`[ReScript JSON Schema] Failed converting at ["optionalOptionalField"]. Reason: Optional schema is not supported inside the Option schema`),
-    (),
   )
 })
 
@@ -775,7 +728,6 @@ test("Primitive schema schema with description", t => {
         "description": "A primitive schema",
       }`),
     ),
-    (),
   )
 })
 
@@ -801,7 +753,6 @@ test("Transformed schema schema with default fails when destruction failed", t =
   t->Assert.deepEqual(
     JSONSchema.make(schema),
     Error(`[ReScript JSON Schema] Failed converting at ["field"]. Reason: Couldn't destruct default value. Error: Failed serializing at root. Reason: The S.transform serializer is missing`),
-    (),
   )
 })
 
@@ -840,7 +791,6 @@ test("Transformed schema schema uses default with correct type", t => {
         "type": "object",
       }`),
     ),
-    (),
   )
 })
 
@@ -856,7 +806,6 @@ test("Primitive schema schema with additional raw schema", t => {
         "description": "foo",
       }`),
     ),
-    (),
   )
 })
 
@@ -876,7 +825,6 @@ test("Multiple additional raw schemas are merged together", t => {
         "nullable": true,
       }`),
     ),
-    (),
   )
 })
 
@@ -897,7 +845,6 @@ test("Additional raw schema works with optional fields", t => {
         "additionalProperties": true,
       }`),
     ),
-    (),
   )
 })
 
@@ -911,7 +858,6 @@ test("Unknown schema doesn't affect final schema", t => {
         "$schema": "http://json-schema.org/draft-07/schema#",
       }`),
     ),
-    (),
   )
 })
 
@@ -925,7 +871,6 @@ test("JSON schema doesn't affect final schema", t => {
         "$schema": "http://json-schema.org/draft-07/schema#",
       }`),
     ),
-    (),
   )
 })
 
@@ -935,31 +880,26 @@ test("Fails to create schema for schemas with optional items", t => {
     Error(
       "[ReScript JSON Schema] Failed converting at root. Reason: Optional schema is not supported as Dict(Option(String)) item",
     ),
-    (),
   )
   t->Assert.deepEqual(
     JSONSchema.make(S.array(S.option(S.string))),
     Error(
       "[ReScript JSON Schema] Failed converting at root. Reason: Optional schema is not supported as Array(Option(String)) item",
     ),
-    (),
   )
   t->Assert.deepEqual(
     JSONSchema.make(S.union([S.option(S.string), S.null(S.string)])),
     Error(
       "[ReScript JSON Schema] Failed converting at root. Reason: Optional schema is not supported as Union(Option(String), Null(String)) item",
     ),
-    (),
   )
   t->Assert.deepEqual(
     JSONSchema.make(S.tuple1(S.option(S.string))),
     Error(`[ReScript JSON Schema] Failed converting at ["0"]. Reason: Optional schema is not supported as Tuple(Option(String)) item`),
-    (),
   )
   t->Assert.deepEqual(
     JSONSchema.make(S.tuple1(S.array(S.option(S.string)))),
     Error(`[ReScript JSON Schema] Failed converting at ["0"]. Reason: Optional schema is not supported as Array(Option(String)) item`),
-    (),
   )
 })
 
@@ -1022,7 +962,6 @@ module Example = {
           required: ["Id", "Title", "Rating"],
         }`),
       ),
-      (),
     )
   })
 }

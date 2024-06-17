@@ -285,7 +285,7 @@ function fromRescriptSchema(schema) {
           var additionalProperties;
           additionalProperties = childStruct.unknownKeys === "Strip" ? true : false;
           jsonSchema.type = "object";
-          jsonSchema.properties = Caml_option.some(properties);
+          jsonSchema.properties = properties;
           jsonSchema.additionalProperties = Caml_option.some(additionalProperties);
           if (required.length !== 0) {
             jsonSchema.required = required;
@@ -441,9 +441,8 @@ function toRescriptSchema(jsonSchema) {
     if (type_$1 === "object") {
       var properties = jsonSchema.properties;
       if (properties !== undefined) {
-        var properties$1 = Caml_option.valFromOption(properties);
         var schema$1 = S$RescriptSchema.object(function (s) {
-              return Js_dict.fromArray(Js_dict.entries(properties$1).map(function (param) {
+              return Js_dict.fromArray(Js_dict.entries(properties).map(function (param) {
                               var property = param[1];
                               var key = param[0];
                               var propertyStruct = definitionToSchema(property);
