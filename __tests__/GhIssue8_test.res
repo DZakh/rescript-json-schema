@@ -25,8 +25,8 @@ test("Regression test", t => {
     jsonSchema->JSONSchema.toRescriptSchema->S.inline,
     `S.object(s =>
   {
-    "page": s.field("page", S.option(S.float->S.Float.min(1., ~message="Number must be greater than or equal to 1"))->S.Option.getOr(%raw(\`1\`))),
-    "limit": s.field("limit", S.option(S.float->S.Float.min(1., ~message="Number must be greater than or equal to 1"))->S.Option.getOr(%raw(\`100\`))),
+    "page": s.field("page", S.option(S.float->S.floatMin(1., ~message="Number must be greater than or equal to 1"))->S.Option.getOr(%raw(\`1\`))),
+    "limit": s.field("limit", S.option(S.float->S.floatMin(1., ~message="Number must be greater than or equal to 1"))->S.Option.getOr(%raw(\`100\`))),
   }
 )->S.Object.strict`,
   )

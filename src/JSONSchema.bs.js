@@ -30,7 +30,7 @@ function raise$1(schema) {
 
 function raise$2(schema) {
   return raise({
-              TAG: "UnsupportedStruct",
+              TAG: "UnsupportedSchema",
               _0: schema.n()
             });
 }
@@ -61,7 +61,7 @@ function toString(error) {
       case "UnsupportedOptionalItem" :
           reason = "Optional schema is not supported as " + schemaName._0 + " item";
           break;
-      case "UnsupportedStruct" :
+      case "UnsupportedSchema" :
           reason = "The " + schemaName._0 + " schema is not supported";
           break;
       case "DefaultDestructingFailed" :
@@ -86,11 +86,13 @@ function isOptionalSchema(schema) {
 
 function fromRescriptSchema(schema) {
   var jsonSchema = {};
-  var childStruct = S$RescriptSchema.classify(schema);
-  if (typeof childStruct !== "object") {
-    switch (childStruct) {
+  var childSchema = S$RescriptSchema.classify(schema);
+  if (typeof childSchema !== "object") {
+    switch (childSchema) {
       case "Never" :
           jsonSchema.not = {};
+          break;
+      case "Unknown" :
           break;
       case "String" :
           jsonSchema.type = "string";
@@ -165,54 +167,46 @@ function fromRescriptSchema(schema) {
       case "Bool" :
           jsonSchema.type = "boolean";
           break;
-      case "Unknown" :
-      case "JSON" :
-          break;
       
     }
   } else {
-    switch (childStruct.TAG) {
+    switch (childSchema.TAG) {
       case "Literal" :
-          var value = childStruct._0;
-          if (typeof value !== "object") {
-            if (value === "Null") {
-              jsonSchema.type = "null";
-            } else {
+          var match = childSchema._0;
+          switch (match.kind) {
+            case "String" :
+                jsonSchema.type = "string";
+                jsonSchema.const = match.value;
+                break;
+            case "Number" :
+                var value = match.value;
+                var isInt = value % 1 === 0;
+                jsonSchema.type = Caml_option.some(isInt ? "integer" : "number");
+                jsonSchema.const = value;
+                break;
+            case "Boolean" :
+                jsonSchema.type = "boolean";
+                jsonSchema.const = match.value;
+                break;
+            case "Null" :
+                jsonSchema.type = "null";
+                break;
+            default:
               raise$2(schema);
-            }
-          } else {
-            switch (value.TAG) {
-              case "String" :
-                  jsonSchema.type = "string";
-                  jsonSchema.const = value._0;
-                  break;
-              case "Number" :
-                  var value$1 = value._0;
-                  var isInt = value$1 % 1 === 0;
-                  jsonSchema.type = Caml_option.some(isInt ? "integer" : "number");
-                  jsonSchema.const = value$1;
-                  break;
-              case "Boolean" :
-                  jsonSchema.type = "boolean";
-                  jsonSchema.const = value._0;
-                  break;
-              default:
-                raise$2(schema);
-            }
           }
           break;
       case "Option" :
-          var childStruct$1 = childStruct._0;
-          if (isOptionalSchema(childStruct$1)) {
+          var childSchema$1 = childSchema._0;
+          if (isOptionalSchema(childSchema$1)) {
             raise("UnsupportedNestedOptional");
           }
-          var childSchema = fromRescriptSchema(childStruct$1);
-          Object.assign(jsonSchema, childSchema);
+          var childJsonSchema = fromRescriptSchema(childSchema$1);
+          Object.assign(jsonSchema, childJsonSchema);
           var $$default = S$RescriptSchema.$$Option.$$default(schema);
           if ($$default !== undefined) {
             var defaultValue;
             defaultValue = $$default.TAG === "Value" ? $$default._0 : $$default._0();
-            var destructingError = S$RescriptSchema.serializeWith(Caml_option.some(defaultValue), childStruct$1);
+            var destructingError = S$RescriptSchema.serializeWith(Caml_option.some(defaultValue), childSchema$1);
             if (destructingError.TAG === "Ok") {
               jsonSchema.default = destructingError._0;
             } else {
@@ -225,18 +219,18 @@ function fromRescriptSchema(schema) {
           break;
       case "Null" :
           jsonSchema.anyOf = [
-            fromRescriptSchema(childStruct._0),
+            fromRescriptSchema(childSchema._0),
             {
               type: "null"
             }
           ];
           break;
       case "Array" :
-          var childStruct$2 = childStruct._0;
-          if (isOptionalSchema(childStruct$2)) {
+          var childSchema$2 = childSchema._0;
+          if (isOptionalSchema(childSchema$2)) {
             raise$1(schema);
           }
-          jsonSchema.items = Caml_option.some(fromRescriptSchema(childStruct$2));
+          jsonSchema.items = Caml_option.some(fromRescriptSchema(childSchema$2));
           jsonSchema.type = "array";
           S$RescriptSchema.$$Array.refinements(schema).forEach(function (refinement) {
                 var match = refinement.kind;
@@ -257,33 +251,31 @@ function fromRescriptSchema(schema) {
               });
           break;
       case "Object" :
-          var fields = childStruct.fields;
           var properties = {};
           var required = [];
-          childStruct.fieldNames.forEach(function (fieldName) {
-                var fieldStruct = fields[fieldName];
+          childSchema.items.forEach(function (item) {
                 var fieldSchema;
                 try {
-                  fieldSchema = fromRescriptSchema(fieldStruct);
+                  fieldSchema = fromRescriptSchema(item.t);
                 }
                 catch (raw_error){
                   var error = Caml_js_exceptions.internalToOCamlException(raw_error);
                   if (error.RE_EXN_ID === Exception) {
                     throw {
                           RE_EXN_ID: Exception,
-                          _1: prependLocation(error._1, fieldName),
+                          _1: prependLocation(error._1, item.l),
                           Error: new Error()
                         };
                   }
                   throw error;
                 }
-                if (!isOptionalSchema(fieldStruct)) {
-                  required.push(fieldName);
+                if (!isOptionalSchema(item.t)) {
+                  required.push(item.l);
                 }
-                properties[fieldName] = fieldSchema;
+                properties[item.l] = fieldSchema;
               });
           var additionalProperties;
-          additionalProperties = childStruct.unknownKeys === "Strip" ? true : false;
+          additionalProperties = childSchema.unknownKeys === "Strip" ? true : false;
           jsonSchema.type = "object";
           jsonSchema.properties = properties;
           jsonSchema.additionalProperties = Caml_option.some(additionalProperties);
@@ -292,12 +284,12 @@ function fromRescriptSchema(schema) {
           }
           break;
       case "Tuple" :
-          var items = childStruct._0.map(function (childStruct, idx) {
+          var items = childSchema.items.map(function (item, idx) {
                 try {
-                  if (isOptionalSchema(childStruct)) {
+                  if (isOptionalSchema(item.t)) {
                     return raise$1(schema);
                   } else {
-                    return fromRescriptSchema(childStruct);
+                    return fromRescriptSchema(item.t);
                   }
                 }
                 catch (raw_error){
@@ -319,22 +311,24 @@ function fromRescriptSchema(schema) {
           jsonSchema.maxItems = itemsNumber;
           break;
       case "Union" :
-          var items$1 = childStruct._0.map(function (childStruct) {
-                if (isOptionalSchema(childStruct)) {
+          var items$1 = childSchema._0.map(function (childSchema) {
+                if (isOptionalSchema(childSchema)) {
                   return raise$1(schema);
                 } else {
-                  return fromRescriptSchema(childStruct);
+                  return fromRescriptSchema(childSchema);
                 }
               });
           jsonSchema.anyOf = items$1;
           break;
       case "Dict" :
-          var childStruct$3 = childStruct._0;
-          if (isOptionalSchema(childStruct$3)) {
+          var childSchema$3 = childSchema._0;
+          if (isOptionalSchema(childSchema$3)) {
             raise$1(schema);
           }
           jsonSchema.type = "object";
-          jsonSchema.additionalProperties = Caml_option.some(fromRescriptSchema(childStruct$3));
+          jsonSchema.additionalProperties = Caml_option.some(fromRescriptSchema(childSchema$3));
+          break;
+      case "JSON" :
           break;
       
     }
@@ -394,18 +388,18 @@ function toIntSchema(jsonSchema) {
   var minimum = jsonSchema.minimum;
   var schema;
   if (minimum !== undefined) {
-    schema = S$RescriptSchema.Int.min(S$RescriptSchema.$$int, minimum | 0, undefined);
+    schema = S$RescriptSchema.intMin(S$RescriptSchema.$$int, minimum | 0, undefined);
   } else {
     var exclusiveMinimum = jsonSchema.exclusiveMinimum;
-    schema = exclusiveMinimum !== undefined ? S$RescriptSchema.Int.min(S$RescriptSchema.$$int, exclusiveMinimum + 1 | 0, undefined) : S$RescriptSchema.$$int;
+    schema = exclusiveMinimum !== undefined ? S$RescriptSchema.intMin(S$RescriptSchema.$$int, exclusiveMinimum + 1 | 0, undefined) : S$RescriptSchema.$$int;
   }
   var maximum = jsonSchema.maximum;
   if (maximum !== undefined) {
-    return S$RescriptSchema.Int.max(schema, maximum | 0, undefined);
+    return S$RescriptSchema.intMax(schema, maximum | 0, undefined);
   }
   var exclusiveMinimum$1 = jsonSchema.exclusiveMinimum;
   if (exclusiveMinimum$1 !== undefined) {
-    return S$RescriptSchema.Int.max(schema, exclusiveMinimum$1 - 1 | 0, undefined);
+    return S$RescriptSchema.intMax(schema, exclusiveMinimum$1 - 1 | 0, undefined);
   } else {
     return schema;
   }
@@ -420,12 +414,13 @@ function definitionToDefaultValue(definition) {
 }
 
 function toRescriptSchema(jsonSchema) {
+  var anySchema = S$RescriptSchema.json(false);
   var definitionToSchema = function (definition) {
     var s = JSONSchema7.Definition.classify(definition);
     if (s.TAG === "Schema") {
       return toRescriptSchema(s._0);
     } else {
-      return S$RescriptSchema.json;
+      return anySchema;
     }
   };
   var type_ = jsonSchema.type;
@@ -445,22 +440,22 @@ function toRescriptSchema(jsonSchema) {
               return Js_dict.fromArray(Js_dict.entries(properties).map(function (param) {
                               var property = param[1];
                               var key = param[0];
-                              var propertyStruct = definitionToSchema(property);
+                              var propertySchema = definitionToSchema(property);
                               var r = jsonSchema.required;
-                              var propertyStruct$1;
+                              var propertySchema$1;
                               var exit = 0;
                               if (r !== undefined && r.includes(key)) {
-                                propertyStruct$1 = propertyStruct;
+                                propertySchema$1 = propertySchema;
                               } else {
                                 exit = 1;
                               }
                               if (exit === 1) {
                                 var defaultValue = definitionToDefaultValue(property);
-                                propertyStruct$1 = defaultValue !== undefined ? S$RescriptSchema.$$Option.getOr(S$RescriptSchema.option(propertyStruct), defaultValue) : S$RescriptSchema.option(propertyStruct);
+                                propertySchema$1 = defaultValue !== undefined ? S$RescriptSchema.$$Option.getOr(S$RescriptSchema.option(propertySchema), defaultValue) : S$RescriptSchema.option(propertySchema);
                               }
                               return [
                                       key,
-                                      s.f(key, propertyStruct$1)
+                                      s.f(key, propertySchema$1)
                                     ];
                             }));
             });
@@ -471,7 +466,7 @@ function toRescriptSchema(jsonSchema) {
         if (additionalProperties$1 !== undefined) {
           var s = JSONSchema7.Definition.classify(Caml_option.valFromOption(additionalProperties$1));
           schema = s.TAG === "Schema" ? S$RescriptSchema.dict(toRescriptSchema(s._0)) : (
-              s._0 ? S$RescriptSchema.dict(S$RescriptSchema.json) : S$RescriptSchema.$$Object.strict(S$RescriptSchema.object(function (param) {
+              s._0 ? S$RescriptSchema.dict(anySchema) : S$RescriptSchema.$$Object.strict(S$RescriptSchema.object(function (param) {
                           
                         }))
             );
@@ -492,17 +487,17 @@ function toRescriptSchema(jsonSchema) {
           var array = single._0;
           schema$2 = S$RescriptSchema.tuple(function (s) {
                 return array.map(function (d, idx) {
-                            return s.i(idx, definitionToSchema(d));
+                            return s.item(idx, definitionToSchema(d));
                           });
               });
         }
       } else {
-        schema$2 = S$RescriptSchema.array(S$RescriptSchema.json);
+        schema$2 = S$RescriptSchema.array(anySchema);
       }
       var min = jsonSchema.minItems;
-      var schema$3 = min !== undefined ? S$RescriptSchema.$$Array.min(schema$2, min, undefined) : schema$2;
+      var schema$3 = min !== undefined ? S$RescriptSchema.arrayMinLength(schema$2, min, undefined) : schema$2;
       var max = jsonSchema.maxItems;
-      schema = max !== undefined ? S$RescriptSchema.$$Array.max(schema$3, max, undefined) : schema$3;
+      schema = max !== undefined ? S$RescriptSchema.arrayMaxLength(schema$3, max, undefined) : schema$3;
     } else {
       exit$1 = 2;
     }
@@ -516,7 +511,7 @@ function toRescriptSchema(jsonSchema) {
     if (definitions$1 !== undefined) {
       var len = definitions$1.length;
       if (len !== 1) {
-        schema = len !== 0 ? S$RescriptSchema.union(definitions$1.map(definitionToSchema)) : S$RescriptSchema.json;
+        schema = len !== 0 ? S$RescriptSchema.union(definitions$1.map(definitionToSchema)) : anySchema;
       } else {
         var d = definitions$1[0];
         schema = definitionToSchema(d);
@@ -524,7 +519,7 @@ function toRescriptSchema(jsonSchema) {
     } else if (definitions !== undefined) {
       var len$1 = definitions.length;
       if (len$1 !== 1) {
-        schema = len$1 !== 0 ? S$RescriptSchema.refine(S$RescriptSchema.json, (function (s) {
+        schema = len$1 !== 0 ? S$RescriptSchema.refine(anySchema, (function (s) {
                   return function (data) {
                     definitions.forEach(function (d) {
                           var match = S$RescriptSchema.parseWith(data, definitionToSchema(d));
@@ -535,7 +530,7 @@ function toRescriptSchema(jsonSchema) {
                           }
                         });
                   };
-                })) : S$RescriptSchema.json;
+                })) : anySchema;
       } else {
         var d$1 = definitions[0];
         schema = definitionToSchema(d$1);
@@ -545,7 +540,7 @@ function toRescriptSchema(jsonSchema) {
       if (definitions$2 !== undefined) {
         var len$2 = definitions$2.length;
         if (len$2 !== 1) {
-          schema = len$2 !== 0 ? S$RescriptSchema.refine(S$RescriptSchema.json, (function (s) {
+          schema = len$2 !== 0 ? S$RescriptSchema.refine(anySchema, (function (s) {
                     return function (data) {
                       var hasOneValidRef = {
                         contents: false
@@ -567,7 +562,7 @@ function toRescriptSchema(jsonSchema) {
                       }
                       
                     };
-                  })) : S$RescriptSchema.json;
+                  })) : anySchema;
         } else {
           var d$2 = definitions$2[0];
           schema = definitionToSchema(d$2);
@@ -576,7 +571,7 @@ function toRescriptSchema(jsonSchema) {
         var not = jsonSchema.not;
         if (not !== undefined) {
           var not$1 = Caml_option.valFromOption(not);
-          schema = S$RescriptSchema.refine(S$RescriptSchema.json, (function (s) {
+          schema = S$RescriptSchema.refine(anySchema, (function (s) {
                   return function (data) {
                     var match = S$RescriptSchema.parseWith(data, definitionToSchema(not$1));
                     if (match.TAG === "Ok") {
@@ -588,7 +583,7 @@ function toRescriptSchema(jsonSchema) {
         } else if (primitives !== undefined) {
           var len$3 = primitives.length;
           if (len$3 !== 1) {
-            schema = len$3 !== 0 ? S$RescriptSchema.union(primitives.map(primitiveToSchema)) : S$RescriptSchema.json;
+            schema = len$3 !== 0 ? S$RescriptSchema.union(primitives.map(primitiveToSchema)) : anySchema;
           } else {
             var p = primitives[0];
             schema = S$RescriptSchema.literal(p);
@@ -611,25 +606,25 @@ function toRescriptSchema(jsonSchema) {
                       }));
             } else if (type_$2 === "string") {
               var pattern = jsonSchema.pattern;
-              var schema$4 = pattern !== undefined ? S$RescriptSchema.$$String.pattern(S$RescriptSchema.string, new RegExp(pattern), undefined) : S$RescriptSchema.string;
+              var schema$4 = pattern !== undefined ? S$RescriptSchema.pattern(S$RescriptSchema.string, new RegExp(pattern), undefined) : S$RescriptSchema.string;
               var minLength = jsonSchema.minLength;
-              var schema$5 = minLength !== undefined ? S$RescriptSchema.$$String.min(schema$4, minLength, undefined) : schema$4;
+              var schema$5 = minLength !== undefined ? S$RescriptSchema.stringMinLength(schema$4, minLength, undefined) : schema$4;
               var maxLength = jsonSchema.maxLength;
-              var schema$6 = maxLength !== undefined ? S$RescriptSchema.$$String.max(schema$5, maxLength, undefined) : schema$5;
+              var schema$6 = maxLength !== undefined ? S$RescriptSchema.stringMaxLength(schema$5, maxLength, undefined) : schema$5;
               var match$2 = jsonSchema.format;
               if (match$2 !== undefined) {
                 switch (match$2) {
                   case "date-time" :
-                      schema = S$RescriptSchema.$$String.datetime(schema$6, undefined);
+                      schema = S$RescriptSchema.datetime(schema$6, undefined);
                       break;
                   case "email" :
-                      schema = S$RescriptSchema.$$String.email(schema$6, undefined);
+                      schema = S$RescriptSchema.email(schema$6, undefined);
                       break;
                   case "uri" :
-                      schema = S$RescriptSchema.$$String.url(schema$6, undefined);
+                      schema = S$RescriptSchema.url(schema$6, undefined);
                       break;
                   case "uuid" :
-                      schema = S$RescriptSchema.$$String.uuid(schema$6, undefined);
+                      schema = S$RescriptSchema.uuid(schema$6, undefined);
                       break;
                   default:
                     schema = schema$6;
@@ -654,17 +649,17 @@ function toRescriptSchema(jsonSchema) {
                 var minimum = jsonSchema.minimum;
                 var schema$7;
                 if (minimum !== undefined) {
-                  schema$7 = S$RescriptSchema.Float.min(S$RescriptSchema.$$float, minimum, undefined);
+                  schema$7 = S$RescriptSchema.floatMin(S$RescriptSchema.$$float, minimum, undefined);
                 } else {
                   var exclusiveMinimum = jsonSchema.exclusiveMinimum;
-                  schema$7 = exclusiveMinimum !== undefined ? S$RescriptSchema.Float.min(S$RescriptSchema.$$float, exclusiveMinimum + 1, undefined) : S$RescriptSchema.$$float;
+                  schema$7 = exclusiveMinimum !== undefined ? S$RescriptSchema.floatMin(S$RescriptSchema.$$float, exclusiveMinimum + 1, undefined) : S$RescriptSchema.$$float;
                 }
                 var maximum = jsonSchema.maximum;
                 if (maximum !== undefined) {
-                  schema = S$RescriptSchema.Float.max(schema$7, maximum, undefined);
+                  schema = S$RescriptSchema.floatMax(schema$7, maximum, undefined);
                 } else {
                   var exclusiveMinimum$1 = jsonSchema.exclusiveMinimum;
-                  schema = exclusiveMinimum$1 !== undefined ? S$RescriptSchema.Float.max(schema$7, exclusiveMinimum$1 - 1, undefined) : schema$7;
+                  schema = exclusiveMinimum$1 !== undefined ? S$RescriptSchema.floatMax(schema$7, exclusiveMinimum$1 - 1, undefined) : schema$7;
                 }
               } else if (type_$2 === "boolean") {
                 schema = S$RescriptSchema.bool;
@@ -689,29 +684,29 @@ function toRescriptSchema(jsonSchema) {
       if (then !== undefined) {
         var else_ = jsonSchema.else;
         if (else_ !== undefined) {
-          var ifStruct = definitionToSchema(Caml_option.valFromOption(if_));
-          var thenStruct = definitionToSchema(Caml_option.valFromOption(then));
-          var elseStruct = definitionToSchema(Caml_option.valFromOption(else_));
-          schema = S$RescriptSchema.refine(S$RescriptSchema.json, (function (s) {
+          var ifSchema = definitionToSchema(Caml_option.valFromOption(if_));
+          var thenSchema = definitionToSchema(Caml_option.valFromOption(then));
+          var elseSchema = definitionToSchema(Caml_option.valFromOption(else_));
+          schema = S$RescriptSchema.refine(anySchema, (function (param) {
                   return function (data) {
-                    var match = S$RescriptSchema.parseWith(data, ifStruct);
+                    var match = S$RescriptSchema.parseWith(data, ifSchema);
                     var result;
-                    result = match.TAG === "Ok" ? S$RescriptSchema.parseWith(data, thenStruct) : S$RescriptSchema.parseWith(data, elseStruct);
+                    result = match.TAG === "Ok" ? S$RescriptSchema.parseWith(data, thenSchema) : S$RescriptSchema.parseWith(data, elseSchema);
                     if (result.TAG === "Ok") {
                       return ;
                     } else {
-                      return s.failWithError(result._0);
+                      return S$RescriptSchema.$$Error.raise(result._0);
                     }
                   };
                 }));
         } else {
-          schema = S$RescriptSchema.json;
+          schema = anySchema;
         }
       } else {
-        schema = S$RescriptSchema.json;
+        schema = anySchema;
       }
     } else {
-      schema = S$RescriptSchema.json;
+      schema = anySchema;
     }
   }
   var description = jsonSchema.description;

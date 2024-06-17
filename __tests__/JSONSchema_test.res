@@ -19,7 +19,7 @@ test("Schema of string schema", t => {
 })
 
 test("Schema of string schema with Email refinement", t => {
-  let schema = S.string->S.String.email
+  let schema = S.string->S.email
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -34,7 +34,7 @@ test("Schema of string schema with Email refinement", t => {
 })
 
 test("Schema of string schema with Url refinement", t => {
-  let schema = S.string->S.String.url
+  let schema = S.string->S.url
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -49,7 +49,7 @@ test("Schema of string schema with Url refinement", t => {
 })
 
 test("Schema of string schema with Datetime refinement", t => {
-  let schema = S.string->S.String.datetime
+  let schema = S.string->S.datetime
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -64,7 +64,7 @@ test("Schema of string schema with Datetime refinement", t => {
 })
 
 test("Schema of string schema uses the last refinement for format", t => {
-  let schema = S.string->S.String.email->S.String.datetime
+  let schema = S.string->S.email->S.datetime
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -79,7 +79,7 @@ test("Schema of string schema uses the last refinement for format", t => {
 })
 
 test("Schema of string schema with Cuid refinement", t => {
-  let schema = S.string->S.String.cuid
+  let schema = S.string->S.cuid
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -93,7 +93,7 @@ test("Schema of string schema with Cuid refinement", t => {
 })
 
 test("Schema of string schema with Uuid refinement", t => {
-  let schema = S.string->S.String.uuid
+  let schema = S.string->S.uuid
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -108,7 +108,7 @@ test("Schema of string schema with Uuid refinement", t => {
 })
 
 test("Schema of string schema with Pattern refinement", t => {
-  let schema = S.string->S.String.pattern(%re("/abc/g"))
+  let schema = S.string->S.pattern(%re("/abc/g"))
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -123,7 +123,7 @@ test("Schema of string schema with Pattern refinement", t => {
 })
 
 test("Schema of string schema with Min refinement", t => {
-  let schema = S.string->S.String.min(1)
+  let schema = S.string->S.stringMinLength(1)
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -138,7 +138,7 @@ test("Schema of string schema with Min refinement", t => {
 })
 
 test("Schema of string schema with Max refinement", t => {
-  let schema = S.string->S.String.max(1)
+  let schema = S.string->S.stringMaxLength(1)
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -153,7 +153,7 @@ test("Schema of string schema with Max refinement", t => {
 })
 
 test("Schema of string schema with Length refinement", t => {
-  let schema = S.string->S.String.length(1)
+  let schema = S.string->S.stringLength(1)
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -169,7 +169,7 @@ test("Schema of string schema with Length refinement", t => {
 })
 
 test("Schema of string schema with both Min and Max refinements", t => {
-  let schema = S.string->S.String.min(1)->S.String.max(4)
+  let schema = S.string->S.stringMinLength(1)->S.stringMaxLength(4)
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -194,7 +194,7 @@ test("Schema of int schema", t => {
 })
 
 test("Schema of int schema with Min refinement", t => {
-  let schema = S.int->S.Int.min(1)
+  let schema = S.int->S.intMin(1)
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -209,7 +209,7 @@ test("Schema of int schema with Min refinement", t => {
 })
 
 test("Schema of int schema with Max refinement", t => {
-  let schema = S.int->S.Int.max(1)
+  let schema = S.int->S.intMax(1)
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -224,7 +224,7 @@ test("Schema of int schema with Max refinement", t => {
 })
 
 test("Schema of int schema with Port refinement", t => {
-  let schema = S.int->S.Int.port
+  let schema = S.int->S.port
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -247,7 +247,7 @@ test("Schema of float schema", t => {
 })
 
 test("Schema of float schema with Min refinement", t => {
-  let schema = S.float->S.Float.min(1.)
+  let schema = S.float->S.floatMin(1.)
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -262,7 +262,7 @@ test("Schema of float schema with Min refinement", t => {
 })
 
 test("Schema of float schema with Max refinement", t => {
-  let schema = S.float->S.Float.max(1.)
+  let schema = S.float->S.floatMax(1.)
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -452,7 +452,7 @@ test("Schema of strings array schema", t => {
 })
 
 test("Schema of array schema with Min refinement", t => {
-  let schema = S.array(S.string)->S.Array.min(1)
+  let schema = S.array(S.string)->S.arrayMinLength(1)
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -468,7 +468,7 @@ test("Schema of array schema with Min refinement", t => {
 })
 
 test("Schema of array schema with Max refinement", t => {
-  let schema = S.array(S.string)->S.Array.max(1)
+  let schema = S.array(S.string)->S.arrayMaxLength(1)
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -484,7 +484,7 @@ test("Schema of array schema with Max refinement", t => {
 })
 
 test("Schema of array schema with Length refinement", t => {
-  let schema = S.array(S.string)->S.Array.length(1)
+  let schema = S.array(S.string)->S.arrayLength(1)
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -862,7 +862,7 @@ test("Unknown schema doesn't affect final schema", t => {
 })
 
 test("JSON schema doesn't affect final schema", t => {
-  let schema = S.json
+  let schema = S.json(~validate=false)
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),

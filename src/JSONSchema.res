@@ -8,7 +8,7 @@ module Error = {
     | UnsupportedNestedOptional
     | UnsupportedRootOptional
     | UnsupportedOptionalItem(string)
-    | UnsupportedStruct(string)
+    | UnsupportedSchema(string)
     | DefaultDestructingFailed({destructingErrorMessage: string})
 
   exception Exception(t)
@@ -23,9 +23,9 @@ module Error = {
     }
   }
 
-  module UnsupportedStruct = {
+  module UnsupportedSchema = {
     let raise = schema => {
-      raise(UnsupportedStruct(schema->S.name))
+      raise(UnsupportedSchema(schema->S.name))
     }
   }
 
@@ -48,7 +48,7 @@ module Error = {
     | UnsupportedNestedOptional => `Optional schema is not supported inside the Option schema`
     | UnsupportedOptionalItem(schemaName) =>
       `Optional schema is not supported as ${schemaName} item`
-    | UnsupportedStruct(schemaName) => `The ${schemaName} schema is not supported`
+    | UnsupportedSchema(schemaName) => `The ${schemaName} schema is not supported`
     | DefaultDestructingFailed({destructingErrorMessage}) =>
       `Couldn't destruct default value. Error: ${destructingErrorMessage}`
     }
@@ -121,12 +121,12 @@ let rec fromRescriptSchema:
           }
         })
       }
-    | S.Array(childStruct) => {
-        if childStruct->isOptionalSchema {
+    | S.Array(childSchema) => {
+        if childSchema->isOptionalSchema {
           Error.UnsupportedOptionalItem.raise(schema)
         }
         jsonSchema.items = Some(
-          Arrayable.single(Definition.schema(fromRescriptSchema(childStruct))),
+          Arrayable.single(Definition.schema(fromRescriptSchema(childSchema))),
         )
         jsonSchema.type_ = Some(Arrayable.single(#array))
         schema
@@ -143,13 +143,13 @@ let rec fromRescriptSchema:
         })
       }
 
-    | S.Tuple(childStructs) => {
-        let items = childStructs->Js.Array2.mapi((childStruct, idx) => {
+    | S.Tuple({items}) => {
+        let items = items->Js.Array2.mapi((item, idx) => {
           try {
-            if childStruct->isOptionalSchema {
+            if item.schema->isOptionalSchema {
               Error.UnsupportedOptionalItem.raise(schema)
             } else {
-              Definition.schema(fromRescriptSchema(childStruct))
+              Definition.schema(fromRescriptSchema(item.schema))
             }
           } catch {
           | Error.Exception(error) =>
@@ -164,24 +164,24 @@ let rec fromRescriptSchema:
         jsonSchema.maxItems = Some(itemsNumber)
       }
 
-    | S.Union(childStructs) => {
-        let items = childStructs->Js.Array2.map(childStruct => {
-          if childStruct->isOptionalSchema {
+    | S.Union(childSchemas) => {
+        let items = childSchemas->Js.Array2.map(childSchema => {
+          if childSchema->isOptionalSchema {
             Error.UnsupportedOptionalItem.raise(schema)
           } else {
-            Definition.schema(fromRescriptSchema(childStruct))
+            Definition.schema(fromRescriptSchema(childSchema))
           }
         })
         jsonSchema.anyOf = Some(items)
       }
 
-    | S.Option(childStruct) => {
-        if childStruct->isOptionalSchema {
+    | S.Option(childSchema) => {
+        if childSchema->isOptionalSchema {
           Error.raise(UnsupportedNestedOptional)
         }
 
-        let childSchema = fromRescriptSchema(childStruct)
-        jsonSchema->Mutable.mixin(childSchema)
+        let childJsonSchema = fromRescriptSchema(childSchema)
+        jsonSchema->Mutable.mixin(childJsonSchema)
 
         switch schema->S.Option.default {
         | Some(default) =>
@@ -191,7 +191,7 @@ let rec fromRescriptSchema:
           }
           switch Some(defaultValue)
           ->(magic: option<unknown> => unknown)
-          ->S.serializeWith(childStruct) {
+          ->S.serializeWith(childSchema) {
           | Error(destructingError) =>
             Error.raise(
               DefaultDestructingFailed({
@@ -203,21 +203,20 @@ let rec fromRescriptSchema:
         | None => ()
         }
       }
-    | S.Object({fields, fieldNames, unknownKeys}) => {
+    | S.Object({items, unknownKeys}) => {
         let properties = Js.Dict.empty()
         let required = []
-        fieldNames->Js.Array2.forEach(fieldName => {
-          let fieldStruct = fields->Js.Dict.unsafeGet(fieldName)
+        items->Js.Array2.forEach(item => {
           let fieldSchema = try {
-            fromRescriptSchema(fieldStruct)
+            fromRescriptSchema(item.schema)
           } catch {
           | Error.Exception(error) =>
-            raise(Error.Exception(error->Error.prependLocation(fieldName)))
+            raise(Error.Exception(error->Error.prependLocation(item.location)))
           }
-          if fieldStruct->isOptionalSchema->not {
-            required->Js.Array2.push(fieldName)->ignore
+          if item.schema->isOptionalSchema->not {
+            required->Js.Array2.push(item.location)->ignore
           }
-          properties->Js.Dict.set(fieldName, Definition.schema(fieldSchema))
+          properties->Js.Dict.set(item.location, Definition.schema(fieldSchema))
         })
         let additionalProperties = switch unknownKeys {
         | Strict => false
@@ -232,47 +231,47 @@ let rec fromRescriptSchema:
         | required => jsonSchema.required = Some(required)
         }
       }
-    | S.JSON
+    | S.JSON(_)
     | S.Unknown => ()
-    | S.Null(childStruct) =>
+    | S.Null(childSchema) =>
       jsonSchema.anyOf = Some([
-        Definition.schema(fromRescriptSchema(childStruct)),
+        Definition.schema(fromRescriptSchema(childSchema)),
         Definition.schema({
           type_: Arrayable.single(#null),
         }),
       ])
 
     | S.Never => jsonSchema.not = Some(Definition.schema({}))
-    | S.Literal(Boolean(value)) => {
+    | S.Literal(Boolean({value})) => {
         jsonSchema.type_ = Some(Arrayable.single(#boolean))
         jsonSchema.const = Some(Js.Json.boolean(value))
       }
-    | S.Literal(Number(value)) => {
+    | S.Literal(Number({value})) => {
         let isInt = mod_float(value, 1.) === 0.
         jsonSchema.type_ = Some(Arrayable.single(isInt ? #integer : #number))
         jsonSchema.const = Some(Js.Json.number(value))
       }
-    | S.Literal(String(value)) => {
+    | S.Literal(String({value})) => {
         jsonSchema.type_ = Some(Arrayable.single(#string))
         jsonSchema.const = Some(Js.Json.string(value))
       }
-    | S.Literal(Null) => jsonSchema.type_ = Some(Arrayable.single(#null))
-    | S.Literal(Undefined)
+    | S.Literal(Null(_)) => jsonSchema.type_ = Some(Arrayable.single(#null))
+    | S.Literal(Undefined(_))
     | S.Literal(BigInt(_))
     | S.Literal(Function(_))
     | S.Literal(Array(_))
     | S.Literal(Dict(_))
     | S.Literal(Symbol(_))
     | S.Literal(Object(_))
-    | S.Literal(NaN) =>
-      Error.UnsupportedStruct.raise(schema)
-    | S.Dict(childStruct) =>
-      if childStruct->isOptionalSchema {
+    | S.Literal(NaN(_)) =>
+      Error.UnsupportedSchema.raise(schema)
+    | S.Dict(childSchema) =>
+      if childSchema->isOptionalSchema {
         Error.UnsupportedOptionalItem.raise(schema)
       }
 
       jsonSchema.type_ = Some(Arrayable.single(#object))
-      jsonSchema.additionalProperties = Some(Definition.schema(fromRescriptSchema(childStruct)))
+      jsonSchema.additionalProperties = Some(Definition.schema(fromRescriptSchema(childSchema)))
     }
 
     switch schema->S.description {
@@ -332,13 +331,13 @@ let toIntSchema = (jsonSchema: t) => {
   //  r += `.multipleOf(${jsonSchema.multipleOf})`;
   // }
   let schema = switch jsonSchema {
-  | {minimum} => schema->S.Int.min(minimum->Belt.Float.toInt)
-  | {exclusiveMinimum} => schema->S.Int.min((exclusiveMinimum +. 1.)->Belt.Float.toInt)
+  | {minimum} => schema->S.intMin(minimum->Belt.Float.toInt)
+  | {exclusiveMinimum} => schema->S.intMin((exclusiveMinimum +. 1.)->Belt.Float.toInt)
   | _ => schema
   }
   let schema = switch jsonSchema {
-  | {maximum} => schema->S.Int.max(maximum->Belt.Float.toInt)
-  | {exclusiveMinimum} => schema->S.Int.max((exclusiveMinimum -. 1.)->Belt.Float.toInt)
+  | {maximum} => schema->S.intMax(maximum->Belt.Float.toInt)
+  | {exclusiveMinimum} => schema->S.intMax((exclusiveMinimum -. 1.)->Belt.Float.toInt)
   | _ => schema
   }
   schema->castAnySchemaToJsonableS
@@ -351,10 +350,12 @@ let definitionToDefaultValue = definition =>
   }
 
 let rec toRescriptSchema = (jsonSchema: t) => {
+  let anySchema = S.json(~validate=false)
+
   let definitionToSchema = definition =>
     switch definition->Definition.classify {
     | Schema(s) => s->toRescriptSchema
-    | Boolean(_) => S.json
+    | Boolean(_) => anySchema
     }
 
   let schema = switch jsonSchema {
@@ -369,17 +370,17 @@ let rec toRescriptSchema = (jsonSchema: t) => {
         properties
         ->Js.Dict.entries
         ->Js.Array2.map(((key, property)) => {
-          let propertyStruct = property->definitionToSchema
-          let propertyStruct = switch jsonSchema.required {
-          | Some(r) if r->Js.Array2.includes(key) => propertyStruct
+          let propertySchema = property->definitionToSchema
+          let propertySchema = switch jsonSchema.required {
+          | Some(r) if r->Js.Array2.includes(key) => propertySchema
           | _ =>
             switch property->definitionToDefaultValue {
             | Some(defaultValue) =>
-              propertyStruct->S.option->S.Option.getOr(defaultValue)->castAnySchemaToJsonableS
-            | None => propertyStruct->S.option->castAnySchemaToJsonableS
+              propertySchema->S.option->S.Option.getOr(defaultValue)->castAnySchemaToJsonableS
+            | None => propertySchema->S.option->castAnySchemaToJsonableS
             }
           }
-          (key, s.field(key, propertyStruct))
+          (key, s.field(key, propertySchema))
         })
         ->Js.Dict.fromArray
       )
@@ -393,7 +394,7 @@ let rec toRescriptSchema = (jsonSchema: t) => {
       switch jsonSchema.additionalProperties {
       | Some(additionalProperties) =>
         switch additionalProperties->Definition.classify {
-        | Boolean(true) => S.dict(S.json)->castAnySchemaToJsonableS
+        | Boolean(true) => S.dict(anySchema)->castAnySchemaToJsonableS
         | Boolean(false) => S.object(_ => ())->S.Object.strict->castAnySchemaToJsonableS
         | Schema(s) => S.dict(s->toRescriptSchema)->castAnySchemaToJsonableS
         }
@@ -411,25 +412,25 @@ let rec toRescriptSchema = (jsonSchema: t) => {
         | Array(array) =>
           S.tuple(s => array->Js.Array2.mapi((d, idx) => s.item(idx, d->definitionToSchema)))
         }
-      | None => S.array(S.json)
+      | None => S.array(anySchema)
       }
       let schema = switch jsonSchema.minItems {
-      | Some(min) => schema->S.Array.min(min)
+      | Some(min) => schema->S.arrayMinLength(min)
       | _ => schema
       }
       let schema = switch jsonSchema.maxItems {
-      | Some(max) => schema->S.Array.max(max)
+      | Some(max) => schema->S.arrayMaxLength(max)
       | _ => schema
       }
       schema->castAnySchemaToJsonableS
     }
-  | {anyOf: []} => S.json
+  | {anyOf: []} => anySchema
   | {anyOf: [d]} => d->definitionToSchema
   | {anyOf: definitions} => S.union(definitions->Js.Array2.map(definitionToSchema))
-  | {allOf: []} => S.json
+  | {allOf: []} => anySchema
   | {allOf: [d]} => d->definitionToSchema
   | {allOf: definitions} =>
-    S.json->S.refine(s => data => {
+    anySchema->S.refine(s => data => {
       definitions->Js.Array2.forEach(d => {
         switch data->S.parseWith(d->definitionToSchema) {
         | Ok(_) => ()
@@ -437,10 +438,10 @@ let rec toRescriptSchema = (jsonSchema: t) => {
         }
       })
     })
-  | {oneOf: []} => S.json
+  | {oneOf: []} => anySchema
   | {oneOf: [d]} => d->definitionToSchema
   | {oneOf: definitions} =>
-    S.json->S.refine(s => data => {
+    anySchema->S.refine(s => data => {
       let hasOneValidRef = ref(false)
       definitions->Js.Array2.forEach(d => {
         switch data->S.parseWith(d->definitionToSchema) {
@@ -455,13 +456,13 @@ let rec toRescriptSchema = (jsonSchema: t) => {
       }
     })
   | {not} =>
-    S.json->S.refine(s => data =>
+    anySchema->S.refine(s => data =>
       switch data->S.parseWith(not->definitionToSchema) {
       | Ok(_) => s.fail("Should NOT be valid against schema in the not property.")
       | Error(_) => ()
       })
   // needs to come before primitives
-  | {enum: []} => S.json
+  | {enum: []} => anySchema
   | {enum: [p]} => p->primitiveToSchema
   | {enum: primitives} =>
     S.union(primitives->Js.Array2.map(primitiveToSchema))->castAnySchemaToJsonableS
@@ -476,23 +477,23 @@ let rec toRescriptSchema = (jsonSchema: t) => {
   | {type_} if type_ === Arrayable.single(#string) =>
     let schema = S.string
     let schema = switch jsonSchema {
-    | {pattern} => schema->S.String.pattern(Js.Re.fromString(pattern))
+    | {pattern} => schema->S.pattern(Js.Re.fromString(pattern))
     | _ => schema
     }
 
     let schema = switch jsonSchema {
-    | {minLength} => schema->S.String.min(minLength)
+    | {minLength} => schema->S.stringMinLength(minLength)
     | _ => schema
     }
     let schema = switch jsonSchema {
-    | {maxLength} => schema->S.String.max(maxLength)
+    | {maxLength} => schema->S.stringMaxLength(maxLength)
     | _ => schema
     }
     switch jsonSchema {
-    | {format: "email"} => schema->S.String.email->castAnySchemaToJsonableS
-    | {format: "uri"} => schema->S.String.url->castAnySchemaToJsonableS
-    | {format: "uuid"} => schema->S.String.uuid->castAnySchemaToJsonableS
-    | {format: "date-time"} => schema->S.String.datetime->castAnySchemaToJsonableS
+    | {format: "email"} => schema->S.email->castAnySchemaToJsonableS
+    | {format: "uri"} => schema->S.url->castAnySchemaToJsonableS
+    | {format: "uuid"} => schema->S.uuid->castAnySchemaToJsonableS
+    | {format: "date-time"} => schema->S.datetime->castAnySchemaToJsonableS
     | _ => schema->castAnySchemaToJsonableS
     }
 
@@ -502,13 +503,13 @@ let rec toRescriptSchema = (jsonSchema: t) => {
   | {type_} if type_ === Arrayable.single(#number) => {
       let schema = S.float
       let schema = switch jsonSchema {
-      | {minimum} => schema->S.Float.min(minimum)
-      | {exclusiveMinimum} => schema->S.Float.min(exclusiveMinimum +. 1.)
+      | {minimum} => schema->S.floatMin(minimum)
+      | {exclusiveMinimum} => schema->S.floatMin(exclusiveMinimum +. 1.)
       | _ => schema
       }
       let schema = switch jsonSchema {
-      | {maximum} => schema->S.Float.max(maximum)
-      | {exclusiveMinimum} => schema->S.Float.max(exclusiveMinimum -. 1.)
+      | {maximum} => schema->S.floatMax(maximum)
+      | {exclusiveMinimum} => schema->S.floatMax(exclusiveMinimum -. 1.)
       | _ => schema
       }
       schema->castAnySchemaToJsonableS
@@ -517,21 +518,21 @@ let rec toRescriptSchema = (jsonSchema: t) => {
   | {type_} if type_ === Arrayable.single(#null) =>
     S.literal(%raw(`null`))->castAnySchemaToJsonableS
   | {if_, then, else_} => {
-      let ifStruct = if_->definitionToSchema
-      let thenStruct = then->definitionToSchema
-      let elseStruct = else_->definitionToSchema
-      S.json->S.refine(s => data => {
-        let result = switch data->S.parseWith(ifStruct) {
-        | Ok(_) => data->S.parseWith(thenStruct)
-        | Error(_) => data->S.parseWith(elseStruct)
+      let ifSchema = if_->definitionToSchema
+      let thenSchema = then->definitionToSchema
+      let elseSchema = else_->definitionToSchema
+      anySchema->S.refine(_ => data => {
+        let result = switch data->S.parseWith(ifSchema) {
+        | Ok(_) => data->S.parseWith(thenSchema)
+        | Error(_) => data->S.parseWith(elseSchema)
         }
         switch result {
         | Ok(_) => ()
-        | Error(e) => s.failWithError(e)
+        | Error(e) => S.Error.raise(e)
         }
       })
     }
-  | _ => S.json
+  | _ => anySchema
   }
 
   let schema = switch jsonSchema {
