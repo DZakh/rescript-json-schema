@@ -1,6 +1,6 @@
 {
   "name": "rescript-json-schema",
-  "version": "6.0.0",
+  "version": "6.0.1",
   "description": "Typesafe JSON Schema for ReScript",
   "keywords": [
     "rescript",
@@ -25,7 +25,7 @@
   "files": [
     "src/**/*.res",
     "src/**/*.resi",
-    "bsconfig.json"
+    "rescript.json"
   ],
   "scripts": {
     "coverage": "c8 --reporter=lcov npm test",
@@ -42,7 +42,7 @@
     "@dzakh/rescript-ava": "3.0.0",
     "ava": "5.2.0",
     "rescript": "11.1.1",
-    "rescript-schema": "7.0.0",
+    "rescript-schema": "7.0.1",
     "c8": "8.0.1"
   },
   "peerDependencies": {
