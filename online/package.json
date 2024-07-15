@@ -17,7 +17,7 @@
     "react-dom": "18.2.0",
     "rescript": "11.1.2",
     "rescript-json-schema": "./vendor/rescript-json-schema",
-    "rescript-schema": "7.0.1"
+    "rescript-schema": "8.0.0"
   },
   "devDependencies": {
     "@jihchi/vite-plugin-rescript": "^5.3.1",

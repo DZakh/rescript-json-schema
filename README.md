@@ -2,7 +2,7 @@
 [![codecov](https://codecov.io/gh/DZakh/rescript-json-schema/branch/main/graph/badge.svg?token=40G6YKKD6J)](https://codecov.io/gh/DZakh/rescript-json-schema)
 [![npm](https://img.shields.io/npm/dm/rescript-json-schema)](https://www.npmjs.com/package/rescript-json-schema)
 
-# ReScript JSON Schema
+# ReScript JSON Schema 📄
 
 Typesafe JSON Schema for ReScript
 

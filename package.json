@@ -1,7 +1,7 @@
 {
   "name": "rescript-json-schema",
-  "version": "6.0.1",
-  "description": "Typesafe JSON Schema for ReScript",
+  "version": "6.1.0",
+  "description": "📄 Typesafe JSON Schema for ReScript",
   "keywords": [
     "rescript",
     "json",
@@ -41,12 +41,12 @@
   "devDependencies": {
     "@dzakh/rescript-ava": "3.0.0",
     "ava": "5.2.0",
-    "rescript": "11.1.1",
-    "rescript-schema": "7.0.1",
+    "rescript": "11.1.2",
+    "rescript-schema": "8.0.0",
     "c8": "8.0.1"
   },
   "peerDependencies": {
     "rescript": "11.x",
-    "rescript-schema": "7.x"
+    "rescript-schema": "7.x || 8.x"
   }
 }

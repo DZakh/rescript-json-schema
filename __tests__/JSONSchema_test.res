@@ -383,7 +383,7 @@ test("Schema of EmptyOption Literal schema isn't supported", t => {
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
-    Error(`[ReScript JSON Schema] Failed converting at root. Reason: The Literal(undefined) schema is not supported`),
+    Error(`[ReScript JSON Schema] Failed converting at root. Reason: The undefined schema is not supported`),
   )
 })
 
@@ -392,7 +392,7 @@ test("Schema of NaN Literal schema isn't supported", t => {
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
-    Error(`[ReScript JSON Schema] Failed converting at root. Reason: The Literal(NaN) schema is not supported`),
+    Error(`[ReScript JSON Schema] Failed converting at root. Reason: The NaN schema is not supported`),
   )
 })
 
@@ -752,7 +752,7 @@ test("Transformed schema schema with default fails when destruction failed", t =
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
-    Error(`[ReScript JSON Schema] Failed converting at ["field"]. Reason: Couldn't destruct default value. Error: Failed serializing at root. Reason: The S.transform serializer is missing`),
+    Error(`[ReScript JSON Schema] Failed converting at ["field"]. Reason: Couldn't destruct default value. Error: Failed serializing to JSON at root. Reason: The S.transform serializer is missing`),
   )
 })
 
