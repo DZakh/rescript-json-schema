@@ -317,6 +317,24 @@ let extend = (schema, jsonSchema) => {
   )
 }
 
+let example = (schema: S.t<'value>, example: 'value) => {
+  let newExamples = [example->S.serializeOrRaiseWith(schema)]
+  let schemaExtend = switch schema->S.Metadata.get(~id=schemaExtendMetadataId) {
+  | Some(existingSchemaExtend) =>
+    merge(
+      existingSchemaExtend,
+      {
+        examples: switch existingSchemaExtend.examples {
+        | Some(examples) => Js.Array2.concat(examples, newExamples)
+        | None => newExamples
+        },
+      },
+    )
+  | None => {examples: newExamples}
+  }
+  schema->S.Metadata.set(~id=schemaExtendMetadataId, schemaExtend)
+}
+
 let castAnySchemaToJsonableS = (magic: S.t<'any> => S.t<Js.Json.t>)
 
 @inline

@@ -380,6 +380,23 @@ function extend(schema, jsonSchema) {
   return S$RescriptSchema.Metadata.set(schema, schemaExtendMetadataId, existingSchemaExtend !== undefined ? Object.assign({}, existingSchemaExtend, jsonSchema) : jsonSchema);
 }
 
+function example(schema, example$1) {
+  var newExamples = [S$RescriptSchema.serializeOrRaiseWith(example$1, schema)];
+  var existingSchemaExtend = S$RescriptSchema.Metadata.get(schema, schemaExtendMetadataId);
+  var schemaExtend;
+  if (existingSchemaExtend !== undefined) {
+    var examples = existingSchemaExtend.examples;
+    schemaExtend = Object.assign({}, existingSchemaExtend, {
+          examples: examples !== undefined ? examples.concat(newExamples) : newExamples
+        });
+  } else {
+    schemaExtend = {
+      examples: newExamples
+    };
+  }
+  return S$RescriptSchema.Metadata.set(schema, schemaExtendMetadataId, schemaExtend);
+}
+
 function primitiveToSchema(primitive) {
   return S$RescriptSchema.literal(primitive);
 }
@@ -733,5 +750,6 @@ exports.Definition = Definition;
 exports.Dependency = Dependency;
 exports.make = make;
 exports.extend = extend;
+exports.example = example;
 exports.toRescriptSchema = toRescriptSchema;
 /* schemaExtendMetadataId Not a pure module */

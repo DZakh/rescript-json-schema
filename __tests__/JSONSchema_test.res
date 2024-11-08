@@ -809,6 +809,51 @@ test("Primitive schema schema with additional raw schema", t => {
   )
 })
 
+test("Primitive schema with an example", t => {
+  let schema = S.bool->JSONSchema.example(true)
+
+  t->Assert.deepEqual(
+    JSONSchema.make(schema),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "boolean",
+        "examples": [true],
+      }`),
+    ),
+  )
+})
+
+test("Transformed schema with an example", t => {
+  let schema = S.null(S.bool)->JSONSchema.example(None)
+
+  t->Assert.deepEqual(
+    JSONSchema.make(schema),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "anyOf": [{"type": "boolean"}, {"type": "null"}],
+        "examples": [null],
+      }`),
+    ),
+  )
+})
+
+test("Multiple examples", t => {
+  let schema = S.string->JSONSchema.example("Hi")->JSONSchema.example("It's me")
+
+  t->Assert.deepEqual(
+    JSONSchema.make(schema),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "examples": ["Hi", "It's me"],
+      }`),
+    ),
+  )
+})
+
 test("Multiple additional raw schemas are merged together", t => {
   let schema =
     S.bool

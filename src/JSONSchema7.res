@@ -141,7 +141,7 @@ type rec t = {
   default?: Js.Json.t,
   readOnly?: bool,
   writeOnly?: bool,
-  examples?: Js.Json.t,
+  examples?: array<Js.Json.t>,
 }
 and definition
 and dependency
@@ -238,7 +238,7 @@ module Mutable = {
     mutable default?: Js.Json.t,
     mutable readOnly?: bool,
     mutable writeOnly?: bool,
-    mutable examples?: Js.Json.t,
+    mutable examples?: array<Js.Json.t>,
   }
 
   external fromReadOnly: readOnly => t = "%identity"
