@@ -40,7 +40,7 @@ function App(props) {
                   catch (raw_exn){
                     var exn = Caml_js_exceptions.internalToOCamlException(raw_exn);
                     return setErrors(function (param) {
-                                return "Errors:\n" + Core__Option.getWithDefault(Core__Option.flatMap(Caml_js_exceptions.as_js_exn(exn), (function (exn) {
+                                return "Errors:\n" + Core__Option.getOr(Core__Option.flatMap(Caml_js_exceptions.as_js_exn(exn), (function (exn) {
                                                   return exn.message;
                                                 })), "Unknown error");
                               });
@@ -50,13 +50,13 @@ function App(props) {
   var format = function () {
     try {
       return setJson(function (param) {
-                  return JSON.stringify(Json5.default.parse(json), null, 2);
+                  return JSON.stringify(Json5.default.parse(json), undefined, 2);
                 });
     }
     catch (raw_exn){
       var exn = Caml_js_exceptions.internalToOCamlException(raw_exn);
       return setErrors(function (param) {
-                  return "Errors:\n" + Core__Option.getWithDefault(Core__Option.flatMap(Caml_js_exceptions.as_js_exn(exn), (function (exn) {
+                  return "Errors:\n" + Core__Option.getOr(Core__Option.flatMap(Caml_js_exceptions.as_js_exn(exn), (function (exn) {
                                     return exn.message;
                                   })), "Unknown error");
                 });

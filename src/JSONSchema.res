@@ -189,17 +189,18 @@ let rec fromRescriptSchema:
           | Value(v) => v
           | Callback(cb) => cb()
           }
-          switch Some(defaultValue)
-          ->(magic: option<unknown> => unknown)
-          ->S.serializeWith(childSchema) {
-          | Error(destructingError) =>
-            Error.raise(
-              DefaultDestructingFailed({
-                destructingErrorMessage: destructingError->S.Error.message,
-              }),
-            )
-          | Ok(destructedValue) => jsonSchema.default = Some(destructedValue)
-          }
+          jsonSchema.default = Some(
+            try Some(defaultValue)
+            ->(magic: option<unknown> => unknown)
+            ->S.reverseConvertToJsonOrThrow(childSchema) catch {
+            | S.Raised(destructingError) =>
+              Error.raise(
+                DefaultDestructingFailed({
+                  destructingErrorMessage: destructingError->S.Error.message,
+                }),
+              )
+            },
+          )
         | None => ()
         }
       }
@@ -263,7 +264,8 @@ let rec fromRescriptSchema:
     | S.Literal(Dict(_))
     | S.Literal(Symbol(_))
     | S.Literal(Object(_))
-    | S.Literal(NaN(_)) =>
+    | S.Literal(NaN(_))
+    | S.BigInt =>
       Error.UnsupportedSchema.raise(schema)
     | S.Dict(childSchema) =>
       if childSchema->isOptionalSchema {
@@ -318,7 +320,7 @@ let extend = (schema, jsonSchema) => {
 }
 
 let example = (schema: S.t<'value>, example: 'value) => {
-  let newExamples = [example->S.serializeOrRaiseWith(schema)]
+  let newExamples = [example->S.reverseConvertToJsonOrThrow(schema)]
   let schemaExtend = switch schema->S.Metadata.get(~id=schemaExtendMetadataId) {
   | Some(existingSchemaExtend) =>
     merge(
@@ -404,7 +406,7 @@ let rec toRescriptSchema = (jsonSchema: t) => {
       )
       let schema = switch jsonSchema {
       | {additionalProperties} if additionalProperties === Definition.boolean(false) =>
-        schema->S.Object.strict
+        schema->S.strict
       | _ => schema
       }
       schema->castAnySchemaToJsonableS
@@ -413,7 +415,7 @@ let rec toRescriptSchema = (jsonSchema: t) => {
       | Some(additionalProperties) =>
         switch additionalProperties->Definition.classify {
         | Boolean(true) => S.dict(anySchema)->castAnySchemaToJsonableS
-        | Boolean(false) => S.object(_ => ())->S.Object.strict->castAnySchemaToJsonableS
+        | Boolean(false) => S.object(_ => ())->S.strict->castAnySchemaToJsonableS
         | Schema(s) => S.dict(s->toRescriptSchema)->castAnySchemaToJsonableS
         }
       | None => S.object(_ => ())->castAnySchemaToJsonableS
@@ -450,9 +452,8 @@ let rec toRescriptSchema = (jsonSchema: t) => {
   | {allOf: definitions} =>
     anySchema->S.refine(s => data => {
       definitions->Js.Array2.forEach(d => {
-        switch data->S.parseWith(d->definitionToSchema) {
-        | Ok(_) => ()
-        | Error(_) => s.fail("Should pass for all schemas of the allOf property.")
+        try data->S.assertOrThrow(d->definitionToSchema) catch {
+        | _ => s.fail("Should pass for all schemas of the allOf property.")
         }
       })
     })
@@ -462,11 +463,17 @@ let rec toRescriptSchema = (jsonSchema: t) => {
     anySchema->S.refine(s => data => {
       let hasOneValidRef = ref(false)
       definitions->Js.Array2.forEach(d => {
-        switch data->S.parseWith(d->definitionToSchema) {
-        | Ok(_) if hasOneValidRef.contents =>
-          s.fail("Should pass single schema according to the oneOf property.")
-        | Ok(_) => hasOneValidRef.contents = true
-        | Error(_) => ()
+        let passed = try {
+          data->S.assertOrThrow(d->definitionToSchema)
+          true
+        } catch {
+        | _ => false
+        }
+        if passed {
+          if hasOneValidRef.contents {
+            s.fail("Should pass single schema according to the oneOf property.")
+          }
+          hasOneValidRef.contents = true
         }
       })
       if hasOneValidRef.contents->not {
@@ -474,11 +481,17 @@ let rec toRescriptSchema = (jsonSchema: t) => {
       }
     })
   | {not} =>
-    anySchema->S.refine(s => data =>
-      switch data->S.parseWith(not->definitionToSchema) {
-      | Ok(_) => s.fail("Should NOT be valid against schema in the not property.")
-      | Error(_) => ()
-      })
+    anySchema->S.refine(s => data => {
+      let passed = try {
+        data->S.assertOrThrow(not->definitionToSchema)
+        true
+      } catch {
+      | _ => false
+      }
+      if passed {
+        s.fail("Should NOT be valid against schema in the not property.")
+      }
+    })
   // needs to come before primitives
   | {enum: []} => anySchema
   | {enum: [p]} => p->primitiveToSchema
@@ -540,13 +553,16 @@ let rec toRescriptSchema = (jsonSchema: t) => {
       let thenSchema = then->definitionToSchema
       let elseSchema = else_->definitionToSchema
       anySchema->S.refine(_ => data => {
-        let result = switch data->S.parseWith(ifSchema) {
-        | Ok(_) => data->S.parseWith(thenSchema)
-        | Error(_) => data->S.parseWith(elseSchema)
+        let passed = try {
+          data->S.assertOrThrow(ifSchema)
+          true
+        } catch {
+        | _ => false
         }
-        switch result {
-        | Ok(_) => ()
-        | Error(e) => S.Error.raise(e)
+        if passed {
+          data->S.assertOrThrow(thenSchema)
+        } else {
+          data->S.assertOrThrow(elseSchema)
         }
       })
     }

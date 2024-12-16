@@ -76,8 +76,8 @@ function toString(error) {
 var schemaExtendMetadataId = S$RescriptSchema.Metadata.Id.make("rescript-json-schema", "schemaExtend");
 
 function isOptionalSchema(schema) {
-  var match = S$RescriptSchema.classify(schema);
-  if (typeof match !== "object" || match.TAG !== "Option") {
+  var match = schema.t;
+  if (typeof match !== "object" || match.TAG !== "option") {
     return false;
   } else {
     return true;
@@ -86,15 +86,15 @@ function isOptionalSchema(schema) {
 
 function fromRescriptSchema(schema) {
   var jsonSchema = {};
-  var childSchema = S$RescriptSchema.classify(schema);
+  var childSchema = schema.t;
   if (typeof childSchema !== "object") {
     switch (childSchema) {
-      case "Never" :
+      case "never" :
           jsonSchema.not = {};
           break;
-      case "Unknown" :
+      case "unknown" :
           break;
-      case "String" :
+      case "string" :
           jsonSchema.type = "string";
           S$RescriptSchema.$$String.refinements(schema).forEach(function (refinement) {
                 var match = refinement.kind;
@@ -137,7 +137,7 @@ function fromRescriptSchema(schema) {
                 }
               });
           break;
-      case "Int" :
+      case "int32" :
           jsonSchema.type = "integer";
           S$RescriptSchema.Int.refinements(schema).forEach(function (refinement) {
                 var match = refinement.kind;
@@ -153,7 +153,7 @@ function fromRescriptSchema(schema) {
                 }
               });
           break;
-      case "Float" :
+      case "number" :
           jsonSchema.type = "number";
           S$RescriptSchema.Float.refinements(schema).forEach(function (refinement) {
                 var match = refinement.kind;
@@ -164,14 +164,17 @@ function fromRescriptSchema(schema) {
                 }
               });
           break;
-      case "Bool" :
+      case "bigint" :
+          raise$2(schema);
+          break;
+      case "boolean" :
           jsonSchema.type = "boolean";
           break;
       
     }
   } else {
     switch (childSchema.TAG) {
-      case "Literal" :
+      case "literal" :
           var match = childSchema._0;
           switch (match.kind) {
             case "String" :
@@ -195,7 +198,7 @@ function fromRescriptSchema(schema) {
               raise$2(schema);
           }
           break;
-      case "Option" :
+      case "option" :
           var childSchema$1 = childSchema._0;
           if (isOptionalSchema(childSchema$1)) {
             raise("UnsupportedNestedOptional");
@@ -206,18 +209,25 @@ function fromRescriptSchema(schema) {
           if ($$default !== undefined) {
             var defaultValue;
             defaultValue = $$default.TAG === "Value" ? $$default._0 : $$default._0();
-            var destructingError = S$RescriptSchema.serializeWith(Caml_option.some(defaultValue), childSchema$1);
-            if (destructingError.TAG === "Ok") {
-              jsonSchema.default = destructingError._0;
-            } else {
-              raise({
-                    TAG: "DefaultDestructingFailed",
-                    destructingErrorMessage: S$RescriptSchema.$$Error.message(destructingError._0)
-                  });
+            var tmp;
+            try {
+              tmp = S$RescriptSchema.reverseConvertToJsonOrThrow(Caml_option.some(defaultValue), childSchema$1);
             }
+            catch (raw_destructingError){
+              var destructingError = Caml_js_exceptions.internalToOCamlException(raw_destructingError);
+              if (destructingError.RE_EXN_ID === S$RescriptSchema.Raised) {
+                tmp = raise({
+                      TAG: "DefaultDestructingFailed",
+                      destructingErrorMessage: S$RescriptSchema.$$Error.message(destructingError._1)
+                    });
+              } else {
+                throw destructingError;
+              }
+            }
+            jsonSchema.default = tmp;
           }
           break;
-      case "Null" :
+      case "null" :
           jsonSchema.anyOf = [
             fromRescriptSchema(childSchema._0),
             {
@@ -225,7 +235,7 @@ function fromRescriptSchema(schema) {
             }
           ];
           break;
-      case "Array" :
+      case "array" :
           var childSchema$2 = childSchema._0;
           if (isOptionalSchema(childSchema$2)) {
             raise$1(schema);
@@ -250,29 +260,29 @@ function fromRescriptSchema(schema) {
                 }
               });
           break;
-      case "Object" :
+      case "object" :
           var properties = {};
           var required = [];
           childSchema.items.forEach(function (item) {
                 var fieldSchema;
                 try {
-                  fieldSchema = fromRescriptSchema(item.t);
+                  fieldSchema = fromRescriptSchema(item.schema);
                 }
                 catch (raw_error){
                   var error = Caml_js_exceptions.internalToOCamlException(raw_error);
                   if (error.RE_EXN_ID === Exception) {
                     throw {
                           RE_EXN_ID: Exception,
-                          _1: prependLocation(error._1, item.l),
+                          _1: prependLocation(error._1, item.location),
                           Error: new Error()
                         };
                   }
                   throw error;
                 }
-                if (!isOptionalSchema(item.t)) {
-                  required.push(item.l);
+                if (!isOptionalSchema(item.schema)) {
+                  required.push(item.location);
                 }
-                properties[item.l] = fieldSchema;
+                properties[item.location] = fieldSchema;
               });
           var additionalProperties;
           additionalProperties = childSchema.unknownKeys === "Strip" ? true : false;
@@ -283,13 +293,13 @@ function fromRescriptSchema(schema) {
             jsonSchema.required = required;
           }
           break;
-      case "Tuple" :
+      case "tuple" :
           var items = childSchema.items.map(function (item, idx) {
                 try {
-                  if (isOptionalSchema(item.t)) {
+                  if (isOptionalSchema(item.schema)) {
                     return raise$1(schema);
                   } else {
-                    return fromRescriptSchema(item.t);
+                    return fromRescriptSchema(item.schema);
                   }
                 }
                 catch (raw_error){
@@ -310,7 +320,7 @@ function fromRescriptSchema(schema) {
           jsonSchema.minItems = itemsNumber;
           jsonSchema.maxItems = itemsNumber;
           break;
-      case "Union" :
+      case "union" :
           var items$1 = childSchema._0.map(function (childSchema) {
                 if (isOptionalSchema(childSchema)) {
                   return raise$1(schema);
@@ -320,7 +330,7 @@ function fromRescriptSchema(schema) {
               });
           jsonSchema.anyOf = items$1;
           break;
-      case "Dict" :
+      case "dict" :
           var childSchema$3 = childSchema._0;
           if (isOptionalSchema(childSchema$3)) {
             raise$1(schema);
@@ -381,7 +391,7 @@ function extend(schema, jsonSchema) {
 }
 
 function example(schema, example$1) {
-  var newExamples = [S$RescriptSchema.serializeOrRaiseWith(example$1, schema)];
+  var newExamples = [S$RescriptSchema.reverseConvertToJsonOrThrow(example$1, schema)];
   var existingSchemaExtend = S$RescriptSchema.Metadata.get(schema, schemaExtendMetadataId);
   var schemaExtend;
   if (existingSchemaExtend !== undefined) {
@@ -477,13 +487,13 @@ function toRescriptSchema(jsonSchema) {
                             }));
             });
         var additionalProperties = jsonSchema.additionalProperties;
-        schema = additionalProperties !== undefined && Caml_option.valFromOption(additionalProperties) === false ? S$RescriptSchema.$$Object.strict(schema$1) : schema$1;
+        schema = additionalProperties !== undefined && Caml_option.valFromOption(additionalProperties) === false ? S$RescriptSchema.strict(schema$1) : schema$1;
       } else {
         var additionalProperties$1 = jsonSchema.additionalProperties;
         if (additionalProperties$1 !== undefined) {
           var s = JSONSchema7.Definition.classify(Caml_option.valFromOption(additionalProperties$1));
           schema = s.TAG === "Schema" ? S$RescriptSchema.dict(toRescriptSchema(s._0)) : (
-              s._0 ? S$RescriptSchema.dict(anySchema) : S$RescriptSchema.$$Object.strict(S$RescriptSchema.object(function (param) {
+              s._0 ? S$RescriptSchema.dict(anySchema) : S$RescriptSchema.strict(S$RescriptSchema.object(function (param) {
                           
                         }))
             );
@@ -539,10 +549,10 @@ function toRescriptSchema(jsonSchema) {
         schema = len$1 !== 0 ? S$RescriptSchema.refine(anySchema, (function (s) {
                   return function (data) {
                     definitions.forEach(function (d) {
-                          var match = S$RescriptSchema.parseWith(data, definitionToSchema(d));
-                          if (match.TAG === "Ok") {
-                            return ;
-                          } else {
+                          try {
+                            return S$RescriptSchema.assertOrThrow(data, definitionToSchema(d));
+                          }
+                          catch (exn){
                             return s.fail("Should pass for all schemas of the allOf property.", undefined);
                           }
                         });
@@ -563,14 +573,20 @@ function toRescriptSchema(jsonSchema) {
                         contents: false
                       };
                       definitions$2.forEach(function (d) {
-                            var match = S$RescriptSchema.parseWith(data, definitionToSchema(d));
-                            if (match.TAG === "Ok") {
+                            var passed;
+                            try {
+                              S$RescriptSchema.assertOrThrow(data, definitionToSchema(d));
+                              passed = true;
+                            }
+                            catch (exn){
+                              passed = false;
+                            }
+                            if (passed) {
                               if (hasOneValidRef.contents) {
-                                return s.fail("Should pass single schema according to the oneOf property.", undefined);
-                              } else {
-                                hasOneValidRef.contents = true;
-                                return ;
+                                s.fail("Should pass single schema according to the oneOf property.", undefined);
                               }
+                              hasOneValidRef.contents = true;
+                              return ;
                             }
                             
                           });
@@ -590,8 +606,15 @@ function toRescriptSchema(jsonSchema) {
           var not$1 = Caml_option.valFromOption(not);
           schema = S$RescriptSchema.refine(anySchema, (function (s) {
                   return function (data) {
-                    var match = S$RescriptSchema.parseWith(data, definitionToSchema(not$1));
-                    if (match.TAG === "Ok") {
+                    var passed;
+                    try {
+                      S$RescriptSchema.assertOrThrow(data, definitionToSchema(not$1));
+                      passed = true;
+                    }
+                    catch (exn){
+                      passed = false;
+                    }
+                    if (passed) {
                       return s.fail("Should NOT be valid against schema in the not property.", undefined);
                     }
                     
@@ -706,13 +729,18 @@ function toRescriptSchema(jsonSchema) {
           var elseSchema = definitionToSchema(Caml_option.valFromOption(else_));
           schema = S$RescriptSchema.refine(anySchema, (function (param) {
                   return function (data) {
-                    var match = S$RescriptSchema.parseWith(data, ifSchema);
-                    var result;
-                    result = match.TAG === "Ok" ? S$RescriptSchema.parseWith(data, thenSchema) : S$RescriptSchema.parseWith(data, elseSchema);
-                    if (result.TAG === "Ok") {
-                      return ;
+                    var passed;
+                    try {
+                      S$RescriptSchema.assertOrThrow(data, ifSchema);
+                      passed = true;
+                    }
+                    catch (exn){
+                      passed = false;
+                    }
+                    if (passed) {
+                      return S$RescriptSchema.assertOrThrow(data, thenSchema);
                     } else {
-                      return S$RescriptSchema.$$Error.raise(result._0);
+                      return S$RescriptSchema.assertOrThrow(data, elseSchema);
                     }
                   };
                 }));

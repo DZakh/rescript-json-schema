@@ -53,7 +53,7 @@ let make = () => {
             `Errors:\n${exn
               ->Exn.asJsExn
               ->Option.flatMap(exn => exn->Exn.message)
-              ->Option.getWithDefault("Unknown error")}`
+              ->Option.getOr("Unknown error")}`
           )
         }
       }
@@ -64,14 +64,14 @@ let make = () => {
 
   let format = () => {
     try {
-      setJson(_ => JSON.stringifyWithIndent(parseJson5(json), 2))
+      setJson(_ => JSON.stringify(parseJson5(json), ~space=2))
     } catch {
     | exn =>
       setErrors(_ =>
         `Errors:\n${exn
           ->Exn.asJsExn
           ->Option.flatMap(exn => exn->Exn.message)
-          ->Option.getWithDefault("Unknown error")}`
+          ->Option.getOr("Unknown error")}`
       )
     }
   }

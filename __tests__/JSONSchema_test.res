@@ -553,7 +553,7 @@ test("Schema of object schema with one string discriminant", t => {
 })
 
 test("Schema of object schema with Strip unknownKeys strategy allows additionalProperties", t => {
-  let schema = S.object(s => s.field("field", S.string))->S.Object.strip
+  let schema = S.object(s => s.field("field", S.string))->S.strip
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -572,7 +572,7 @@ test("Schema of object schema with Strip unknownKeys strategy allows additionalP
 test(
   "Schema of object schema with Strict unknownKeys strategy disallows additionalProperties",
   t => {
-    let schema = S.object(s => s.field("field", S.string))->S.Object.strict
+    let schema = S.object(s => s.field("field", S.string))->S.strict
 
     t->Assert.deepEqual(
       JSONSchema.make(schema),
@@ -752,7 +752,7 @@ test("Transformed schema schema with default fails when destruction failed", t =
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
-    Error(`[ReScript JSON Schema] Failed converting at ["field"]. Reason: Couldn't destruct default value. Error: Failed serializing to JSON at root. Reason: The S.transform serializer is missing`),
+    Error(`[ReScript JSON Schema] Failed converting at ["field"]. Reason: Couldn't destruct default value. Error: Failed reverse converting to JSON at root. Reason: The S.transform serializer is missing`),
   )
 })
 
@@ -923,28 +923,28 @@ test("Fails to create schema for schemas with optional items", t => {
   t->Assert.deepEqual(
     JSONSchema.make(S.dict(S.option(S.string))),
     Error(
-      "[ReScript JSON Schema] Failed converting at root. Reason: Optional schema is not supported as Dict(Option(String)) item",
+      "[ReScript JSON Schema] Failed converting at root. Reason: Optional schema is not supported as dict<string | undefined> item",
     ),
   )
   t->Assert.deepEqual(
     JSONSchema.make(S.array(S.option(S.string))),
     Error(
-      "[ReScript JSON Schema] Failed converting at root. Reason: Optional schema is not supported as Array(Option(String)) item",
+      "[ReScript JSON Schema] Failed converting at root. Reason: Optional schema is not supported as array<string | undefined> item",
     ),
   )
   t->Assert.deepEqual(
     JSONSchema.make(S.union([S.option(S.string), S.null(S.string)])),
     Error(
-      "[ReScript JSON Schema] Failed converting at root. Reason: Optional schema is not supported as Union(Option(String), Null(String)) item",
+      "[ReScript JSON Schema] Failed converting at root. Reason: Optional schema is not supported as string | undefined | string | null item",
     ),
   )
   t->Assert.deepEqual(
     JSONSchema.make(S.tuple1(S.option(S.string))),
-    Error(`[ReScript JSON Schema] Failed converting at ["0"]. Reason: Optional schema is not supported as Tuple(Option(String)) item`),
+    Error(`[ReScript JSON Schema] Failed converting at ["0"]. Reason: Optional schema is not supported as [string | undefined] item`),
   )
   t->Assert.deepEqual(
     JSONSchema.make(S.tuple1(S.array(S.option(S.string)))),
-    Error(`[ReScript JSON Schema] Failed converting at ["0"]. Reason: Optional schema is not supported as Array(Option(String)) item`),
+    Error(`[ReScript JSON Schema] Failed converting at ["0"]. Reason: Optional schema is not supported as array<string | undefined> item`),
   )
 })
 
