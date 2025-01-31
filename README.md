@@ -78,12 +78,7 @@ JSONSchema.make(filmSchema)
     "Title": { "type": "string" },
     "Tags": { "items": { "type": "string" }, "type": "array", "default": [] },
     "Rating": {
-      "anyOf": [
-        { "type": "string", "const": "G" },
-        { "type": "string", "const": "PG" },
-        { "type": "string", "const": "PG13" },
-        { "type": "string", "const": "R" }
-      ]
+      "enum": ["G", "PG", "PG13", "R"]
     },
     "Age": {
       "type": "integer",

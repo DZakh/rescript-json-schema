@@ -321,14 +321,27 @@ function fromRescriptSchema(schema) {
           jsonSchema.maxItems = itemsNumber;
           break;
       case "union" :
-          var items$1 = childSchema._0.map(function (childSchema) {
+          var literals = [];
+          var items$1 = [];
+          childSchema._0.forEach(function (childSchema) {
                 if (isOptionalSchema(childSchema)) {
-                  return raise$1(schema);
-                } else {
-                  return fromRescriptSchema(childSchema);
+                  raise$1(schema);
                 }
+                items$1.push(fromRescriptSchema(childSchema));
+                var l = childSchema.t;
+                if (typeof l !== "object") {
+                  return ;
+                }
+                if (l.TAG !== "literal") {
+                  return ;
+                }
+                literals.push(S$RescriptSchema.Literal.value(l._0));
               });
-          jsonSchema.anyOf = items$1;
+          if (literals.length === items$1.length) {
+            jsonSchema.enum = literals;
+          } else {
+            jsonSchema.anyOf = items$1;
+          }
           break;
       case "dict" :
           var childSchema$3 = childSchema._0;

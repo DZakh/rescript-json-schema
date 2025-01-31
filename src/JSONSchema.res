@@ -165,14 +165,27 @@ let rec fromRescriptSchema:
       }
 
     | S.Union(childSchemas) => {
-        let items = childSchemas->Js.Array2.map(childSchema => {
+        let literals = []
+        let items = []
+
+        childSchemas->Js.Array2.forEach(childSchema => {
           if childSchema->isOptionalSchema {
             Error.UnsupportedOptionalItem.raise(schema)
-          } else {
-            Definition.schema(fromRescriptSchema(childSchema))
+          }
+
+          items->Js.Array2.push(Definition.schema(fromRescriptSchema(childSchema)))->ignore
+          switch childSchema->S.classify {
+          | Literal(l) =>
+            literals->Js.Array2.push(l->S.Literal.value->(magic: unknown => Js.Json.t))->ignore
+          | _ => ()
           }
         })
-        jsonSchema.anyOf = Some(items)
+
+        if literals->Js.Array2.length === items->Js.Array2.length {
+          jsonSchema.enum = Some(literals)
+        } else {
+          jsonSchema.anyOf = Some(items)
+        }
       }
 
     | S.Option(childSchema) => {

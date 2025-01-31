@@ -413,8 +413,22 @@ test("Schema of tuple schema", t => {
   )
 })
 
+test("Schema of enum schema", t => {
+  let schema = S.enum(["Yes", "No"])
+
+  t->Assert.deepEqual(
+    JSONSchema.make(schema),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "enum": ["Yes", "No"]
+      }`),
+    ),
+  )
+})
+
 test("Schema of union schema", t => {
-  let schema = S.union([S.literal("Yes"), S.literal("No")])
+  let schema = S.union([S.literal("Yes"), S.string])
 
   t->Assert.deepEqual(
     JSONSchema.make(schema),
@@ -427,7 +441,6 @@ test("Schema of union schema", t => {
             type: 'string'
           },
           {
-            const: 'No',
             type: 'string'
           }
         ]
@@ -990,12 +1003,7 @@ module Example = {
             Title: { type: "string" },
             Tags: { items: { type: "string" }, type: "array", default: [] },
             Rating: {
-              anyOf: [
-                { type: "string", const: "G" },
-                { type: "string", const: "PG" },
-                { type: "string", const: "PG13" },
-                { type: "string", const: "R" },
-              ],
+              enum: ["G", "PG", "PG13", "R"],
             },
             Age: {
               type: "integer",
