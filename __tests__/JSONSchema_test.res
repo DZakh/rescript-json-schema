@@ -334,6 +334,28 @@ test("Schema of String Literal schema", t => {
   )
 })
 
+test("Schema of Object Literal schema", t => {
+  let schema = S.literal({"received": true})
+
+  t->Assert.deepEqual(
+    JSONSchema.make(schema),
+    Ok(
+      %raw(`{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "received": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": ["received"]
+      }`),
+    ),
+  )
+})
+
 test("Schema of Int Literal schema", t => {
   let schema = S.literal(123)
 

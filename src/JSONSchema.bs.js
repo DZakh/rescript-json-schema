@@ -191,6 +191,19 @@ function fromRescriptSchema(schema) {
                 jsonSchema.type = "boolean";
                 jsonSchema.const = match.value;
                 break;
+            case "Dict" :
+                var properties = {};
+                var required = [];
+                Js_dict.entries(match.value).forEach(function (param) {
+                      var key = param[0];
+                      required.push(key);
+                      properties[key] = fromRescriptSchema(S$RescriptSchema.literal(param[1]));
+                    });
+                jsonSchema.type = "object";
+                jsonSchema.properties = properties;
+                jsonSchema.required = required;
+                jsonSchema.additionalProperties = Caml_option.some(false);
+                break;
             case "Null" :
                 jsonSchema.type = "null";
                 break;
@@ -261,8 +274,8 @@ function fromRescriptSchema(schema) {
               });
           break;
       case "object" :
-          var properties = {};
-          var required = [];
+          var properties$1 = {};
+          var required$1 = [];
           childSchema.items.forEach(function (item) {
                 var fieldSchema;
                 try {
@@ -280,17 +293,17 @@ function fromRescriptSchema(schema) {
                   throw error;
                 }
                 if (!isOptionalSchema(item.schema)) {
-                  required.push(item.location);
+                  required$1.push(item.location);
                 }
-                properties[item.location] = fieldSchema;
+                properties$1[item.location] = fieldSchema;
               });
           var additionalProperties;
           additionalProperties = childSchema.unknownKeys === "Strip" ? true : false;
           jsonSchema.type = "object";
-          jsonSchema.properties = properties;
+          jsonSchema.properties = properties$1;
           jsonSchema.additionalProperties = Caml_option.some(additionalProperties);
-          if (required.length !== 0) {
-            jsonSchema.required = required;
+          if (required$1.length !== 0) {
+            jsonSchema.required = required$1;
           }
           break;
       case "tuple" :

@@ -270,11 +270,24 @@ let rec fromRescriptSchema:
         jsonSchema.const = Some(Js.Json.string(value))
       }
     | S.Literal(Null(_)) => jsonSchema.type_ = Some(Arrayable.single(#null))
+    | S.Literal(Dict({value})) => {
+        let properties = Js.Dict.empty()
+        let required = []
+        value
+        ->Js.Dict.entries
+        ->Js.Array2.forEach(((key, value)) => {
+          required->Js.Array2.push(key)->ignore
+          properties->Js.Dict.set(key, Definition.schema(fromRescriptSchema(S.literal(value))))
+        })
+        jsonSchema.type_ = Some(Arrayable.single(#object))
+        jsonSchema.properties = Some(properties)
+        jsonSchema.required = Some(required)
+        jsonSchema.additionalProperties = Some(Definition.boolean(false))
+      }
     | S.Literal(Undefined(_))
     | S.Literal(BigInt(_))
     | S.Literal(Function(_))
     | S.Literal(Array(_))
-    | S.Literal(Dict(_))
     | S.Literal(Symbol(_))
     | S.Literal(Object(_))
     | S.Literal(NaN(_))
