@@ -4,9 +4,9 @@
   "bsc-flags": ["-open RescriptSchema"],
   "bs-dev-dependencies": ["@dzakh/rescript-ava"],
   "bs-dependencies": ["rescript-schema"],
-  "suffix": ".bs.js",
+  "suffix": ".res.mjs",
   "package-specs": {
-    "module": "commonjs",
+    "module": "esmodule",
     "in-source": true
   },
   "sources": [

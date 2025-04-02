@@ -3,11 +3,11 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "vendor": "rsync -av --exclude='node_modules' --exclude='lib' --exclude='coverage' --exclude='__tests__' --exclude='.git' --exclude='online' ../ ./vendor/rescript-json-schema",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
+  "type": "module",
   "dependencies": {
     "@rescript/core": "1.6.1",
     "@rescript/react": "0.11.0",
@@ -16,7 +16,7 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "rescript": "11.1.4",
-    "rescript-json-schema": "./vendor/rescript-json-schema",
+    "rescript-json-schema": "file:..",
     "rescript-schema": "9.0.1"
   },
   "devDependencies": {

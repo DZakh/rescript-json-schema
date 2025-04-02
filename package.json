@@ -1,6 +1,6 @@
 {
   "name": "rescript-json-schema",
-  "version": "7.2.0",
+  "version": "7.3.0",
   "description": "📄 Typesafe JSON Schema for ReScript",
   "keywords": [
     "rescript",
@@ -22,9 +22,13 @@
   },
   "license": "MIT",
   "author": "Dmitry Zakharov <dzakh.dev@gmail.com>",
+  "module": "./src/JSONSchema.res.mjs",
+  "types": "./index.d.ts",
   "files": [
+    "src/**/*.res.mjs",
     "src/**/*.res",
     "src/**/*.resi",
+    "index.d.ts",
     "rescript.json"
   ],
   "scripts": {
@@ -35,7 +39,7 @@
   },
   "ava": {
     "files": [
-      "__tests__/**/*_test.bs.js"
+      "__tests__/**/*_test.res.mjs"
     ]
   },
   "devDependencies": {

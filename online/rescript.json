@@ -8,11 +8,11 @@
   ],
   "package-specs": [
     {
-      "module": "es6",
+      "module": "esmodule",
       "in-source": true
     }
   ],
-  "suffix": ".bs.mjs",
+  "suffix": ".res.mjs",
   "bs-dependencies": [
     "@rescript/react",
     "@rescript/core",
